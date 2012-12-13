@@ -44,6 +44,15 @@
     (should (equal (assoc-default 'path data) "/some-path"))
     (should (equal (assoc-default 'method data) "POST"))))
 
+(request-deftest request-simple-put ()
+  (let* ((result (request-testing-sync (request-testing-url "some-path")
+                                       :type "PUT"
+                                       :data "dummy-data"
+                                       :parser 'request-parser-json))
+         (data (plist-get result :data)))
+    (should (equal (assoc-default 'path data) "/some-path"))
+    (should (equal (assoc-default 'method data) "PUT"))))
+
 (provide 'test-request)
 
 ;;; test-request.el ends here
