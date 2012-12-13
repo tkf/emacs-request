@@ -28,6 +28,12 @@
 
 (require 'request-testing)
 
+(let ((level (getenv "EL_REQUEST_MESSAGE_LEVEL")))
+  (when (and level (not (equal level "")))
+    (setq request-message-level (intern level))))
+(setq request-log-level request-message-level)
+
+
 (request-deftest request-simple-get ()
   (let* ((result (request-testing-sync (request-testing-url "some-path")
                                        :parser 'request-parser-json))

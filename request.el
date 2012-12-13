@@ -58,6 +58,14 @@
   "Default request timeout in second."
   :group 'request)
 
+(defcustom request-log-level -1
+  "Logging level for request."
+  :group 'request)
+
+(defcustom request-message-level 'warn
+  "Logging level for request."
+  :group 'request)
+
 
 ;;; Internal variables
 
@@ -80,14 +88,44 @@ See: http://api.jquery.com/jQuery.ajax/"
   ;; FIXME: parse URL before adding ?_=TIME.
   (concat url (format-time-string "?_=%s")))
 
-(defun request-log (&rest args)
-  ;; FIXME: implement
-  )
-
 (defun request-parser-json ()
   (goto-char (point-max))
   (backward-sexp)
   (json-read))
+
+
+;;; Logging
+
+(defvar request--log-level-def
+  '(;; debugging
+    (blather . 60) (trace . 50) (debug . 40)
+    ;; information
+    (verbose . 30) (info . 20)
+    ;; errors
+    (warn . 10) (error . 0))
+  "Named logging levels.")
+
+(defun request--log-level-as-int (level)
+  (if (integerp level)
+      level
+    (or (cdr (assq level request--log-level-def))
+        0)))
+
+(defvar request-log-buffer-name " *request-log*")
+
+(defun request--log-buffer ()
+  (get-buffer-create request-log-buffer-name))
+
+(defmacro request-log (level fmt &rest args)
+  `(let ((level (request--log-level-as-int ,level))
+         (log-level (request--log-level-as-int request-log-level))
+         (msg-level (request--log-level-as-int request-message-level)))
+     (when (<= level (max log-level msg-level))
+       (let ((msg (format "[%s] %s" ,level (format ,fmt ,@args))))
+         (when (<= level log-level)
+           (with-current-buffer (request--log-buffer) (insert msg "\n")))
+         (when (<= level msg-level)
+           (message "REQUEST %s" msg))))))
 
 
 ;;; Main
