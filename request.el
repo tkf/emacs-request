@@ -280,7 +280,8 @@ then kill the current buffer."
     (process-put proc :request settings)
     (set-process-sentinel proc #'request--curl-callback)
     (when data
-      (process-send-string proc data))
+      (process-send-string proc data)
+      (process-send-eof proc))
     buffer))
 
 (defun request--curl-callback (proc event)
