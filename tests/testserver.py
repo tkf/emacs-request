@@ -28,16 +28,24 @@ def testingapp(environ, start_response):
     ))
 
 
-def main():
+def run(port):
     import sys
     from wsgiref.simple_server import make_server
 
-    port = get_open_port()
+    port = port or get_open_port()
     print port
     sys.stdout.flush()
 
     server = make_server('', port, testingapp)
     server.serve_forever()
+
+
+def main(args=None):
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--port', default=0, type=int)
+    ns = parser.parse_args(args)
+    run(**vars(ns))
 
 
 if __name__ == '__main__':
