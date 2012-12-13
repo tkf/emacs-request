@@ -28,6 +28,7 @@
 
 (eval-when-compile (require 'cl))
 (eval-when-compile (require 'url))
+(require 'json nil t)
 
 (defgroup request nil
   "Compatible layer for URL request in Emacs."
@@ -57,7 +58,9 @@
 ;;; Utilities
 
 (defun request--safe-apply (function &rest arguments)
-  (ignore-errors (apply function arguments)))
+  (condition-case err
+      (apply function arguments)
+    ((debug error))))
 
 (defun request--url-no-cache (url)
   "Imitate `cache=false' of `jQuery.ajax'.
@@ -69,6 +72,11 @@ See: http://api.jquery.com/jQuery.ajax/"
   ;; FIXME: implement
   )
 
+(defun request-parser-json ()
+  (goto-char (point-max))
+  (backward-sexp)
+  (json-read))
+
 
 ;;; Main
 
@@ -77,9 +85,6 @@ See: http://api.jquery.com/jQuery.ajax/"
   (request-log 'error
     "Error (%s) while connecting to %s.  Please retry."
     symbol-status url))
-
-(defun request-get-default-error-callback (url)
-  (cons #'request-default-error-callback url))
 
 (defun* request (url &rest settings
                      &key
@@ -146,7 +151,7 @@ is killed immediately after the execution of this function.
   (unless cache
     (setq url (request--url-no-cache url)))
   (unless error
-    (setq error (request-get-default-error-callback url))
+    (setq error (apply-partially #'request-default-error-callback url))
     (plist-put settings :error error))
   (let* ((url-request-extra-headers headers)
          (url-request-method type)
@@ -206,13 +211,13 @@ then kill the current buffer."
     (request-log 'debug "canceled = %s" canceled)
 
     (request-log 'debug "Executing success/error callback.")
-    (request--safe-apply
-     (append (if (or (plist-get status :error) canceled)
-                 (list error :symbol-status (or canceled 'error))
-               (list success))
-             (list :status status :data data
-                   :response-status response-status)))
-    (unless canceled
+    (apply #'request--safe-apply
+           (append (if (or (plist-get status :error) canceled)
+                       (list error :symbol-status (or canceled 'error))
+                     (list success))
+                   (list :status status :data data
+                         :response-status response-status)))
+    (when (and (not canceled) status-code-callback)
       (request-log 'debug "Executing status-code callback.")
       (request--safe-apply status-code-callback :status status :data data))))
 
