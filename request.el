@@ -79,8 +79,11 @@
 
 (defun request--safe-apply (function &rest arguments)
   (condition-case err
-      (apply function arguments)
+      (apply #'apply function arguments)
     ((debug error))))
+
+(defun request--safe-call (function &rest arguments)
+  (request--safe-apply function arguments))
 
 (defun request--url-no-cache (url)
   "Imitate `cache=false' of `jQuery.ajax'.
@@ -280,16 +283,18 @@ then kill the current buffer."
     (request-log 'debug "data = %s" data)
     (request-log 'debug "canceled = %s" canceled)
 
-    (request-log 'debug "Executing success/error callback.")
-    (apply #'request--safe-apply
-           (append (if (or (plist-get status :error) canceled)
-                       (list error :symbol-status (or canceled 'error))
-                     (list success))
-                   (list :status status :data data
-                         :response-status response-status)))
+    (let ((args (list :status status :data data
+                      :response-status response-status)))
+      (if (not (or status-error canceled))
+          (progn
+            (request-log 'debug "Executing success callback.")
+            (request--safe-apply success args))
+        (request-log 'debug "Executing error callback.")
+        (request--safe-apply error :symbol-status (or canceled 'error) args)))
+
     (when (and (not canceled) status-code-callback)
       (request-log 'debug "Executing status-code callback.")
-      (request--safe-apply status-code-callback :status status :data data))))
+      (request--safe-call status-code-callback :status status :data data))))
 
 (defun* request--timeout-callback (buffer &key (error nil) &allow-other-keys)
   (request-log 'debug "REQUEST--TIMEOUT-CALLBACK buffer = %S" buffer)
