@@ -117,6 +117,7 @@ See: http://api.jquery.com/jQuery.ajax/"
   (get-buffer-create request-log-buffer-name))
 
 (defmacro request-log (level fmt &rest args)
+  (declare (indent 1))
   `(let ((level (request--log-level-as-int ,level))
          (log-level (request--log-level-as-int request-log-level))
          (msg-level (request--log-level-as-int request-message-level)))
@@ -317,12 +318,10 @@ then kill the current buffer."
                            &allow-other-keys)
   (let* (;; Use pipe instead of pty.  Otherwise, curl process hangs.
          (process-connection-type nil)
-         (proc
-          (apply #'start-process
-                 "request curl"
-                 (generate-new-buffer " *request curl*")
-                 (apply #'request--curl-command url settings)))
-         (buffer (process-buffer proc)))
+         (buffer (generate-new-buffer " *request curl*"))
+         (command (apply #'request--curl-command url settings))
+         (proc (apply #'start-process "request curl" buffer command)))
+    (request-log 'debug "Run: %s" (mapconcat 'identity command " "))
     (set-process-query-on-exit-flag proc nil)
     (process-put proc :request settings)
     (set-process-sentinel proc #'request--curl-callback)
