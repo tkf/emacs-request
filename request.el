@@ -38,12 +38,19 @@
 
 ;;; Customize variables
 
-(defcustom request-method 'url-retrieve
+(defcustom request-curl "curl"
+  "Executable for curl command."
+  :group 'request)
+
+(defcustom request-method (if (executable-find request-curl)
+                              'curl
+                            'url-retrieve)
   "Method to be used for HTTP request."
   :group 'request)
 
 (defcustom request-method-alist
-  '((url-retrieve . request--urllib))
+  '((url-retrieve . request--urllib)
+    (curl         . request--curl))
   "Available request methods"
   :group 'request)
 
@@ -246,6 +253,53 @@ then kill the current buffer."
     (cancel-timer request--ajax-timer)
     (setq request--ajax-timer nil)))
 
+
+;;; curl
+
+(defun* request--curl-command (url &key type data headers timeout
+                                   &allow-other-keys)
+  (append
+   (list request-curl)
+   (when data (list "--data-urlencode" "-"))
+   (when type (list "--request" type))
+   (when timeout (list "--max-time" (format "%s" (/ timeout 1000.0))))
+   (loop for h in headers
+         collect "--header"
+         collect h)
+   (list url)))
+
+(defun* request--curl (url &rest settings
+                           &key type data headers timeout
+                           &allow-other-keys)
+  (let* ((proc
+          (apply #'start-process
+                 "request curl" " *request curl*"
+                 (apply #'request--curl-command url settings)))
+         (buffer (process-buffer proc)))
+    (set-process-query-on-exit-flag proc nil)
+    (process-put proc :request settings)
+    (set-process-sentinel proc #'request--curl-callback)
+    (when data
+      (process-send-string proc data))
+    buffer))
+
+(defun request--curl-callback (proc event)
+  (let ((buffer (process-buffer proc))
+        (settings (process-get proc :request))
+        ;; `request--callback' needs the following variables to be
+        ;; defined.  I should refactor `request--callback' at some
+        ;; point.
+        url-http-method url-http-response-status)
+    (cond
+     ((string-match "exited abnormally" event)
+      (with-current-buffer buffer
+        (apply #'request--callback (list :error (cons 'error event))
+               settings)))
+     ((equal event "finished\n")
+      (with-current-buffer buffer
+        ;; FIXME: implement:
+        ;; (setq url-http-method ... url-http-response-status ...)
+        (apply #'request--callback nil settings))))))
 
 (provide 'request)
 
