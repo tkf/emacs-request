@@ -42,16 +42,16 @@
   "Executable for curl command."
   :group 'request)
 
-(defcustom request-method (if (executable-find request-curl)
-                              'curl
-                            'url-retrieve)
-  "Method to be used for HTTP request."
+(defcustom request-backend (if (executable-find request-curl)
+                               'curl
+                             'url-retrieve)
+  "Backend to be used for HTTP request."
   :group 'request)
 
-(defcustom request-method-alist
+(defcustom request-backend-alist
   '((url-retrieve . request--urllib)
     (curl         . request--curl))
-  "Available request methods"
+  "Available request backends."
   :group 'request)
 
 (defcustom request-timeout 1000
@@ -163,9 +163,12 @@ is killed immediately after the execution of this function.
     (setq error (apply-partially #'request-default-error-callback url))
     (plist-put settings :error error))
   (apply
-   (or (assoc-default request-method request-method-alist)
-       (error "%S is not valid `request-method'." request-method))
+   (or (assoc-default request-backend request-backend-alist)
+       (error "%S is not valid `request-backend'." request-backend))
    url settings))
+
+
+;;; Backend: `url-retrieve'
 
 (defun* request--urllib (url &rest settings
                              &key type data headers timeout
@@ -257,7 +260,7 @@ then kill the current buffer."
     (setq request--ajax-timer nil)))
 
 
-;;; curl
+;;; Backend: curl
 
 (defun* request--curl-command (url &key type data headers timeout
                                    &allow-other-keys)
