@@ -12,19 +12,28 @@ def testingapp(environ, start_response):
     import json
     import cgi
 
+    method = environ['REQUEST_METHOD']
+    params = {}
+    input = None
     wsgi_input = environ['wsgi.input']
+
     if wsgi_input:
-        fs = cgi.FieldStorage(environ=environ, fp=wsgi_input)
-        params = dict((k, fs.getlist(k)) for k in fs.keys())
-    else:
-        params = {}
+        if method == 'POST':
+            fs = cgi.FieldStorage(environ=environ, fp=wsgi_input)
+            params = dict((k, fs.getlist(k)) for k in fs.keys())
+        else:
+            size = environ['CONTENT_LENGTH']
+            if size:
+                input = wsgi_input.read(int(size))
 
     start_response(
         '200 OK', [('Content-Type', 'application/json')])
+
     return json.dumps(dict(
         path=environ['PATH_INFO'],
+        input=input,
         params=params,
-        method=environ['REQUEST_METHOD'],
+        method=method,
     ))
 
 
