@@ -54,8 +54,8 @@
   "Available request backends."
   :group 'request)
 
-(defcustom request-timeout 1000
-  "Default request timeout in millisecond."
+(defcustom request-timeout 1
+  "Default request timeout in second."
   :group 'request)
 
 
@@ -120,7 +120,7 @@ API of `request' is similar to `jQuery.ajax'.
 :HEADERS     (alist) : sets `url-request-extra-headers'
 :SUCCESS      (cons) : called on success
 :ERROR        (cons) : called on error
-:TIMEOUT    (number) : timeout in millisecond
+:TIMEOUT    (number) : timeout in second
 :STATUS-CODE (alist) : map status code (int) to callback (cons)
 
 * Callback functions
@@ -186,7 +186,7 @@ is killed immediately after the execution of this function.
       (with-current-buffer buffer
         (setq request--ajax-timer
               (apply #'run-at-time
-                     (/ timeout 1000.0) nil
+                     timeout nil
                      #'request--timeout-callback
                      (cons buffer settings)))))
     (set-process-query-on-exit-flag (get-buffer-process buffer) nil)
@@ -268,7 +268,7 @@ then kill the current buffer."
    (list request-curl)
    (when data (list "--data-urlencode" "@-"))
    (when type (list "--request" type))
-   (when timeout (list "--max-time" (format "%s" (/ timeout 1000.0))))
+   (when timeout (list "--max-time" (format "%s" timeout)))
    (loop for h in headers
          collect "--header"
          collect h)
