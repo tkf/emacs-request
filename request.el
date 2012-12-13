@@ -304,7 +304,7 @@ then kill the current buffer."
                                    &allow-other-keys)
   (append
    (list request-curl)
-   (when data (list "--data-urlencode" "@-"))
+   (when data (list "--data-binary" "@-"))
    (when type (list "--request" type))
    (when timeout (list "--max-time" (format "%s" timeout)))
    (loop for h in headers
