@@ -97,7 +97,9 @@ See: http://api.jquery.com/jQuery.ajax/"
                      (error nil)
                      (timeout request-timeout)
                      (status-code nil))
-  "Mimic `$.ajax'.
+  "Send request to URL.
+
+API of `request' is similar to `jQuery.ajax'.
 
 :CACHE       (nil/t) : append time-stamp to URL so the URL is always loaded.
 :TYPE       (string) : sets `url-request-method'
@@ -111,15 +113,10 @@ See: http://api.jquery.com/jQuery.ajax/"
 
 * Callback functions
 
-All callbacks must be given as `cons' where car is a FUNCTION and
-cdr is its first ARGUMENT.  It is analogous of `$.proxy'.  Call
-signature is like this:
-    \(FUNCTION ARGUMENT [other callback specific arguments])
-
-Also note that the callback FUNCTION must be defined
-using `defun*' with `&key' and `&allow-other-keys' to ignore
-missing/extra arguments as some callback (namely :ERROR) changes
-arguments to be passed, depending on situation.
+Callback functions STATUS, ERROR and `cdr's in element of the
+alist STATUS-CODE takes keyword arguments listed below.  For
+forward compatibility, these functions must ignore unused keyword
+arguments (i.e., it's better to use `&allow-other-keys'.
 
 * :ERROR callback
 
