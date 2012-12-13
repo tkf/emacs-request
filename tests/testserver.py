@@ -24,6 +24,7 @@ def testingapp(environ, start_response):
     return json.dumps(dict(
         path=environ['PATH_INFO'],
         params=params,
+        method=environ['REQUEST_METHOD'],
     ))
 
 
