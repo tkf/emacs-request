@@ -38,6 +38,7 @@
 (request-deftest request-simple-post ()
   (let* ((result (request-testing-sync (request-testing-url "some-path")
                                        :type "POST"
+                                       :data "dummy=data"
                                        :parser 'request-parser-json))
          (data (plist-get result :data)))
     (should (equal (assoc-default 'path data) "/some-path"))

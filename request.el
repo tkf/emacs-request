@@ -170,6 +170,9 @@ is killed immediately after the execution of this function.
 (defun* request--urllib (url &rest settings
                              &key type data headers timeout
                              &allow-other-keys)
+  (when (and (equal type "POST") data)
+    (push '("Content-Type" . "application/x-www-form-urlencoded") headers)
+    (setq settings (plist-put settings :headers headers)))
   (let* ((url-request-extra-headers headers)
          (url-request-method type)
          (url-request-data data)
