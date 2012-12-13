@@ -263,7 +263,7 @@ then kill the current buffer."
                                    &allow-other-keys)
   (append
    (list request-curl)
-   (when data (list "--data-urlencode" "-"))
+   (when data (list "--data-urlencode" "@-"))
    (when type (list "--request" type))
    (when timeout (list "--max-time" (format "%s" (/ timeout 1000.0))))
    (loop for h in headers
@@ -274,7 +274,9 @@ then kill the current buffer."
 (defun* request--curl (url &rest settings
                            &key type data headers timeout
                            &allow-other-keys)
-  (let* ((proc
+  (let* (;; Use pipe instead of pty.  Otherwise, curl process hangs.
+         (process-connection-type nil)
+         (proc
           (apply #'start-process
                  "request curl" " *request curl*"
                  (apply #'request--curl-command url settings)))
