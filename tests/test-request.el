@@ -49,11 +49,12 @@
 (request-deftest request-simple-post ()
   (let* ((result (request-testing-sync (request-testing-url "some-path")
                                        :type "POST"
-                                       :data "dummy=data"
+                                       :data "key=value"
                                        :parser 'request-parser-json))
          (data (plist-get result :data)))
     (should (equal (assoc-default 'path data) "/some-path"))
-    (should (equal (assoc-default 'method data) "POST"))))
+    (should (equal (assoc-default 'method data) "POST"))
+    (should (equal (assoc-default 'params data) '((key . ["value"]))))))
 
 (request-deftest request-simple-put ()
   (let* ((result (request-testing-sync (request-testing-url "some-path")
@@ -62,7 +63,8 @@
                                        :parser 'request-parser-json))
          (data (plist-get result :data)))
     (should (equal (assoc-default 'path data) "/some-path"))
-    (should (equal (assoc-default 'method data) "PUT"))))
+    (should (equal (assoc-default 'method data) "PUT"))
+    (should (equal (assoc-default 'input data) "dummy-data"))))
 
 (provide 'test-request)
 
