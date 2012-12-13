@@ -42,7 +42,9 @@
 (request-deftest request-simple-get ()
   (let* ((result (request-testing-sync (request-testing-url "some-path")
                                        :parser 'request-parser-json))
+         (response-status (plist-get result :response-status))
          (data (plist-get result :data)))
+    (should (equal response-status 200))
     (should (equal (assoc-default 'path data) "/some-path"))
     (should (equal (assoc-default 'method data) "GET"))))
 
@@ -51,7 +53,9 @@
                                        :type "POST"
                                        :data "key=value"
                                        :parser 'request-parser-json))
+         (response-status (plist-get result :response-status))
          (data (plist-get result :data)))
+    (should (equal response-status 200))
     (should (equal (assoc-default 'path data) "/some-path"))
     (should (equal (assoc-default 'method data) "POST"))
     (should (equal (assoc-default 'params data) '((key . ["value"]))))))
@@ -61,7 +65,9 @@
                                        :type "PUT"
                                        :data "dummy-data"
                                        :parser 'request-parser-json))
+         (response-status (plist-get result :response-status))
          (data (plist-get result :data)))
+    (should (equal response-status 200))
     (should (equal (assoc-default 'path data) "/some-path"))
     (should (equal (assoc-default 'method data) "PUT"))
     (should (equal (assoc-default 'input data) "dummy-data"))))

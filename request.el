@@ -129,6 +129,14 @@ See: http://api.jquery.com/jQuery.ajax/"
            (message "REQUEST %s" msg))))))
 
 
+;;; Header parser
+
+(defun request--parse-response ()
+  (goto-char (point-min))
+  (re-search-forward "\\=[ \t\n]*HTTP/\\([0-9\\.]+\\) +\\([0-9]+\\)")
+  (list :version (match-string 1)
+        :code (string-to-number (match-string 2))))
+
 ;;; Main
 
 (defun* request-default-error-callback (url &key symbol-status
@@ -304,7 +312,7 @@ then kill the current buffer."
 (defun* request--curl-command (url &key type data headers timeout
                                    &allow-other-keys)
   (append
-   (list request-curl)
+   (list request-curl "--silent" "--include")
    (when data (list "--data-binary" "@-"))
    (when type (list "--request" type))
    (when timeout (list "--max-time" (format "%s" timeout)))
@@ -344,8 +352,8 @@ then kill the current buffer."
                settings)))
      ((equal event "finished\n")
       (with-current-buffer buffer
-        ;; FIXME: implement:
-        ;; (setq url-http-method ... url-http-response-status ...)
+        (destructuring-bind (&key version code) (request--parse-response)
+          (setq url-http-response-status code))
         (apply #'request--callback nil settings))))))
 
 (provide 'request)
