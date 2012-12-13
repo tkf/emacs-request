@@ -33,6 +33,11 @@
     (setq request-message-level (intern level))))
 (setq request-log-level request-message-level)
 
+(let ((backend (getenv "EL_REQUEST_BACKEND")))
+  (when (and backend (not (equal backend "")))
+    (setq request-backend (intern backend))
+    (message "Using request-backend = %S" request-backend)))
+
 
 (request-deftest request-simple-get ()
   (let* ((result (request-testing-sync (request-testing-url "some-path")

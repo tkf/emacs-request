@@ -1,10 +1,12 @@
 CARTON ?= carton
 EMACS ?= emacs
+TEST_1 = make EMACS=${EMACS} CARTON=${CARTON} test-1
 
 .PHONY : test test-1 clean-elpa	print-deps travis-ci
 
 test: elpa
-	make EMACS=${EMACS} CARTON=${CARTON} test-1
+	EL_REQUEST_BACKEND=url-retrieve ${TEST_1}
+	EL_REQUEST_BACKEND=curl ${TEST_1}
 
 test-1:
 	EMACS=${EMACS} ${CARTON} exec ${EMACS} -Q -batch \
