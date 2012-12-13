@@ -281,7 +281,8 @@ then kill the current buffer."
          (process-connection-type nil)
          (proc
           (apply #'start-process
-                 "request curl" " *request curl*"
+                 "request curl"
+                 (generate-new-buffer " *request curl*")
                  (apply #'request--curl-command url settings)))
          (buffer (process-buffer proc)))
     (set-process-query-on-exit-flag proc nil)
