@@ -33,7 +33,7 @@
 (defvar request-testing-source-dir
   (file-name-directory (or load-file-name (buffer-file-name))))
 
-(defvar request-testing-timeout 10)
+(defvar request-testing-timeout 3000)
 
 (defvar request-testing-server--process nil)
 (defvar request-testing-server--port nil)
@@ -75,7 +75,7 @@
              (deferred:try
                (deferred:timeout
                  request-testing-timeout
-                 (error "timeout.")
+                 (setq err '(error "timeout"))
                  (apply #'request-deferred args))
                :catch
                (lambda (x) (setq err x))))))
