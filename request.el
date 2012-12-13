@@ -42,6 +42,11 @@
   "Method to be used for HTTP request."
   :group 'request)
 
+(defcustom request-method-alist
+  '((url-retrieve . request--urllib))
+  "Available request methods"
+  :group 'request)
+
 (defcustom request-timeout 1000
   "Default request timeout in millisecond."
   :group 'request)
@@ -150,6 +155,14 @@ is killed immediately after the execution of this function.
   (unless error
     (setq error (apply-partially #'request-default-error-callback url))
     (plist-put settings :error error))
+  (apply
+   (or (assoc-default request-method request-method-alist)
+       (error "%S is not valid `request-method'." request-method))
+   url settings))
+
+(defun* request--urllib (url &rest settings
+                             &key type data headers timeout
+                             &allow-other-keys)
   (let* ((url-request-extra-headers headers)
          (url-request-method type)
          (url-request-data data)
