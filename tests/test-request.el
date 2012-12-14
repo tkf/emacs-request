@@ -38,6 +38,12 @@
     (setq request-backend (intern backend))
     (message "Using request-backend = %S" request-backend)))
 
+;; Quick snippets for interactive testing:
+;;   (setq request-backend 'curl)
+;;   (setq request-backend 'url-retrieve)
+;;   (setq request-log-level 'blather)
+;;   (setq request-log-level -1)
+
 
 (request-deftest request-simple-get ()
   (let* ((result (request-testing-sync
