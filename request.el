@@ -149,8 +149,7 @@ See: http://api.jquery.com/jQuery.ajax/"
 (defun* request-default-error-callback (url &key symbol-status
                                             &allow-other-keys)
   (request-log 'error
-    "Error (%s) while connecting to %s.  Please retry."
-    symbol-status url))
+    "Error (%s) while connecting to %s." symbol-status url))
 
 (defun* request (url &rest settings
                      &key
