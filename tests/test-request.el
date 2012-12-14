@@ -80,6 +80,17 @@
     (should (equal (assoc-default 'method data) "PUT"))
     (should (equal (assoc-default 'data data) "dummy-data"))))
 
+(request-deftest request-simple-delete ()
+  (let* ((result (request-testing-sync
+                  (request-testing-url "report/some-path")
+                  :type "DELETE"
+                  :parser 'request-parser-json))
+         (response-status (plist-get result :response-status))
+         (data (plist-get result :data)))
+    (should (equal response-status 200))
+    (should (equal (assoc-default 'path data) "some-path"))
+    (should (equal (assoc-default 'method data) "DELETE"))))
+
 (provide 'test-request)
 
 ;;; test-request.el ends here

@@ -6,7 +6,7 @@ from flask import (
 app = Flask(__name__)
 
 
-@app.route('/report/<path:path>', methods=['GET', 'POST', 'PUT'])
+@app.route('/report/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def report(path):
     """
     Report back path, input data, parameter, etc. as JSON.
