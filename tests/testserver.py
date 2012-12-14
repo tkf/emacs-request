@@ -35,7 +35,7 @@ def get_open_port():
     return port
 
 
-def run(port):
+def run(port, **kwds):
     import sys
     port = port or get_open_port()
     # Pass port number to child process via envvar.  This is required
@@ -43,7 +43,7 @@ def run(port):
     os.environ['EL_REQUEST_TEST_PORT'] = str(port)
     print port
     sys.stdout.flush()
-    app.run(port=port, debug=True, use_evalex=False)
+    app.run(port=port, **kwds)
 
 
 def main(args=None):
@@ -51,6 +51,7 @@ def main(args=None):
     default_port = int(os.environ.get('EL_REQUEST_TEST_PORT', '0'))
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--port', default=default_port, type=int)
+    parser.add_argument('--use-reloader', default=False, action='store_true')
     ns = parser.parse_args(args)
     run(**vars(ns))
 
