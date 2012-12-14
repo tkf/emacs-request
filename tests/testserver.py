@@ -1,3 +1,5 @@
+import os
+
 from flask import (
     Flask, request, jsonify)
 
@@ -36,6 +38,9 @@ def get_open_port():
 def run(port):
     import sys
     port = port or get_open_port()
+    # Pass port number to child process via envvar.  This is required
+    # when using Flask's reloader.
+    os.environ['EL_REQUEST_TEST_PORT'] = str(port)
     print port
     sys.stdout.flush()
     app.run(port=port, debug=True, use_evalex=False)
@@ -43,8 +48,9 @@ def run(port):
 
 def main(args=None):
     import argparse
+    default_port = int(os.environ.get('EL_REQUEST_TEST_PORT', '0'))
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--port', default=0, type=int)
+    parser.add_argument('--port', default=default_port, type=int)
     ns = parser.parse_args(args)
     run(**vars(ns))
 
