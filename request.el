@@ -324,9 +324,9 @@ then kill the current buffer."
    (when data (list "--data-binary" "@-"))
    (when type (list "--request" type))
    (when timeout (list "--max-time" (format "%s" timeout)))
-   (loop for h in headers
+   (loop for (k . v) in headers
          collect "--header"
-         collect h)
+         collect (format "%s: %s" k v))
    (list url)))
 
 (defun* request--curl (url &rest settings

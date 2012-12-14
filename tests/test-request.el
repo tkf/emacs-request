@@ -65,6 +65,7 @@
   (let* ((result (request-testing-sync
                   (request-testing-url "report/some-path")
                   :type "PUT" :data "dummy-data"
+                  :headers '(("Content-Type" . "text/plain"))
                   :parser 'request-parser-json))
          (response-status (plist-get result :response-status))
          (data (plist-get result :data)))
