@@ -127,7 +127,11 @@ See: http://api.jquery.com/jQuery.ajax/"
      (when (<= level (max log-level msg-level))
        (let ((msg (format "[%s] %s" ,level (format ,fmt ,@args))))
          (when (<= level log-level)
-           (with-current-buffer (request--log-buffer) (insert msg "\n")))
+           (with-current-buffer (request--log-buffer)
+             (setq buffer-read-only t)
+             (let ((inhibit-read-only t))
+               (goto-char (point-max))
+               (insert msg "\n"))))
          (when (<= level msg-level)
            (message "REQUEST %s" msg))))))
 
