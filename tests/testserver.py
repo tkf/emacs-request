@@ -16,6 +16,7 @@ def report(path):
         data=request.data,
         form=request.form,
         method=request.method,
+        json=request.json,
     ))
 
 

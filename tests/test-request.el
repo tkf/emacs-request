@@ -91,6 +91,20 @@
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "DELETE"))))
 
+(request-deftest request-simple-put-json ()
+  (let* ((result (request-testing-sync
+                  (request-testing-url "report/some-path")
+                  :type "PUT" :data "{\"a\": 1, \"b\": 2, \"c\": 3}"
+                  :headers '(("Content-Type" . "application/json"))
+                  :parser 'request-parser-json))
+         (response-status (plist-get result :response-status))
+         (data (plist-get result :data)))
+    (should (equal response-status 200))
+    (should (equal (assoc-default 'path data) "some-path"))
+    (should (equal (assoc-default 'method data) "PUT"))
+    (should (equal (request-testing-sort-alist (assoc-default 'json data))
+                   '((a . 1) (b . 2) (c . 3))))))
+
 (provide 'test-request)
 
 ;;; test-request.el ends here

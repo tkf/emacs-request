@@ -94,6 +94,12 @@
           (error "Got: %S" err)
         result))))
 
+(defun request-testing-sort-alist (alist)
+  (sort alist (lambda (x y)
+                (setq x (symbol-name (car x))
+                      y (symbol-name (car y)))
+                (string-lessp x y))))
+
 (defmacro* request-deftest (name () &body docstring-and-body)
   "`ert-deftest' with predefined context."
   (declare (debug (&define :name test
