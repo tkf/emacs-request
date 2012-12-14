@@ -8,10 +8,13 @@ app = Flask(__name__)
 
 @app.route('/report/<path:path>', methods=['GET', 'POST', 'PUT'])
 def report(path):
+    """
+    Report back path, input data, parameter, etc. as JSON.
+    """
     return jsonify(dict(
         path=path,
-        input=request.data,
-        params=request.form,
+        data=request.data,
+        form=request.form,
         method=request.method,
     ))
 

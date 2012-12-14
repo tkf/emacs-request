@@ -65,7 +65,7 @@
     (should (equal response-status 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "POST"))
-    (should (equal (assoc-default 'params data) '((key . "value"))))))
+    (should (equal (assoc-default 'form data) '((key . "value"))))))
 
 (request-deftest request-simple-put ()
   (let* ((result (request-testing-sync
@@ -78,7 +78,7 @@
     (should (equal response-status 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "PUT"))
-    (should (equal (assoc-default 'input data) "dummy-data"))))
+    (should (equal (assoc-default 'data data) "dummy-data"))))
 
 (provide 'test-request)
 
