@@ -40,6 +40,7 @@
 
 (defun request-testing-server ()
   "Get running test server and return its root URL."
+  (interactive)
   (unless request-testing-server--port
     (let* ((process
             (start-process "request-testing" " *request-testing*"
@@ -61,6 +62,16 @@
                  (error "Server startup error.")))
             finally do (error "Server timeout error."))))
   (request-testing-url))
+
+(defun request-testing-stop-server ()
+  (interactive)
+  (let ((process request-testing-server--process))
+    (if (and (processp process) (process-live-p process))
+        (quit-process process)
+      (message "No server is running!")))
+  (setq request-testing-server--port nil)
+  (setq request-testing-server--process nil))
+(add-hook 'kill-emacs-hook 'request-testing-stop-server)
 
 (defun request-testing-url (&rest path)
   (loop with url = (format "http://127.0.0.1:%s" request-testing-server--port)
