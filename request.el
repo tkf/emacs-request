@@ -502,12 +502,14 @@ See also `request--curl-write-out-template'."
               ((debug error)
                (list :error err)))
           (setq url-http-response-status code)
-          (apply #'request--callback
-                 (cond
-                  (redirects (loop for r in redirects
-                                   collect :redirect collect r))
-                  (error (list :error error)))
-                 settings)))))))
+          (let ((status (append
+                         (loop for r in redirects
+                               collect :redirect collect r)
+                         (list :error
+                               (or error
+                                   (when (>= code 400)
+                                     `(error . (http ,code))))))))
+            (apply #'request--callback status settings))))))))
 
 (provide 'request)
 
