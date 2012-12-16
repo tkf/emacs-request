@@ -417,11 +417,16 @@ See also `request--curl-write-out-template'."
                settings)))
      ((equal event "finished\n")
       (with-current-buffer buffer
-        (destructuring-bind (&key version code num-redirects redirect)
-            (request--curl-preprocess)
+        (destructuring-bind (&key version code num-redirects redirect error)
+            (condition-case err
+                (request--curl-preprocess)
+              ((debug error)
+               (list :error err)))
           (setq url-http-response-status code)
           (apply #'request--callback
-                 (when redirect (list :redirect redirect))
+                 (cond
+                  (redirect (list :redirect redirect))
+                  (error (list :error error)))
                  settings)))))))
 
 (provide 'request)
