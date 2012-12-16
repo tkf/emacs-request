@@ -419,15 +419,18 @@ then kill the current buffer."
   (ignore-errors
     (make-directory (file-name-directory request-curl-cookie-jar) t)))
 
-(defun* request--curl-command (url &key type data headers timeout
-                                   &allow-other-keys)
+(defun* request--curl-command
+    (url &key type data headers timeout
+         &allow-other-keys
+         &aux
+         (cookie-jar (convert-standard-filename
+                      (expand-file-name request-curl-cookie-jar))))
   (append
    (list request-curl "--silent" "--include"
          "--location"
          ;; FIMXE: this way of using cookie might be problem when
          ;;        running multiple requests.
-         "--cookie" request-curl-cookie-jar
-         "--cookie-jar" request-curl-cookie-jar
+         "--cookie" cookie-jar "--cookie-jar" cookie-jar
          "--write-out" request--curl-write-out-template)
    (when data (list "--data-binary" "@-"))
    (when type (list "--request" type))

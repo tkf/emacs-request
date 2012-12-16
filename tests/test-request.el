@@ -163,6 +163,44 @@
     (should (equal (assoc-default 'method data) "DELETE"))))
 
 
+;;; Cookie
+
+(defun request-testing-assert-username-is (username)
+  (request-testing-with-response-slots
+      (request-testing-sync "report/some-path"
+                            :parser 'request-parser-json)
+    (should (equal status-code 200))
+    (should (equal (assoc-default 'path data) "some-path"))
+    (should (equal (assoc-default 'username data) username))
+    (should (equal (assoc-default 'method data) "GET"))))
+
+(request-deftest request-cookie ()
+  :backends '(curl)
+  (request-testing-assert-username-is nil)
+  ;; login
+  (request-testing-with-response-slots
+      (request-testing-sync "login"
+                            :data "username=gooduser&password=goodpass"
+                            :type "POST"
+                            :parser 'request-parser-json)
+    (should (equal status-code 200))
+    (should (equal (assoc-default 'path data) "from-login"))
+    (should (equal (assoc-default 'username data) "gooduser"))
+    (should (equal (assoc-default 'method data) "POST")))
+  ;; check login state
+  (request-testing-assert-username-is "gooduser")
+  ;; logout
+  (request-testing-with-response-slots
+      (request-testing-sync "logout"
+                            :parser 'request-parser-json)
+    (should (equal status-code 200))
+    (should (equal (assoc-default 'path data) "from-logout"))
+    (should (equal (assoc-default 'username data) nil))
+    (should (equal (assoc-default 'method data) "GET")))
+  ;; check login state
+  (request-testing-assert-username-is nil))
+
+
 ;;; `request-backend'-independent tests
 
 ;; Following tests does not depend on the value of `request-backend'.
