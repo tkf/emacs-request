@@ -149,7 +149,8 @@ See: http://api.jquery.com/jQuery.ajax/"
 
 (defstruct request-response
   "A structure holding all relevant information of a request."
-  status-code status-text history error-thrown symbol-status settings
+  status-code status-text history error-thrown symbol-status url
+  settings
   ;; internal variables
   -buffer -timer)
 
@@ -180,6 +181,9 @@ re-raised (`signal'ed) by ``(signal ERROR-SYMBOL DATA)``.")
 (request--document-response request-response-symbol-status
   "A symbol representing the status of *request* (not response).
 One of success/error/timeout.")  ; FIMXE: add abort/parse-error
+
+(request--document-response request-response-url
+  "Final URL location of response.")
 
 (request--document-response request-response-settings
   "Keyword arguments passed to `request' function.")
@@ -277,6 +281,7 @@ is killed immediately after the execution of this function.
     (plist-put settings :error error))
   (setq settings (plist-put settings :response response))
   (setf (request-response-settings response) settings)
+  (setf (request-response-url response) url)
   (apply
    (or (assoc-default request-backend request-backend-alist)
        (error "%S is not valid `request-backend'." request-backend))
@@ -359,8 +364,11 @@ then kill the current buffer."
 
       (setf (request-response-status-code response) response-status)
       (setf (request-response-error-thrown response) error-thrown)
+      (let ((redirect (plist-get :redirect status)))
+        (when redirect
+          (setf (request-response-url response) redirect)))
 
-      (let ((args (list :status status :data data
+      (let ((args (list :data data
                         :symbol-status symbol-status
                         :error-thrown error-thrown
                         :response response)))

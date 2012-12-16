@@ -65,7 +65,7 @@
                   :parser 'request-parser-json))
          (response (plist-get result :response))
          (status-code (request-response-status-code response))
-         (redirect (plist-get (plist-get result :status) :redirect))
+         (redirect (request-response-url response))
          (data (plist-get result :data))
          (path (assoc-default 'path data)))
     (if (and noninteractive (eq request-backend 'url-retrieve))
