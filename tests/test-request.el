@@ -45,6 +45,9 @@
 ;;   (setq request-log-level -1)
 
 
+
+;;; GET
+
 (request-deftest request-simple-get ()
   (let* ((result (request-testing-sync
                   (request-testing-url "report/some-path")
@@ -75,6 +78,9 @@
     (should (equal response-status 200))
     (should (equal (assoc-default 'method data) "GET"))))
 
+
+;;; POST
+
 (request-deftest request-simple-post ()
   (let* ((result (request-testing-sync
                   (request-testing-url "report/some-path")
@@ -86,6 +92,9 @@
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "POST"))
     (should (equal (assoc-default 'form data) '((key . "value"))))))
+
+
+;;; PUT
 
 (request-deftest request-simple-put ()
   (let* ((result (request-testing-sync
@@ -100,17 +109,6 @@
     (should (equal (assoc-default 'method data) "PUT"))
     (should (equal (assoc-default 'data data) "dummy-data"))))
 
-(request-deftest request-simple-delete ()
-  (let* ((result (request-testing-sync
-                  (request-testing-url "report/some-path")
-                  :type "DELETE"
-                  :parser 'request-parser-json))
-         (response-status (plist-get result :response-status))
-         (data (plist-get result :data)))
-    (should (equal response-status 200))
-    (should (equal (assoc-default 'path data) "some-path"))
-    (should (equal (assoc-default 'method data) "DELETE"))))
-
 (request-deftest request-simple-put-json ()
   (let* ((result (request-testing-sync
                   (request-testing-url "report/some-path")
@@ -124,6 +122,26 @@
     (should (equal (assoc-default 'method data) "PUT"))
     (should (equal (request-testing-sort-alist (assoc-default 'json data))
                    '((a . 1) (b . 2) (c . 3))))))
+
+
+;;; DELETE
+
+(request-deftest request-simple-delete ()
+  (let* ((result (request-testing-sync
+                  (request-testing-url "report/some-path")
+                  :type "DELETE"
+                  :parser 'request-parser-json))
+         (response-status (plist-get result :response-status))
+         (data (plist-get result :data)))
+    (should (equal response-status 200))
+    (should (equal (assoc-default 'path data) "some-path"))
+    (should (equal (assoc-default 'method data) "DELETE"))))
+
+
+;;; `request-backend'-independent tests
+
+;; Following tests does not depend on the value of `request-backend'.
+;; Move them to another file when this test suite get bigger.
 
 (ert-deftest request--curl-preprocess/no-redirects ()
   (with-temp-buffer
