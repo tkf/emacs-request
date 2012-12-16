@@ -27,6 +27,7 @@
 ;;; Code:
 
 (eval-when-compile (require 'cl))
+(require 'json)
 (require 'request-testing)
 
 (let ((level (getenv "EL_REQUEST_MESSAGE_LEVEL")))
@@ -52,7 +53,7 @@
 (request-deftest request-simple-get ()
   (request-testing-with-response-slots
       (request-testing-sync "report/some-path"
-                            :parser 'request-parser-json)
+                            :parser 'json-read)
     (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "GET"))))
@@ -60,7 +61,7 @@
 (request-deftest request-redirection-get ()
   (request-testing-with-response-slots
       (request-testing-sync "redirect/redirect/report/some-path"
-                            :parser 'request-parser-json)
+                            :parser 'json-read)
     (if (and noninteractive (eq request-backend 'url-retrieve))
         ;; `url-retrieve' adds %0D to redirection path when the test
         ;; is run in noninteractive environment.
@@ -118,7 +119,7 @@
   (request-testing-with-response-slots
       (request-testing-sync "report/some-path"
                             :type "POST" :data "key=value"
-                            :parser 'request-parser-json)
+                            :parser 'json-read)
     (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "POST"))
@@ -132,7 +133,7 @@
       (request-testing-sync "report/some-path"
                             :type "PUT" :data "dummy-data"
                             :headers '(("Content-Type" . "text/plain"))
-                            :parser 'request-parser-json)
+                            :parser 'json-read)
     (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "PUT"))
@@ -143,7 +144,7 @@
       (request-testing-sync "report/some-path"
                             :type "PUT" :data "{\"a\": 1, \"b\": 2, \"c\": 3}"
                             :headers '(("Content-Type" . "application/json"))
-                            :parser 'request-parser-json)
+                            :parser 'json-read)
     (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "PUT"))
@@ -157,7 +158,7 @@
   (request-testing-with-response-slots
       (request-testing-sync "report/some-path"
                             :type "DELETE"
-                            :parser 'request-parser-json)
+                            :parser 'json-read)
     (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "DELETE"))))
@@ -168,7 +169,7 @@
 (defun request-testing-assert-username-is (username)
   (request-testing-with-response-slots
       (request-testing-sync "report/some-path"
-                            :parser 'request-parser-json)
+                            :parser 'json-read)
     (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'username data) username))
@@ -183,7 +184,7 @@
       (request-testing-sync "login"
                             :data "username=gooduser&password=goodpass"
                             :type "POST"
-                            :parser 'request-parser-json)
+                            :parser 'json-read)
     (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "from-login"))
     (should (equal (assoc-default 'username data) "gooduser"))
@@ -193,7 +194,7 @@
   ;; logout
   (request-testing-with-response-slots
       (request-testing-sync "logout"
-                            :parser 'request-parser-json)
+                            :parser 'json-read)
     (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "from-logout"))
     (should (equal (assoc-default 'username data) nil))

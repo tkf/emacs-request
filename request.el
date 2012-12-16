@@ -28,7 +28,6 @@
 
 (eval-when-compile (require 'cl))
 (require 'url nil t)
-(require 'json nil t)
 
 (defgroup request nil
   "Compatible layer for URL request in Emacs."
@@ -93,9 +92,6 @@
 See: http://api.jquery.com/jQuery.ajax/"
   ;; FIXME: parse URL before adding ?_=TIME.
   (concat url (format-time-string "?_=%s")))
-
-(defun request-parser-json ()
-  (json-read))
 
 (defmacro request--document-function (function docstring)
   "Document FUNCTION with DOCSTRING.  Use this for defstruct accessor etc."
