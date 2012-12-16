@@ -35,6 +35,23 @@
 
 (defvar request-testing-timeout 3000)
 
+(defmacro request-testing-with-response-slots (response &rest body)
+  "Destructure RESPONSE object and execute BODY."
+  (declare (indent 1))
+  `(let* ((response ,response)
+          ,@(loop for slot in '(status-code
+                                redirects
+                                data
+                                error-thrown
+                                symbol-status
+                                url
+                                settings
+                                -buffer
+                                -timer)
+                  for accessor = (intern (format "request-response-%s" slot))
+                  collect `(,slot (,accessor response))))
+     ,@body))
+
 (defvar request-testing-server--process nil)
 (defvar request-testing-server--port nil)
 

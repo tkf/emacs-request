@@ -50,44 +50,36 @@
 ;;; GET
 
 (request-deftest request-simple-get ()
-  (let* ((result (request-testing-sync
-                  (request-testing-url "report/some-path")
-                  :parser 'request-parser-json))
-         (response (plist-get result :response))
-         (status-code (request-response-status-code response))
-         (data (plist-get result :data)))
+  (request-testing-with-response-slots
+      (request-testing-sync (request-testing-url "report/some-path")
+                            :parser 'request-parser-json)
     (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "GET"))))
 
 (request-deftest request-redirection-get ()
-  (let* ((result (request-testing-sync
-                  (request-testing-url "redirect/redirect/report/some-path")
-                  :parser 'request-parser-json))
-         (response (plist-get result :response))
-         (status-code (request-response-status-code response))
-         (redirect (request-response-url response))
-         (data (plist-get result :data))
-         (path (assoc-default 'path data)))
+  (request-testing-with-response-slots
+      (request-testing-sync (request-testing-url
+                             "redirect/redirect/report/some-path")
+                            :parser 'request-parser-json)
     (if (and noninteractive (eq request-backend 'url-retrieve))
         ;; `url-retrieve' adds %0D to redirection path when the test
         ;; is run in noninteractive environment.
         ;; probably it's a bug in `url-retrieve'...
         (progn
-          (string-match "^http://.*/report/some-path" redirect)
-          (should (string-prefix-p "some-path" path)))
-      (should (string-match "^http://.*/report/some-path$" redirect))
-      (should (equal path "some-path")))
+          (string-match "^http://.*/report/some-path" url)
+          (should (string-prefix-p "some-path" (assoc-default 'path data))))
+      (should (string-match "^http://.*/report/some-path$" url))
+      (should (equal (assoc-default 'path data) "some-path")))
     (should (equal status-code 200))
     (should (equal (assoc-default 'method data) "GET"))))
 
 (request-deftest request-get-code-success ()
   (loop for code in (nconc (loop for c from 200 to 207 collect c)
                            (list 226))
-        for result = (request-testing-sync
-                      (request-testing-url (format "code/%d" code))
-                      :parser 'ignore)
-        for response = (plist-get result :response)
+        for response = (request-testing-sync (request-testing-url
+                                              (format "code/%d" code))
+                                             :parser 'ignore)
         for status-code = (request-response-status-code response)
         do (should (equal status-code code))))
 
@@ -103,10 +95,9 @@
                           ;;      FIXME: how to support this?
                           unless (member c '(401 402 407))
                           collect c)
-        for result = (request-testing-sync
-                      (request-testing-url (format "code/%d" code))
-                      :parser 'ignore)
-        for response = (plist-get result :response)
+        for response = (request-testing-sync (request-testing-url
+                                              (format "code/%d" code))
+                                             :parser 'ignore)
         for status-code = (request-response-status-code response)
         do (should (equal status-code code))))
 
@@ -115,10 +106,9 @@
                           ;; flask does not support them:
                           unless (member c '(506 508 509))
                           collect c)
-        for result = (request-testing-sync
-                      (request-testing-url (format "code/%d" code))
-                      :parser 'ignore)
-        for response = (plist-get result :response)
+        for response = (request-testing-sync (request-testing-url
+                                              (format "code/%d" code))
+                                             :parser 'ignore)
         for status-code = (request-response-status-code response)
         do (should (equal status-code code))))
 
@@ -126,13 +116,10 @@
 ;;; POST
 
 (request-deftest request-simple-post ()
-  (let* ((result (request-testing-sync
-                  (request-testing-url "report/some-path")
-                  :type "POST" :data "key=value"
-                  :parser 'request-parser-json))
-         (response (plist-get result :response))
-         (status-code (request-response-status-code response))
-         (data (plist-get result :data)))
+  (request-testing-with-response-slots
+      (request-testing-sync (request-testing-url "report/some-path")
+                            :type "POST" :data "key=value"
+                            :parser 'request-parser-json)
     (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "POST"))
@@ -142,28 +129,22 @@
 ;;; PUT
 
 (request-deftest request-simple-put ()
-  (let* ((result (request-testing-sync
-                  (request-testing-url "report/some-path")
-                  :type "PUT" :data "dummy-data"
-                  :headers '(("Content-Type" . "text/plain"))
-                  :parser 'request-parser-json))
-         (response (plist-get result :response))
-         (status-code (request-response-status-code response))
-         (data (plist-get result :data)))
+  (request-testing-with-response-slots
+      (request-testing-sync (request-testing-url "report/some-path")
+                            :type "PUT" :data "dummy-data"
+                            :headers '(("Content-Type" . "text/plain"))
+                            :parser 'request-parser-json)
     (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "PUT"))
     (should (equal (assoc-default 'data data) "dummy-data"))))
 
 (request-deftest request-simple-put-json ()
-  (let* ((result (request-testing-sync
-                  (request-testing-url "report/some-path")
-                  :type "PUT" :data "{\"a\": 1, \"b\": 2, \"c\": 3}"
-                  :headers '(("Content-Type" . "application/json"))
-                  :parser 'request-parser-json))
-         (response (plist-get result :response))
-         (status-code (request-response-status-code response))
-         (data (plist-get result :data)))
+  (request-testing-with-response-slots
+      (request-testing-sync (request-testing-url "report/some-path")
+                            :type "PUT" :data "{\"a\": 1, \"b\": 2, \"c\": 3}"
+                            :headers '(("Content-Type" . "application/json"))
+                            :parser 'request-parser-json)
     (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "PUT"))
@@ -174,13 +155,10 @@
 ;;; DELETE
 
 (request-deftest request-simple-delete ()
-  (let* ((result (request-testing-sync
-                  (request-testing-url "report/some-path")
-                  :type "DELETE"
-                  :parser 'request-parser-json))
-         (response (plist-get result :response))
-         (status-code (request-response-status-code response))
-         (data (plist-get result :data)))
+  (request-testing-with-response-slots
+      (request-testing-sync (request-testing-url "report/some-path")
+                            :type "DELETE"
+                            :parser 'request-parser-json)
     (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "DELETE"))))
