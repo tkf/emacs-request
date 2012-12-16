@@ -27,7 +27,7 @@
 ;;; Code:
 
 (eval-when-compile (require 'cl))
-(eval-when-compile (require 'url))
+(require 'url nil t)
 (require 'json nil t)
 
 (defgroup request nil
