@@ -38,8 +38,19 @@
 
 ;;; Customize variables
 
+(defcustom request-storage-directory
+  (concat (file-name-as-directory user-emacs-directory) "request")
+  "Directory to store data related to request.el."
+  :group 'request)
+
 (defcustom request-curl "curl"
   "Executable for curl command."
+  :group 'request)
+
+(defcustom request-curl-cookie-jar
+  (concat (file-name-as-directory request-storage-directory)
+          "curl-cookie-jar")
+  "Cookie storage for curl backend."
   :group 'request)
 
 (defcustom request-backend (if (executable-find request-curl)
@@ -404,11 +415,19 @@ then kill the current buffer."
   "\\n(:num-redirects %{num_redirects})")
 ;; FIXME: should % be escaped for Windows?
 
+(defun request--curl-mkdir-for-cookie-jar ()
+  (ignore-errors
+    (make-directory (file-name-directory request-curl-cookie-jar) t)))
+
 (defun* request--curl-command (url &key type data headers timeout
                                    &allow-other-keys)
   (append
    (list request-curl "--silent" "--include"
          "--location"
+         ;; FIMXE: this way of using cookie might be problem when
+         ;;        running multiple requests.
+         "--cookie" request-curl-cookie-jar
+         "--cookie-jar" request-curl-cookie-jar
          "--write-out" request--curl-write-out-template)
    (when data (list "--data-binary" "@-"))
    (when type (list "--request" type))
@@ -436,6 +455,7 @@ location header from the last redirection header.
 Sexp at the end of buffer and extra headers for redicts are
 removed from the buffer before it is shown to the parser function.
 "
+  (request--curl-mkdir-for-cookie-jar)
   (let* (;; Use pipe instead of pty.  Otherwise, curl process hangs.
          (process-connection-type nil)
          (buffer (generate-new-buffer " *request curl*"))
