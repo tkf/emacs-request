@@ -71,7 +71,7 @@
 
 (defun request--safe-apply (function &rest arguments)
   (condition-case err
-      (apply #'apply function arguments)
+      (when function (apply #'apply function arguments))
     ((debug error))))
 
 (defun request--safe-call (function &rest arguments)
