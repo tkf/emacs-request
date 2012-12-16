@@ -67,14 +67,6 @@
   :group 'request)
 
 
-;;; Internal variables
-
-(defvar request--ajax-timer nil)
-(make-variable-buffer-local 'request--ajax-timer)
-(defvar request--ajax-canceled nil)
-(make-variable-buffer-local 'request--ajax-canceled)
-
-
 ;;; Utilities
 
 (defun request--safe-apply (function &rest arguments)
@@ -192,6 +184,22 @@ One of success/error/timeout.")  ; FIMXE: add abort/parse-error
 (request--document-response request-response-settings
   "Keyword arguments passed to `request' function.")
 
+(defun* request-response--timeout-callback (response)
+  (request-log 'debug "request-response--timeout-callback")
+  (setf (request-response-symbol-status response) 'timeout)
+  (let* ((buffer (request-response--buffer response))
+         (proc (and (buffer-live-p buffer) (get-buffer-process buffer))))
+    (when proc
+      ;; This will call `request--callback':
+      (delete-process proc))))
+
+(defun request-response--cancel-timer (response)
+  (request-log 'debug "REQUEST-RESPONSE--CANCEL-TIMER")
+  (symbol-macrolet ((timer (request-response--timer response)))
+    (when timer
+      (cancel-timer timer)
+      (setq timer nil))))
+
 
 ;;; Main
 
@@ -210,7 +218,8 @@ One of success/error/timeout.")  ; FIMXE: add abort/parse-error
                      (success nil)
                      (error nil)
                      (timeout request-timeout)
-                     (status-code nil))
+                     (status-code nil)
+                     (response (make-request-response)))
   "Send request to URL.
 
 API of `request' is similar to `jQuery.ajax'.
@@ -266,6 +275,8 @@ is killed immediately after the execution of this function.
   (unless error
     (setq error (apply-partially #'request-default-error-callback url))
     (plist-put settings :error error))
+  (setq settings (plist-put settings :response response))
+  (setf (request-response-settings response) settings)
   (apply
    (or (assoc-default request-backend request-backend-alist)
        (error "%S is not valid `request-backend'." request-backend))
@@ -275,7 +286,7 @@ is killed immediately after the execution of this function.
 ;;; Backend: `url-retrieve'
 
 (defun* request--urllib (url &rest settings
-                             &key type data headers timeout
+                             &key type data headers timeout response
                              &allow-other-keys)
   (when (and (equal type "POST") data)
     (push '("Content-Type" . "application/x-www-form-urlencoded") headers)
@@ -283,18 +294,21 @@ is killed immediately after the execution of this function.
   (let* ((url-request-extra-headers headers)
          (url-request-method type)
          (url-request-data data)
-         (buffer (url-retrieve url #'request--callback settings)))
+         (buffer (url-retrieve url #'request--callback
+                               (nconc (list :response response) settings)))
+         (proc (get-buffer-process buffer)))
+    (setf (request-response--buffer response) buffer)
+    (process-put proc :request-response response)
     (request-log 'debug "Start querying: %s" url)
     (when timeout
       (request-log 'debug "Start timer: timeout=%s ms" timeout)
       (with-current-buffer buffer
-        (setq request--ajax-timer
-              (apply #'run-at-time
-                     timeout nil
-                     #'request--timeout-callback
-                     (cons buffer settings)))))
-    (set-process-query-on-exit-flag (get-buffer-process buffer) nil)
-    buffer))
+        (setf (request-response--timer response)
+              (run-at-time timeout nil
+                           #'request-response--timeout-callback
+                           response))))
+    (set-process-query-on-exit-flag proc nil)
+    response))
 
 (defun request--parse-data (parser status-error)
   "Run PARSER in current buffer if STATUS-ERROR is nil,
@@ -318,6 +332,7 @@ then kill the current buffer."
                                   (error nil)
                                   (timeout nil)
                                   (status-code nil)
+                                  response
                                   &allow-other-keys)
   (declare (special url-http-method
                     url-http-response-status))
@@ -328,42 +343,31 @@ then kill the current buffer."
   (request-log 'debug "url-http-response-status = %s" url-http-response-status)
   (request-log 'debug "(buffer-string) =\n%s" (buffer-string))
 
-  (request--cancel-timer)
+  (request-response--cancel-timer response)
   (let* ((response-status url-http-response-status)
          (status-code-callback (cdr (assq response-status status-code)))
          (status-error (plist-get status :error))
-         (canceled request--ajax-canceled)
          (data (request--parse-data parser status-error)))
     (request-log 'debug "data = %s" data)
-    (request-log 'debug "canceled = %s" canceled)
 
-    (let ((args (list :status status :data data
-                      :response-status response-status)))
-      (if (not (or status-error canceled))
-          (progn
-            (request-log 'debug "Executing success callback.")
-            (request--safe-apply success args))
-        (request-log 'debug "Executing error callback.")
-        (request--safe-apply error :symbol-status (or canceled 'error) args)))
+    (symbol-macrolet
+        ((symbol-status (request-response-symbol-status response)))
 
-    (when (and (not canceled) status-code-callback)
+      (unless symbol-status
+        (setq symbol-status (or (plist-get status :error) 'success)))
+      (request-log 'debug "symbol-status = %s" symbol-status)
+
+      (let ((args (list :status status :data data
+                        :response-status response-status
+                        :symbol-status symbol-status)))
+        (request-log 'debug "Executing %s callback."
+                     (if (eq symbol-status 'success) "success" "error"))
+        (request--safe-apply
+         (if (eq symbol-status 'success) success error) args)))
+
+    (when status-code-callback
       (request-log 'debug "Executing status-code callback.")
       (request--safe-call status-code-callback :status status :data data))))
-
-(defun* request--timeout-callback (buffer &key (error nil) &allow-other-keys)
-  (request-log 'debug "REQUEST--TIMEOUT-CALLBACK buffer = %S" buffer)
-  (when (buffer-live-p buffer)
-    (with-current-buffer buffer
-      (setq request--ajax-canceled 'timeout)
-      (let ((proc (get-buffer-process buffer)))
-        ;; This will call `request--callback'.
-        (delete-process proc)))))
-
-(defun request--cancel-timer ()
-  (request-log 'debug "REQUEST--CANCEL-TIMER")
-  (when request--ajax-timer
-    (cancel-timer request--ajax-timer)
-    (setq request--ajax-timer nil)))
 
 
 ;;; Backend: curl
