@@ -253,37 +253,39 @@ API of `request' is similar to `jQuery.ajax'.
 
 * Callback functions
 
-Callback functions STATUS, ERROR and `cdr's in element of the
-alist STATUS-CODE takes keyword arguments listed below.  For
+Callback functions STATUS, ERROR, COMPLETE and `cdr's in element of
+the alist STATUS-CODE take same keyword arguments listed below.  For
 forward compatibility, these functions must ignore unused keyword
-arguments (i.e., it's better to use `&allow-other-keys'.
+arguments (i.e., it's better to use `&allow-other-keys').
 
-* :ERROR callback call signature::
-
-    (ERROR
-     :error-thrown  error-thrown   ; (ERROR-SYMBOL . DATA)
-     :symbol-status symbol-status  ; error/timeout/...
-     :response      response       ; `request-response' object
-     ...)
-
-* :SUCCESS callback call signature::
-
-    (SUCCESS
-     :data          data           ; whatever PARSER function returns
+    (CALLBACK                      ; SUCCESS/ERROR/COMPLETE/STATUS-CODE
+     :data          data           ; whatever PARSER function returns, or nil
+     :error-thrown  error-thrown   ; (ERROR-SYMBOL . DATA), or nil
      :symbol-status symbol-status  ; success
      :response      response       ; `request-response' object
      ...)
 
+
 * :STATUS-CODE callback
 
-Each value of this alist is a callback which is similar to :ERROR
-or :SUCCESS callback.
+STATUS-CODE is an alist of the following format::
+
+    ((N-1 . CALLBACK-1)
+     (N-2 . CALLBACK-2)
+     ...)
+
+Here, N-1, N-2,... are integer status codes such as 200.
+
 
 * :PARSER function
+
+PARSER function takes no argument and it is executed in the
+buffer with HTTP response.
 
 This is analogous to the `dataType' argument of `$.ajax'.
 Only this function can accuses to the process buffer, which
 is killed immediately after the execution of this function.
+
 
 * See also: http://api.jquery.com/jQuery.ajax/"
   (request-log 'debug "REQUEST")
