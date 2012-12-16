@@ -68,7 +68,8 @@
   (let ((process request-testing-server--process))
     (if (and (processp process) (process-live-p process))
         (quit-process process)
-      (message "No server is running!")))
+      (unless noninteractive
+        (message "No server is running!"))))
   (setq request-testing-server--port nil)
   (setq request-testing-server--process nil))
 (add-hook 'kill-emacs-hook 'request-testing-stop-server)
