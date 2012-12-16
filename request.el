@@ -96,6 +96,12 @@ See: http://api.jquery.com/jQuery.ajax/"
   (backward-sexp)
   (json-read))
 
+(defmacro request--document-function (function docstring)
+  "Document FUNCTION with DOCSTRING.  Use this for defstruct accessor etc."
+  (declare (indent defun)
+           (doc-string 2))
+  `(put ',function 'function-documentation ,docstring))
+
 
 ;;; Logging
 
@@ -146,6 +152,47 @@ See: http://api.jquery.com/jQuery.ajax/"
 (defun request--goto-next-body ()
   (re-search-forward "^\r\n"))
 
+
+;;; Response object
+
+(defstruct request-response
+  "A structure holding all relevant information of a request."
+  status-code status-text history error-thrown symbol-status settings
+  ;; internal variables
+  -buffer -timer)
+
+(defmacro request--document-response (function docstring)
+  (declare (indent defun)
+           (doc-string 2))
+  `(request--document-function ,function ,(concat docstring "
+
+This is an accessor for `request-response' object.
+
+\(fn RESPONSE)")))
+
+(request--document-response request-response-status-code
+  "Integer HTTP response code (e.g., 200).")
+
+(request--document-response request-response-status-text
+  "Reason phrase of HTTP response (e.g., \"OK\").")
+
+(request--document-response request-response-history
+  "Redirection history (a list of `request-response' objects).
+The first element will be the oldest redirection.")
+
+(request--document-response request-response-error-thrown
+  "Any kind error thrown during request.
+It takes the form of ``(ERROR-SYMBOL . DATA)``, which can be
+re-raised (`signal'ed) by ``(signal ERROR-SYMBOL DATA)``.")
+
+(request--document-response request-response-symbol-status
+  "A symbol representing the status of *request* (not response).
+One of success/error/timeout.")  ; FIMXE: add abort/parse-error
+
+(request--document-response request-response-settings
+  "Keyword arguments passed to `request' function.")
+
+
 ;;; Main
 
 (defun* request-default-error-callback (url &key symbol-status
@@ -185,24 +232,26 @@ alist STATUS-CODE takes keyword arguments listed below.  For
 forward compatibility, these functions must ignore unused keyword
 arguments (i.e., it's better to use `&allow-other-keys'.
 
-* :ERROR callback
+* :ERROR callback call signature::
 
-:SYMBOL-STATUS (`error'/`timeout') : analogous of `textStatus'
-:STATUS                     (list) : see `url-retrieve'
-:RESPONSE-STATUS                   : = `url-http-response-status'
+    (ERROR
+     :error-thrown  error-thrown   ; (ERROR-SYMBOL . DATA)
+     :symbol-status symbol-status  ; error/timeout/...
+     :response      response       ; `request-response' object
+     ...)
 
-* :SUCCESS callback
+* :SUCCESS callback call signature::
 
-This callback takes :DATA (object), which is a data object parsed
-by :PARSER.  If :PARSER is not specified, this is nil.
-The :SUCCESS callback also takes the :STATUS and :RESPONSE-STATUS
-argument.
+    (SUCCESS
+     :data          data           ; whatever PARSER function returns
+     :symbol-status symbol-status  ; success
+     :response      response       ; `request-response' object
+     ...)
 
 * :STATUS-CODE callback
 
 Each value of this alist is a callback which is similar to :ERROR
-or :SUCCESS callback.  However, current buffer of this callback
-is not guaranteed to be the process buffer.
+or :SUCCESS callback.
 
 * :PARSER function
 
