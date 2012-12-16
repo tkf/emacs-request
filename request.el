@@ -138,11 +138,13 @@ See: http://api.jquery.com/jQuery.ajax/"
 
 ;;; Header parser
 
-(defun request--parse-response ()
-  (goto-char (point-min))
+(defun request--parse-response-at-point ()
   (re-search-forward "\\=[ \t\n]*HTTP/\\([0-9\\.]+\\) +\\([0-9]+\\)")
   (list :version (match-string 1)
         :code (string-to-number (match-string 2))))
+
+(defun request--goto-next-body ()
+  (re-search-forward "^\r\n"))
 
 ;;; Main
 
@@ -317,10 +319,16 @@ then kill the current buffer."
 
 ;;; Backend: curl
 
+(defvar request--curl-write-out-template
+  "\\n(:num-redirects %{num_redirects})")
+;; FIXME: should % be escaped for Windows?
+
 (defun* request--curl-command (url &key type data headers timeout
                                    &allow-other-keys)
   (append
-   (list request-curl "--silent" "--include")
+   (list request-curl "--silent" "--include"
+         "--location"
+         "--write-out" request--curl-write-out-template)
    (when data (list "--data-binary" "@-"))
    (when type (list "--request" type))
    (when timeout (list "--max-time" (format "%s" timeout)))
@@ -332,6 +340,21 @@ then kill the current buffer."
 (defun* request--curl (url &rest settings
                            &key type data headers timeout
                            &allow-other-keys)
+  "cURL-based request backend.
+
+Redirection handling strategy
+-----------------------------
+
+curl follows redirection when --location is given.  However,
+all headers are printed when it is used with --include option.
+Number of redirects is printed out sexp-based message using
+--write-out option (see `request--curl-write-out-template').
+This number is used for removing extra headers and parse
+location header from the last redirection header.
+
+Sexp at the end of buffer and extra headers for redicts are
+removed from the buffer before it is shown to the parser function.
+"
   (let* (;; Use pipe instead of pty.  Otherwise, curl process hangs.
          (process-connection-type nil)
          (buffer (generate-new-buffer " *request curl*"))
@@ -345,6 +368,40 @@ then kill the current buffer."
       (process-send-string proc data)
       (process-send-eof proc))
     buffer))
+
+(defun request--curl-read-and-delete-tail-info ()
+  "Read a sexp at the end of buffer and remove it and preceding character.
+This function moves the point at the end of buffer by side effect.
+See also `request--curl-write-out-template'."
+  (let (forward-sexp-function)
+    (goto-char (point-max))
+    (forward-sexp -1)
+    (let ((beg (1- (point))))
+      (prog1
+          (read (current-buffer))
+        (delete-region beg (point-max))))))
+
+(defun request--curl-preprocess ()
+  "Pre-process current buffer before showing it to user."
+  (let (redirect)
+    (destructuring-bind (&key num-redirects)
+        (request--curl-read-and-delete-tail-info)
+      (goto-char (point-min))
+      (when (> num-redirects 0)
+        (loop repeat num-redirects
+              for beg = (point)
+              do (request--goto-next-body)
+              finally do
+              (let ((case-fold-search t)
+                    (point (point)))
+                (re-search-backward
+                 "^location: \\([^\r\n]+\\)\r\n"
+                 beg)
+                (setq redirect (match-string 1))
+                ;; Remove headers for redirection.
+                (delete-region (point-min) point))))
+      (nconc (list :num-redirects num-redirects :redirect redirect)
+             (request--parse-response-at-point)))))
 
 (defun request--curl-callback (proc event)
   (let ((buffer (process-buffer proc))
@@ -360,9 +417,12 @@ then kill the current buffer."
                settings)))
      ((equal event "finished\n")
       (with-current-buffer buffer
-        (destructuring-bind (&key version code) (request--parse-response)
-          (setq url-http-response-status code))
-        (apply #'request--callback nil settings))))))
+        (destructuring-bind (&key version code num-redirects redirect)
+            (request--curl-preprocess)
+          (setq url-http-response-status code)
+          (apply #'request--callback
+                 (when redirect (list :redirect redirect))
+                 settings)))))))
 
 (provide 'request)
 

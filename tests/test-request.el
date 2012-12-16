@@ -55,6 +55,26 @@
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "GET"))))
 
+(request-deftest request-redirection-get ()
+  (let* ((result (request-testing-sync
+                  (request-testing-url "redirect/redirect/report/some-path")
+                  :parser 'request-parser-json))
+         (redirect (plist-get (plist-get result :status) :redirect))
+         (response-status (plist-get result :response-status))
+         (data (plist-get result :data))
+         (path (assoc-default 'path data)))
+    (if (and noninteractive (eq request-backend 'url-retrieve))
+        ;; `url-retrieve' adds %0D to redirection path when the test
+        ;; is run in noninteractive environment.
+        ;; probably it's a bug in `url-retrieve'...
+        (progn
+          (string-match "^http://.*/report/some-path" redirect)
+          (should (string-prefix-p "some-path" path)))
+      (should (string-match "^http://.*/report/some-path$" redirect))
+      (should (equal path "some-path")))
+    (should (equal response-status 200))
+    (should (equal (assoc-default 'method data) "GET"))))
+
 (request-deftest request-simple-post ()
   (let* ((result (request-testing-sync
                   (request-testing-url "report/some-path")
@@ -104,6 +124,74 @@
     (should (equal (assoc-default 'method data) "PUT"))
     (should (equal (request-testing-sort-alist (assoc-default 'json data))
                    '((a . 1) (b . 2) (c . 3))))))
+
+(ert-deftest request--curl-preprocess/no-redirects ()
+  (with-temp-buffer
+    (erase-buffer)
+    (insert "\
+HTTP/1.0 200 OK\r
+Content-Type: application/json\r
+Content-Length: 88\r
+Server: Werkzeug/0.8.1 Python/2.7.2+\r
+Date: Sat, 15 Dec 2012 23:04:26 GMT\r
+\r
+RESPONSE-BODY")
+    (insert "\n(:num-redirects 0)")
+    (let ((info (request--curl-preprocess)))
+      (should (equal (buffer-string)
+                     "\
+HTTP/1.0 200 OK\r
+Content-Type: application/json\r
+Content-Length: 88\r
+Server: Werkzeug/0.8.1 Python/2.7.2+\r
+Date: Sat, 15 Dec 2012 23:04:26 GMT\r
+\r
+RESPONSE-BODY"))
+      (should (equal info
+                     (list :num-redirects 0
+                           :redirect nil
+                           :version "1.0" :code 200))))))
+
+(ert-deftest request--curl-preprocess/two-redirects ()
+  (with-temp-buffer
+    (erase-buffer)
+    (insert "\
+HTTP/1.0 302 FOUND\r
+Content-Type: text/html; charset=utf-8\r
+Content-Length: 257\r
+Location: http://example.com/redirect/a/b\r
+Server: Werkzeug/0.8.1 Python/2.7.2+\r
+Date: Sat, 15 Dec 2012 23:04:26 GMT\r
+\r
+HTTP/1.0 302 FOUND\r
+Content-Type: text/html; charset=utf-8\r
+Content-Length: 239\r
+Location: http://example.com/a/b\r
+Server: Werkzeug/0.8.1 Python/2.7.2+\r
+Date: Sat, 15 Dec 2012 23:04:26 GMT\r
+\r
+HTTP/1.0 200 OK\r
+Content-Type: application/json\r
+Content-Length: 88\r
+Server: Werkzeug/0.8.1 Python/2.7.2+\r
+Date: Sat, 15 Dec 2012 23:04:26 GMT\r
+\r
+RESPONSE-BODY")
+    (insert "\n(:num-redirects 2)")
+    (let ((info (request--curl-preprocess)))
+      (should (equal (buffer-string)
+                     "\
+HTTP/1.0 200 OK\r
+Content-Type: application/json\r
+Content-Length: 88\r
+Server: Werkzeug/0.8.1 Python/2.7.2+\r
+Date: Sat, 15 Dec 2012 23:04:26 GMT\r
+\r
+RESPONSE-BODY"))
+      (should (equal info
+                     (list :num-redirects 2
+                           :redirect "http://example.com/a/b"
+                           :version "1.0" :code 200))))))
 
 (provide 'test-request)
 

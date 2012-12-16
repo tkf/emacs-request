@@ -1,13 +1,15 @@
 import os
 
 from flask import (
-    Flask, request, jsonify)
+    Flask, request, redirect, url_for, jsonify)
 
 app = Flask(__name__)
 
+all_methods = ['GET', 'POST', 'PUT', 'DELETE']
 
-@app.route('/report/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
-def report(path):
+
+@app.route('/report/<path:path>', methods=all_methods)
+def page_report(path):
     """
     Report back path, input data, parameter, etc. as JSON.
     """
@@ -18,6 +20,11 @@ def report(path):
         method=request.method,
         json=request.json,
     ))
+
+
+@app.route('/redirect/<path:path>', methods=all_methods)
+def page_redirect(path):
+    return redirect(path)
 
 
 def get_open_port():
