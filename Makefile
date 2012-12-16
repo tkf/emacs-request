@@ -2,7 +2,7 @@ CARTON ?= carton
 EMACS ?= emacs
 TEST_1 = make EMACS=${EMACS} CARTON=${CARTON} test-1
 
-.PHONY : test test-1 clean-elpa	print-deps travis-ci
+.PHONY : test test-1 clean-elpa clean print-deps travis-ci
 
 test: elpa
 	EL_REQUEST_BACKEND=url-retrieve ${TEST_1}
@@ -15,6 +15,9 @@ test-1:
 
 elpa:
 	${CARTON} install
+
+clean:
+	rm -f *.elc */*.elc
 
 clean-elpa:
 	rm -rf elpa
