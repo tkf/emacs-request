@@ -169,10 +169,10 @@ See: http://api.jquery.com/jQuery.ajax/"
 API of `request' is similar to `jQuery.ajax'.
 
 :CACHE       (nil/t) : append time-stamp to URL so the URL is always loaded.
-:TYPE       (string) : sets `url-request-method'
-:DATA       (string) : sets `url-request-data'
+:TYPE       (string) : type of request to make: POST/GET/PUT/DELETE
+:DATA       (string) : data to be sent to the server
 :PARSER     (symbol) : a function that reads current buffer and return data
-:HEADERS     (alist) : sets `url-request-extra-headers'
+:HEADERS     (alist) : additional headers to send with the request
 :SUCCESS      (cons) : called on success
 :ERROR        (cons) : called on error
 :TIMEOUT    (number) : timeout in second
