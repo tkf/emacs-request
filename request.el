@@ -71,7 +71,7 @@
 
 (defun request--safe-apply (function &rest arguments)
   (condition-case err
-      (when function (apply #'apply function arguments))
+      (apply #'apply function arguments)
     ((debug error))))
 
 (defun request--safe-call (function &rest arguments)
@@ -378,21 +378,24 @@ then kill the current buffer."
                       do (push v l)
                       finally return l))))
 
-      (let ((args (list :data data
-                        :symbol-status symbol-status
-                        :error-thrown error-thrown
-                        :response response)))
-        (request-log 'debug "Executing %s callback."
-                     (if (eq symbol-status 'success) "success" "error"))
-        (request--safe-apply
-         (if (eq symbol-status 'success) success error) args)
+      (let* ((args (list :data data
+                         :symbol-status symbol-status
+                         :error-thrown error-thrown
+                         :response response))
+             (success-p (eq symbol-status 'success))
+             (cb (if success-p success error))
+             (name (if success-p "success" "error")))
+        (when cb
+          (request-log 'debug "Executing %s callback." name)
+          (request--safe-apply cb args))
 
         (when status-code-callback
           (request-log 'debug "Executing status-code callback.")
           (request--safe-apply status-code-callback args))
 
-        (request-log 'debug "Executing complete callback.")
-        (request--safe-apply complete args)))))
+        (when complete
+          (request-log 'debug "Executing complete callback.")
+          (request--safe-apply complete args))))))
 
 
 ;;; Backend: curl
