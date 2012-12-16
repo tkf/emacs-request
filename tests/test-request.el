@@ -233,6 +233,7 @@ RESPONSE-BODY"))
       (should (equal info
                      (list :num-redirects 0
                            :redirects nil
+                           :cookies nil :cookies2 nil
                            :version "1.0" :code 200))))))
 
 (ert-deftest request--curl-preprocess/two-redirects ()
@@ -275,6 +276,7 @@ RESPONSE-BODY"))
                      (list :num-redirects 2
                            :redirects '("http://example.com/a/b"
                                         "http://example.com/redirect/a/b")
+                           :cookies nil :cookies2 nil
                            :version "1.0" :code 200))))))
 
 (provide 'test-request)

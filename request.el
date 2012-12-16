@@ -28,6 +28,7 @@
 
 (eval-when-compile (require 'cl))
 (require 'url nil t)
+(require 'mail-utils)
 
 (defgroup request nil
   "Compatible layer for URL request in Emacs."
@@ -502,7 +503,7 @@ See also `request--curl-write-out-template'."
 
 (defun request--curl-preprocess ()
   "Pre-process current buffer before showing it to user."
-  (let (redirects)
+  (let (redirects cookies cookies2)
     (destructuring-bind (&key num-redirects)
         (request--curl-read-and-delete-tail-info)
       (goto-char (point-min))
@@ -512,6 +513,7 @@ See also `request--curl-write-out-template'."
               for beg = (point)
               do (request--goto-next-body)
               for end = (point)
+              ;; FIXME: use `mail-fetch-field'
               do (progn
                    (re-search-backward "^location: \\([^\r\n]+\\)\r\n" beg)
                    (push (match-string 1) redirects)
@@ -519,17 +521,28 @@ See also `request--curl-write-out-template'."
               ;; Remove headers for redirection.
               finally do (delete-region (point-min) end)))
 
-      (prog1
-          (nconc (list :num-redirects num-redirects :redirects redirects)
-                 (request--parse-response-at-point))
+      ;; Remove \r from header to use `mail-fetch-field'.
+      ;; See: `url-http-clean-headers'
+      (goto-char (point-min))
+      (request--goto-next-body)
+      (while (re-search-backward "\r$" (point-min) t)
+        (replace-match ""))
 
-        ;; To make the header format same as of `url-retrieve' backend,
-        ;; remove trailing \r from headers.
-        ;; See: `url-http-clean-headers'
-        (goto-char (point-min))
-        (request--goto-next-body)
-        (while (re-search-backward "\r$" (point-min) t)
-          (replace-match ""))))))
+      (goto-char (point-min))
+      (unwind-protect
+          (progn
+            (narrow-to-region (point)
+                              (progn (re-search-forward "^$") (point)))
+            (setq cookies
+                  (nreverse (mail-fetch-field "Set-Cookie" nil nil t)))
+            (setq cookies2
+                  (nreverse (mail-fetch-field "Set-Cookie2" nil nil t))))
+        (widen))
+
+      (goto-char (point-min))
+      (nconc (list :num-redirects num-redirects :redirects redirects
+                   :cookies cookies :cookies2 cookies2)
+             (request--parse-response-at-point)))))
 
 (defun request--curl-callback (proc event)
   (let ((buffer (process-buffer proc))
@@ -546,7 +559,8 @@ See also `request--curl-write-out-template'."
                settings)))
      ((equal event "finished\n")
       (with-current-buffer buffer
-        (destructuring-bind (&key version code num-redirects redirects error)
+        (destructuring-bind (&key version code num-redirects redirects error
+                                  cookies cookies2)
             (condition-case err
                 (request--curl-preprocess)
               ((debug error)
