@@ -126,6 +126,10 @@ Additional keyword arguments:
 BACKEND
   If non-nil, indicate backends that can pass this test.
   Backend not listed here may fail this test.
+
+TEMPFILES
+  A list of variables to be bound to paths of temporary files.
+  The temporary files are cleaned automatically after the test.
 "
   (declare (debug (&define :name test
                            name sexp [&optional stringp]
@@ -148,7 +152,7 @@ BACKEND
                (setq key (car body))
                (and (symbolp key) (symbol-name key)))
         (setq val (cadr body))
-        (if (memq key '(:backends))
+        (if (memq key '(:backends :tempfiles))
             (progn
               (push key req-keys)
               (push val req-keys))
@@ -162,11 +166,16 @@ BACKEND
        ,@(when docstring (list docstring))
        ,@ert-keys
        (request-testing-server)
-       ,(destructuring-bind (&key backends) req-keys
+       ,(destructuring-bind (&key backends tempfiles) req-keys
           `(if (and ,backends (not (memq request-backend ,backends)))
                (message "REQUEST: Test %s for backend %s is not supported."
                         ',name request-backend)
-             ,@body)))))
+             (let ,(loop for f in tempfiles
+                         collect `(,f (make-temp-file "emacs-request-")))
+               (unwind-protect
+                   (progn ,@body)
+                 ,@(loop for f in tempfiles
+                         collect `(ignore-errors (delete-file ,f))))))))))
 
 (provide 'request-testing)
 

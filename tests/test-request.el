@@ -176,6 +176,7 @@
 
 (request-deftest request-cookie ()
   :backends '(curl)
+  :tempfiles (request-curl-cookie-jar)
   (request-testing-assert-username-is nil)
   ;; login
   (request-testing-with-response-slots
