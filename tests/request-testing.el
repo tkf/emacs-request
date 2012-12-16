@@ -123,7 +123,7 @@
 
 Additional keyword arguments:
 
-BACKEND
+BACKENDS
   If non-nil, indicate backends that can pass this test.
   Backend not listed here may fail this test.
 
@@ -167,7 +167,7 @@ TEMPFILES
        ,@ert-keys
        (request-testing-server)
        ,(destructuring-bind (&key backends tempfiles) req-keys
-          `(if (and ,backends (not (memq request-backend ,backends)))
+          `(if (and ',backends (not (memq request-backend ',backends)))
                (message "REQUEST: Test %s for backend %s is not supported."
                         ',name request-backend)
              (let ,(loop for f in tempfiles

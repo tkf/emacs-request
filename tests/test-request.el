@@ -175,7 +175,7 @@
     (should (equal (assoc-default 'method data) "GET"))))
 
 (request-deftest request-cookie ()
-  :backends '(curl)
+  :backends (curl)
   :tempfiles (request-curl-cookie-jar)
   (request-testing-assert-username-is nil)
   ;; login
