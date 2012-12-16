@@ -52,9 +52,10 @@
   (let* ((result (request-testing-sync
                   (request-testing-url "report/some-path")
                   :parser 'request-parser-json))
-         (response-status (plist-get result :response-status))
+         (response (plist-get result :response))
+         (status-code (request-response-status-code response))
          (data (plist-get result :data)))
-    (should (equal response-status 200))
+    (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "GET"))))
 
@@ -62,8 +63,9 @@
   (let* ((result (request-testing-sync
                   (request-testing-url "redirect/redirect/report/some-path")
                   :parser 'request-parser-json))
-         (redirect (plist-get (plist-get result :status) :redirect))
-         (response-status (plist-get result :response-status))
+         (response (plist-get result :response))
+         (status-code (request-response-status-code response))
+         (redirect (request-response-url response))
          (data (plist-get result :data))
          (path (assoc-default 'path data)))
     (if (and noninteractive (eq request-backend 'url-retrieve))
@@ -75,7 +77,7 @@
           (should (string-prefix-p "some-path" path)))
       (should (string-match "^http://.*/report/some-path$" redirect))
       (should (equal path "some-path")))
-    (should (equal response-status 200))
+    (should (equal status-code 200))
     (should (equal (assoc-default 'method data) "GET"))))
 
 
@@ -86,9 +88,10 @@
                   (request-testing-url "report/some-path")
                   :type "POST" :data "key=value"
                   :parser 'request-parser-json))
-         (response-status (plist-get result :response-status))
+         (response (plist-get result :response))
+         (status-code (request-response-status-code response))
          (data (plist-get result :data)))
-    (should (equal response-status 200))
+    (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "POST"))
     (should (equal (assoc-default 'form data) '((key . "value"))))))
@@ -102,9 +105,10 @@
                   :type "PUT" :data "dummy-data"
                   :headers '(("Content-Type" . "text/plain"))
                   :parser 'request-parser-json))
-         (response-status (plist-get result :response-status))
+         (response (plist-get result :response))
+         (status-code (request-response-status-code response))
          (data (plist-get result :data)))
-    (should (equal response-status 200))
+    (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "PUT"))
     (should (equal (assoc-default 'data data) "dummy-data"))))
@@ -115,9 +119,10 @@
                   :type "PUT" :data "{\"a\": 1, \"b\": 2, \"c\": 3}"
                   :headers '(("Content-Type" . "application/json"))
                   :parser 'request-parser-json))
-         (response-status (plist-get result :response-status))
+         (response (plist-get result :response))
+         (status-code (request-response-status-code response))
          (data (plist-get result :data)))
-    (should (equal response-status 200))
+    (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "PUT"))
     (should (equal (request-testing-sort-alist (assoc-default 'json data))
@@ -131,9 +136,10 @@
                   (request-testing-url "report/some-path")
                   :type "DELETE"
                   :parser 'request-parser-json))
-         (response-status (plist-get result :response-status))
+         (response (plist-get result :response))
+         (status-code (request-response-status-code response))
          (data (plist-get result :data)))
-    (should (equal response-status 200))
+    (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "DELETE"))))
 
@@ -167,7 +173,7 @@ Date: Sat, 15 Dec 2012 23:04:26 GMT\r
 RESPONSE-BODY"))
       (should (equal info
                      (list :num-redirects 0
-                           :redirect nil
+                           :redirects nil
                            :version "1.0" :code 200))))))
 
 (ert-deftest request--curl-preprocess/two-redirects ()
@@ -208,7 +214,8 @@ Date: Sat, 15 Dec 2012 23:04:26 GMT\r
 RESPONSE-BODY"))
       (should (equal info
                      (list :num-redirects 2
-                           :redirect "http://example.com/a/b"
+                           :redirects '("http://example.com/a/b"
+                                        "http://example.com/redirect/a/b")
                            :version "1.0" :code 200))))))
 
 (provide 'test-request)

@@ -67,14 +67,6 @@
   :group 'request)
 
 
-;;; Internal variables
-
-(defvar request--ajax-timer nil)
-(make-variable-buffer-local 'request--ajax-timer)
-(defvar request--ajax-canceled nil)
-(make-variable-buffer-local 'request--ajax-canceled)
-
-
 ;;; Utilities
 
 (defun request--safe-apply (function &rest arguments)
@@ -95,6 +87,12 @@ See: http://api.jquery.com/jQuery.ajax/"
   (goto-char (point-max))
   (backward-sexp)
   (json-read))
+
+(defmacro request--document-function (function docstring)
+  "Document FUNCTION with DOCSTRING.  Use this for defstruct accessor etc."
+  (declare (indent defun)
+           (doc-string 2))
+  `(put ',function 'function-documentation ,docstring))
 
 
 ;;; Logging
@@ -146,6 +144,67 @@ See: http://api.jquery.com/jQuery.ajax/"
 (defun request--goto-next-body ()
   (re-search-forward "^\r\n"))
 
+
+;;; Response object
+
+(defstruct request-response
+  "A structure holding all relevant information of a request."
+  status-code redirects data error-thrown symbol-status url
+  settings
+  ;; internal variables
+  -buffer -timer)
+
+(defmacro request--document-response (function docstring)
+  (declare (indent defun)
+           (doc-string 2))
+  `(request--document-function ,function ,(concat docstring "
+
+This is an accessor for `request-response' object.
+
+\(fn RESPONSE)")))
+
+(request--document-response request-response-status-code
+  "Integer HTTP response code (e.g., 200).")
+
+(request--document-response request-response-redirects
+  "Redirection history (a list of URLs).
+The first element will be the oldest redirection.")
+
+(request--document-response request-response-data
+  "Response parsed by the given parser.")
+
+(request--document-response request-response-error-thrown
+  "Error thrown during request.
+It takes the form of ``(ERROR-SYMBOL . DATA)``, which can be
+re-raised (`signal'ed) by ``(signal ERROR-SYMBOL DATA)``.")
+
+(request--document-response request-response-symbol-status
+  "A symbol representing the status of *request* (not response).
+One of success/error/timeout.")  ; FIMXE: add abort/parse-error
+
+(request--document-response request-response-url
+  "Final URL location of response.")
+
+(request--document-response request-response-settings
+  "Keyword arguments passed to `request' function.")
+
+(defun* request-response--timeout-callback (response)
+  (request-log 'debug "request-response--timeout-callback")
+  (setf (request-response-symbol-status response) 'timeout)
+  (let* ((buffer (request-response--buffer response))
+         (proc (and (buffer-live-p buffer) (get-buffer-process buffer))))
+    (when proc
+      ;; This will call `request--callback':
+      (delete-process proc))))
+
+(defun request-response--cancel-timer (response)
+  (request-log 'debug "REQUEST-RESPONSE--CANCEL-TIMER")
+  (symbol-macrolet ((timer (request-response--timer response)))
+    (when timer
+      (cancel-timer timer)
+      (setq timer nil))))
+
+
 ;;; Main
 
 (defun* request-default-error-callback (url &key symbol-status
@@ -163,7 +222,8 @@ See: http://api.jquery.com/jQuery.ajax/"
                      (success nil)
                      (error nil)
                      (timeout request-timeout)
-                     (status-code nil))
+                     (status-code nil)
+                     (response (make-request-response)))
   "Send request to URL.
 
 API of `request' is similar to `jQuery.ajax'.
@@ -185,24 +245,26 @@ alist STATUS-CODE takes keyword arguments listed below.  For
 forward compatibility, these functions must ignore unused keyword
 arguments (i.e., it's better to use `&allow-other-keys'.
 
-* :ERROR callback
+* :ERROR callback call signature::
 
-:SYMBOL-STATUS (`error'/`timeout') : analogous of `textStatus'
-:STATUS                     (list) : see `url-retrieve'
-:RESPONSE-STATUS                   : = `url-http-response-status'
+    (ERROR
+     :error-thrown  error-thrown   ; (ERROR-SYMBOL . DATA)
+     :symbol-status symbol-status  ; error/timeout/...
+     :response      response       ; `request-response' object
+     ...)
 
-* :SUCCESS callback
+* :SUCCESS callback call signature::
 
-This callback takes :DATA (object), which is a data object parsed
-by :PARSER.  If :PARSER is not specified, this is nil.
-The :SUCCESS callback also takes the :STATUS and :RESPONSE-STATUS
-argument.
+    (SUCCESS
+     :data          data           ; whatever PARSER function returns
+     :symbol-status symbol-status  ; success
+     :response      response       ; `request-response' object
+     ...)
 
 * :STATUS-CODE callback
 
 Each value of this alist is a callback which is similar to :ERROR
-or :SUCCESS callback.  However, current buffer of this callback
-is not guaranteed to be the process buffer.
+or :SUCCESS callback.
 
 * :PARSER function
 
@@ -217,6 +279,9 @@ is killed immediately after the execution of this function.
   (unless error
     (setq error (apply-partially #'request-default-error-callback url))
     (plist-put settings :error error))
+  (setq settings (plist-put settings :response response))
+  (setf (request-response-settings response) settings)
+  (setf (request-response-url response) url)
   (apply
    (or (assoc-default request-backend request-backend-alist)
        (error "%S is not valid `request-backend'." request-backend))
@@ -226,7 +291,7 @@ is killed immediately after the execution of this function.
 ;;; Backend: `url-retrieve'
 
 (defun* request--urllib (url &rest settings
-                             &key type data headers timeout
+                             &key type data headers timeout response
                              &allow-other-keys)
   (when (and (equal type "POST") data)
     (push '("Content-Type" . "application/x-www-form-urlencoded") headers)
@@ -234,18 +299,21 @@ is killed immediately after the execution of this function.
   (let* ((url-request-extra-headers headers)
          (url-request-method type)
          (url-request-data data)
-         (buffer (url-retrieve url #'request--callback settings)))
+         (buffer (url-retrieve url #'request--callback
+                               (nconc (list :response response) settings)))
+         (proc (get-buffer-process buffer)))
+    (setf (request-response--buffer response) buffer)
+    (process-put proc :request-response response)
     (request-log 'debug "Start querying: %s" url)
     (when timeout
       (request-log 'debug "Start timer: timeout=%s ms" timeout)
       (with-current-buffer buffer
-        (setq request--ajax-timer
-              (apply #'run-at-time
-                     timeout nil
-                     #'request--timeout-callback
-                     (cons buffer settings)))))
-    (set-process-query-on-exit-flag (get-buffer-process buffer) nil)
-    buffer))
+        (setf (request-response--timer response)
+              (run-at-time timeout nil
+                           #'request-response--timeout-callback
+                           response))))
+    (set-process-query-on-exit-flag proc nil)
+    response))
 
 (defun request--parse-data (parser status-error)
   "Run PARSER in current buffer if STATUS-ERROR is nil,
@@ -269,6 +337,7 @@ then kill the current buffer."
                                   (error nil)
                                   (timeout nil)
                                   (status-code nil)
+                                  response
                                   &allow-other-keys)
   (declare (special url-http-method
                     url-http-response-status))
@@ -279,42 +348,45 @@ then kill the current buffer."
   (request-log 'debug "url-http-response-status = %s" url-http-response-status)
   (request-log 'debug "(buffer-string) =\n%s" (buffer-string))
 
-  (request--cancel-timer)
+  (request-response--cancel-timer response)
   (let* ((response-status url-http-response-status)
          (status-code-callback (cdr (assq response-status status-code)))
-         (status-error (plist-get status :error))
-         (canceled request--ajax-canceled)
-         (data (request--parse-data parser status-error)))
+         (error-thrown (plist-get status :error))
+         (data (request--parse-data parser error-thrown)))
     (request-log 'debug "data = %s" data)
-    (request-log 'debug "canceled = %s" canceled)
 
-    (let ((args (list :status status :data data
-                      :response-status response-status)))
-      (if (not (or status-error canceled))
-          (progn
-            (request-log 'debug "Executing success callback.")
-            (request--safe-apply success args))
-        (request-log 'debug "Executing error callback.")
-        (request--safe-apply error :symbol-status (or canceled 'error) args)))
+    (symbol-macrolet
+        ((symbol-status (request-response-symbol-status response)))
 
-    (when (and (not canceled) status-code-callback)
-      (request-log 'debug "Executing status-code callback.")
-      (request--safe-call status-code-callback :status status :data data))))
+      (unless symbol-status
+        (setq symbol-status (or (plist-get status :error) 'success)))
+      (request-log 'debug "symbol-status = %s" symbol-status)
 
-(defun* request--timeout-callback (buffer &key (error nil) &allow-other-keys)
-  (request-log 'debug "REQUEST--TIMEOUT-CALLBACK buffer = %S" buffer)
-  (when (buffer-live-p buffer)
-    (with-current-buffer buffer
-      (setq request--ajax-canceled 'timeout)
-      (let ((proc (get-buffer-process buffer)))
-        ;; This will call `request--callback'.
-        (delete-process proc)))))
+      (setf (request-response-status-code response) response-status)
+      (setf (request-response-data response) data)
+      (setf (request-response-error-thrown response) error-thrown)
+      (let ((redirect (plist-get :redirect status)))
+        (when redirect
+          (setf (request-response-url response) redirect)
+          (setf (request-response-redirects response)
+                (loop with l = nil
+                      for (k v) on redirect by 'cddr
+                      when (eq k :redirect)
+                      do (push v l)
+                      finally return l))))
 
-(defun request--cancel-timer ()
-  (request-log 'debug "REQUEST--CANCEL-TIMER")
-  (when request--ajax-timer
-    (cancel-timer request--ajax-timer)
-    (setq request--ajax-timer nil)))
+      (let ((args (list :data data
+                        :symbol-status symbol-status
+                        :error-thrown error-thrown
+                        :response response)))
+        (request-log 'debug "Executing %s callback."
+                     (if (eq symbol-status 'success) "success" "error"))
+        (request--safe-apply
+         (if (eq symbol-status 'success) success error) args)
+
+        (when status-code-callback
+          (request-log 'debug "Executing status-code callback.")
+          (request--safe-apply status-code-callback args))))))
 
 
 ;;; Backend: curl
@@ -338,7 +410,7 @@ then kill the current buffer."
    (list url)))
 
 (defun* request--curl (url &rest settings
-                           &key type data headers timeout
+                           &key type data headers timeout response
                            &allow-other-keys)
   "cURL-based request backend.
 
@@ -361,8 +433,9 @@ removed from the buffer before it is shown to the parser function.
          (command (apply #'request--curl-command url settings))
          (proc (apply #'start-process "request curl" buffer command)))
     (request-log 'debug "Run: %s" (mapconcat 'identity command " "))
+    (setf (request-response--buffer response) buffer)
+    (process-put proc :request-response response)
     (set-process-query-on-exit-flag proc nil)
-    (process-put proc :request settings)
     (set-process-sentinel proc #'request--curl-callback)
     (when data
       (process-send-string proc data)
@@ -383,29 +456,29 @@ See also `request--curl-write-out-template'."
 
 (defun request--curl-preprocess ()
   "Pre-process current buffer before showing it to user."
-  (let (redirect)
+  (let (redirects)
     (destructuring-bind (&key num-redirects)
         (request--curl-read-and-delete-tail-info)
       (goto-char (point-min))
       (when (> num-redirects 0)
-        (loop repeat num-redirects
+        (loop with case-fold-search = t
+              repeat num-redirects
               for beg = (point)
               do (request--goto-next-body)
-              finally do
-              (let ((case-fold-search t)
-                    (point (point)))
-                (re-search-backward
-                 "^location: \\([^\r\n]+\\)\r\n"
-                 beg)
-                (setq redirect (match-string 1))
-                ;; Remove headers for redirection.
-                (delete-region (point-min) point))))
-      (nconc (list :num-redirects num-redirects :redirect redirect)
+              for end = (point)
+              do (progn
+                   (re-search-backward "^location: \\([^\r\n]+\\)\r\n" beg)
+                   (push (match-string 1) redirects)
+                   (goto-char end))
+              ;; Remove headers for redirection.
+              finally do (delete-region (point-min) end)))
+      (nconc (list :num-redirects num-redirects :redirects redirects)
              (request--parse-response-at-point)))))
 
 (defun request--curl-callback (proc event)
   (let ((buffer (process-buffer proc))
-        (settings (process-get proc :request))
+        (settings (request-response-settings
+                   (process-get proc :request-response)))
         ;; `request--callback' needs the following variables to be
         ;; defined.  I should refactor `request--callback' at some
         ;; point.
@@ -417,7 +490,7 @@ See also `request--curl-write-out-template'."
                settings)))
      ((equal event "finished\n")
       (with-current-buffer buffer
-        (destructuring-bind (&key version code num-redirects redirect error)
+        (destructuring-bind (&key version code num-redirects redirects error)
             (condition-case err
                 (request--curl-preprocess)
               ((debug error)
@@ -425,7 +498,8 @@ See also `request--curl-write-out-template'."
           (setq url-http-response-status code)
           (apply #'request--callback
                  (cond
-                  (redirect (list :redirect redirect))
+                  (redirects (loop for r in redirects
+                                   collect :redirect collect r))
                   (error (list :error error)))
                  settings)))))))
 
