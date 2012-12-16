@@ -1,12 +1,16 @@
 import os
 
 from flask import (
-    Flask, request, redirect, abort, jsonify)
+    Flask, request, session, redirect, abort, jsonify)
 from werkzeug.http import HTTP_STATUS_CODES
 
 app = Flask(__name__)
+app.secret_key = 'SECRET-KEY-FOR-EMACS-REQUEST-DEVELOPMENT'
 
 all_methods = ['GET', 'POST', 'PUT', 'DELETE']
+
+
+# View functions
 
 
 @app.route('/report/<path:path>', methods=all_methods)
@@ -14,12 +18,14 @@ def page_report(path):
     """
     Report back path, input data, parameter, etc. as JSON.
     """
+    print session
     return jsonify(dict(
         path=path,
         data=request.data,
         form=request.form,
         method=request.method,
         json=request.json,
+        username=session.get('username'),
     ))
 
 
@@ -34,6 +40,31 @@ def page_code(code):
         return abort(code)
     except LookupError:
         return HTTP_STATUS_CODES[code], code
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def page_login():
+    error = 'Not logged-in'
+    if request.method == 'POST':
+        username = request.form['username']
+        if 'invalid' in username:
+            error = 'Invalid username'
+        elif 'invalid' in request.form['password']:
+            error = 'Invalid password'
+        else:
+            session['username'] = username
+            return redirect('report/from-login')
+    return error
+
+
+@app.route('/logout')
+def page_logout():
+    session.pop('username', None)
+    print session
+    return redirect('report/from-logout')
+
+
+# Runner
 
 
 def get_open_port():
