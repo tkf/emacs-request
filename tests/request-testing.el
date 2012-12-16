@@ -81,19 +81,19 @@
         finally return url))
 
 (defun request-testing-sync (&rest args)
-  (lexical-let (err)
+  (lexical-let (err timeout)
     (let ((result
            (deferred:sync!
-             (deferred:try
-               (deferred:timeout
-                 request-testing-timeout
-                 (setq err '(error "timeout"))
-                 (apply #'request-deferred args))
-               :catch
-               (lambda (x) (setq err x))))))
-      (if err
-          (error "Got: %S" err)
-        result))))
+             (deferred:timeout
+               request-testing-timeout
+               (setq timeout t)
+               (deferred:try
+                 (apply #'request-deferred args)
+                 :catch
+                 (lambda (x) (setq err x)))))))
+      (if timeout
+          (error "Timeout.")
+        (or result err)))))
 
 (defun request-testing-sort-alist (alist)
   (sort alist (lambda (x y)

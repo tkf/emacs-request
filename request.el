@@ -359,7 +359,7 @@ then kill the current buffer."
         ((symbol-status (request-response-symbol-status response)))
 
       (unless symbol-status
-        (setq symbol-status (or (plist-get status :error) 'success)))
+        (setq symbol-status (if error-thrown 'error 'success)))
       (request-log 'debug "symbol-status = %s" symbol-status)
 
       (setf (request-response-status-code response) response-status)

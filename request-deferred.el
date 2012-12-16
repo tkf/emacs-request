@@ -31,16 +31,13 @@
 
 (defun request-deferred (url &rest args)
   (let ((d (deferred:new #'identity)))
-    (plist-put args :success (apply-partially #'request-deferred--success d))
-    (plist-put args :error (apply-partially #'request-deferred--error d))
+    (plist-put args :success (apply-partially #'request-deferred--cb d))
+    (plist-put args :error (apply-partially #'request-deferred--cb d))
     (apply #'request url args)
     d))
 
-(defun request-deferred--success (d &rest args)
+(defun request-deferred--cb (d &rest args)
   (deferred:callback-post d args))
-
-(defun request-deferred--error (d &rest args)
-  (deferred:errorback-post d args))
 
 (provide 'request-deferred)
 

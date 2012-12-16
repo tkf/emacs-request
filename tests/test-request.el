@@ -91,6 +91,37 @@
         for status-code = (request-response-status-code response)
         do (should (equal status-code code))))
 
+(request-deftest request-get-code-client-error ()
+  (loop for code in (loop for c from 400 to 418
+                          ;; 401: Unauthorized
+                          ;;      `url-retrieve' pops prompt.
+                          ;;      FIXME: find a way to test in a batch mode.
+                          ;; 402: Payment Required
+                          ;;      "Reserved for future use."
+                          ;;      So it's OK to ignore this code?
+                          ;; 407: Proxy Authentication Required
+                          ;;      FIXME: how to support this?
+                          unless (member c '(401 402 407))
+                          collect c)
+        for result = (request-testing-sync
+                      (request-testing-url (format "code/%d" code))
+                      :parser 'ignore)
+        for response = (plist-get result :response)
+        for status-code = (request-response-status-code response)
+        do (should (equal status-code code))))
+
+(request-deftest request-get-code-server-error ()
+  (loop for code in (loop for c from 500 to 510
+                          ;; flask does not support them:
+                          unless (member c '(506 508 509))
+                          collect c)
+        for result = (request-testing-sync
+                      (request-testing-url (format "code/%d" code))
+                      :parser 'ignore)
+        for response = (plist-get result :response)
+        for status-code = (request-response-status-code response)
+        do (should (equal status-code code))))
+
 
 ;;; POST
 
