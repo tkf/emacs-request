@@ -119,21 +119,54 @@
                 (string-lessp x y))))
 
 (defmacro* request-deftest (name () &body docstring-and-body)
-  "`ert-deftest' with predefined context."
+  "`ert-deftest' for test requiring test server.
+
+Additional keyword arguments:
+
+BACKEND
+  If non-nil, indicate backends that can pass this test.
+  Backend not listed here may fail this test.
+"
   (declare (debug (&define :name test
                            name sexp [&optional stringp]
 			   [&rest keywordp sexp] def-body))
            (doc-string 3)
            (indent 2))
   (let ((docstring (car docstring-and-body))
-        (body (cdr docstring-and-body)))
+        (body (cdr docstring-and-body))
+        ert-keys
+        req-keys)
+
+    ;; If docstring is not given...
     (unless (stringp docstring)
       (setq docstring nil)
       (setq body docstring-and-body))
+
+    ;; Handle keywords
+    (let (key val)
+      (while (progn
+               (setq key (car body))
+               (and (symbolp key) (symbol-name key)))
+        (setq val (cadr body))
+        (if (memq key '(:backends))
+            (progn
+              (push key req-keys)
+              (push val req-keys))
+          (push key ert-keys)
+          (push val ert-keys))
+        (setq body (cddr body)))
+      (setq ert-keys (nreverse ert-keys))
+      (setq req-keys (nreverse req-keys)))
+
     `(ert-deftest ,name ()
        ,@(when docstring (list docstring))
+       ,@ert-keys
        (request-testing-server)
-       ,@body)))
+       ,(destructuring-bind (&key backends) req-keys
+          `(if (and ,backends (not (memq request-backend ,backends)))
+               (message "REQUEST: Test %s for backend %s is not supported."
+                        ',name request-backend)
+             ,@body)))))
 
 (provide 'request-testing)
 
