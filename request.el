@@ -149,7 +149,7 @@ See: http://api.jquery.com/jQuery.ajax/"
 
 (defstruct request-response
   "A structure holding all relevant information of a request."
-  status-code status-text redirects data error-thrown symbol-status url
+  status-code redirects data error-thrown symbol-status url
   settings
   ;; internal variables
   -buffer -timer)
@@ -165,9 +165,6 @@ This is an accessor for `request-response' object.
 
 (request--document-response request-response-status-code
   "Integer HTTP response code (e.g., 200).")
-
-(request--document-response request-response-status-text
-  "Reason phrase of HTTP response (e.g., \"OK\").")
 
 (request--document-response request-response-redirects
   "Redirection history (a list of URLs).
