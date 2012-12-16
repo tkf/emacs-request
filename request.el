@@ -340,6 +340,21 @@ then kill the current buffer."
 (defun* request--curl (url &rest settings
                            &key type data headers timeout
                            &allow-other-keys)
+  "cURL-based request backend.
+
+Redirection handling strategy
+-----------------------------
+
+curl follows redirection when --location is given.  However,
+all headers are printed when it is used with --include option.
+Number of redirects is printed out sexp-based message using
+--write-out option (see `request--curl-write-out-template').
+This number is used for removing extra headers and parse
+location header from the last redirection header.
+
+Sexp at the end of buffer and extra headers for redicts are
+removed from the buffer before it is shown to the parser function.
+"
   (let* (;; Use pipe instead of pty.  Otherwise, curl process hangs.
          (process-connection-type nil)
          (buffer (generate-new-buffer " *request curl*"))
