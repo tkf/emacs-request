@@ -105,6 +105,74 @@
     (should (equal (request-testing-sort-alist (assoc-default 'json data))
                    '((a . 1) (b . 2) (c . 3))))))
 
+(ert-deftest request--curl-preprocess/no-redirects ()
+  (with-temp-buffer
+    (erase-buffer)
+    (insert "\
+HTTP/1.0 200 OK\r
+Content-Type: application/json\r
+Content-Length: 88\r
+Server: Werkzeug/0.8.1 Python/2.7.2+\r
+Date: Sat, 15 Dec 2012 23:04:26 GMT\r
+\r
+RESPONSE-BODY")
+    (insert "\n(:num-redirects 0)")
+    (let ((info (request--curl-preprocess)))
+      (should (equal (buffer-string)
+                     "\
+HTTP/1.0 200 OK\r
+Content-Type: application/json\r
+Content-Length: 88\r
+Server: Werkzeug/0.8.1 Python/2.7.2+\r
+Date: Sat, 15 Dec 2012 23:04:26 GMT\r
+\r
+RESPONSE-BODY"))
+      (should (equal info
+                     (list :num-redirects 0
+                           :redirect-to nil
+                           :version "1.0" :code 200))))))
+
+(ert-deftest request--curl-preprocess/two-redirects ()
+  (with-temp-buffer
+    (erase-buffer)
+    (insert "\
+HTTP/1.0 302 FOUND\r
+Content-Type: text/html; charset=utf-8\r
+Content-Length: 257\r
+Location: http://example.com/redirect/a/b\r
+Server: Werkzeug/0.8.1 Python/2.7.2+\r
+Date: Sat, 15 Dec 2012 23:04:26 GMT\r
+\r
+HTTP/1.0 302 FOUND\r
+Content-Type: text/html; charset=utf-8\r
+Content-Length: 239\r
+Location: http://example.com/a/b\r
+Server: Werkzeug/0.8.1 Python/2.7.2+\r
+Date: Sat, 15 Dec 2012 23:04:26 GMT\r
+\r
+HTTP/1.0 200 OK\r
+Content-Type: application/json\r
+Content-Length: 88\r
+Server: Werkzeug/0.8.1 Python/2.7.2+\r
+Date: Sat, 15 Dec 2012 23:04:26 GMT\r
+\r
+RESPONSE-BODY")
+    (insert "\n(:num-redirects 2)")
+    (let ((info (request--curl-preprocess)))
+      (should (equal (buffer-string)
+                     "\
+HTTP/1.0 200 OK\r
+Content-Type: application/json\r
+Content-Length: 88\r
+Server: Werkzeug/0.8.1 Python/2.7.2+\r
+Date: Sat, 15 Dec 2012 23:04:26 GMT\r
+\r
+RESPONSE-BODY"))
+      (should (equal info
+                     (list :num-redirects 2
+                           :redirect-to "http://example.com/a/b"
+                           :version "1.0" :code 200))))))
+
 (provide 'test-request)
 
 ;;; test-request.el ends here
