@@ -78,7 +78,7 @@
                 ((not (eq 'run (process-status process)))
                  (error "Server startup error.")))
             finally do (error "Server timeout error."))))
-  (request-testing-url))
+  (request-testing--url))
 
 (defun request-testing-stop-server ()
   (interactive)
@@ -91,7 +91,7 @@
   (setq request-testing-server--process nil))
 (add-hook 'kill-emacs-hook 'request-testing-stop-server)
 
-(defun request-testing-url (&rest path)
+(defun request-testing--url (&rest path)
   (loop with url = (format "http://127.0.0.1:%s" request-testing-server--port)
         for p in path
         do (setq url (concat url "/" p))
@@ -105,7 +105,7 @@
                request-testing-timeout
                (setq timeout t)
                (deferred:try
-                 (apply #'request-deferred (request-testing-url url) args)
+                 (apply #'request-deferred (request-testing--url url) args)
                  :catch
                  (lambda (x) (setq err x)))))))
       (if timeout
