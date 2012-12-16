@@ -149,7 +149,7 @@ See: http://api.jquery.com/jQuery.ajax/"
 
 (defstruct request-response
   "A structure holding all relevant information of a request."
-  status-code status-text history error-thrown symbol-status url
+  status-code status-text history data error-thrown symbol-status url
   settings
   ;; internal variables
   -buffer -timer)
@@ -173,8 +173,11 @@ This is an accessor for `request-response' object.
   "Redirection history (a list of `request-response' objects).
 The first element will be the oldest redirection.")
 
+(request--document-response request-response-data
+  "Response parsed by the given parser.")
+
 (request--document-response request-response-error-thrown
-  "Any kind error thrown during request.
+  "Error thrown during request.
 It takes the form of ``(ERROR-SYMBOL . DATA)``, which can be
 re-raised (`signal'ed) by ``(signal ERROR-SYMBOL DATA)``.")
 
@@ -363,6 +366,7 @@ then kill the current buffer."
       (request-log 'debug "symbol-status = %s" symbol-status)
 
       (setf (request-response-status-code response) response-status)
+      (setf (request-response-data response) data)
       (setf (request-response-error-thrown response) error-thrown)
       (let ((redirect (plist-get :redirect status)))
         (when redirect
