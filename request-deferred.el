@@ -35,8 +35,7 @@
     ;; As `deferred:errorback-post' requires an error object to be
     ;; posted, use `deferred:callback-post' for success and error
     ;; cases.
-    (setq args (plist-put args :success callback-post))
-    (setq args (plist-put args :error callback-post))
+    (setq args (plist-put args :complete callback-post))
     (apply #'request url args)
     d))
 

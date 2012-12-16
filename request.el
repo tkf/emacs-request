@@ -221,6 +221,7 @@ One of success/error/timeout.")  ; FIMXE: add abort/parse-error
                      (headers nil)
                      (success nil)
                      (error nil)
+                     (complete nil)
                      (timeout request-timeout)
                      (status-code nil)
                      (response (make-request-response)))
@@ -233,10 +234,11 @@ API of `request' is similar to `jQuery.ajax'.
 :DATA       (string) : data to be sent to the server
 :PARSER     (symbol) : a function that reads current buffer and return data
 :HEADERS     (alist) : additional headers to send with the request
-:SUCCESS      (cons) : called on success
-:ERROR        (cons) : called on error
+:SUCCESS  (function) : called on success
+:ERROR    (function) : called on error
+:COMPLETE (function) : called on both success and error
 :TIMEOUT    (number) : timeout in second
-:STATUS-CODE (alist) : map status code (int) to callback (cons)
+:STATUS-CODE (alist) : map status code (int) to callback
 
 * Callback functions
 
@@ -335,6 +337,7 @@ then kill the current buffer."
                                   (parser nil)
                                   (success nil)
                                   (error nil)
+                                  (complete nil)
                                   (timeout nil)
                                   (status-code nil)
                                   response
@@ -386,7 +389,10 @@ then kill the current buffer."
 
         (when status-code-callback
           (request-log 'debug "Executing status-code callback.")
-          (request--safe-apply status-code-callback args))))))
+          (request--safe-apply status-code-callback args))
+
+        (request-log 'debug "Executing complete callback.")
+        (request--safe-apply complete args)))))
 
 
 ;;; Backend: curl
