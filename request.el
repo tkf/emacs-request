@@ -383,7 +383,7 @@ See also `request--curl-write-out-template'."
 
 (defun request--curl-preprocess ()
   "Pre-process current buffer before showing it to user."
-  (let (redirect-to)
+  (let (redirect)
     (destructuring-bind (&key num-redirects)
         (request--curl-read-and-delete-tail-info)
       (goto-char (point-min))
@@ -397,10 +397,10 @@ See also `request--curl-write-out-template'."
                 (re-search-backward
                  "^location: \\([^\r\n]+\\)\r\n"
                  beg)
-                (setq redirect-to (match-string 1))
+                (setq redirect (match-string 1))
                 ;; Remove headers for redirection.
                 (delete-region (point-min) point))))
-      (nconc (list :num-redirects num-redirects :redirect-to redirect-to)
+      (nconc (list :num-redirects num-redirects :redirect redirect)
              (request--parse-response-at-point)))))
 
 (defun request--curl-callback (proc event)
@@ -417,11 +417,11 @@ See also `request--curl-write-out-template'."
                settings)))
      ((equal event "finished\n")
       (with-current-buffer buffer
-        (destructuring-bind (&key version code num-redirects redirect-to)
+        (destructuring-bind (&key version code num-redirects redirect)
             (request--curl-preprocess)
           (setq url-http-response-status code)
           (apply #'request--callback
-                 (when redirect-to (list :redirect-to redirect-to))
+                 (when redirect (list :redirect redirect))
                  settings)))))))
 
 (provide 'request)

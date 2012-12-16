@@ -59,11 +59,10 @@
   (let* ((result (request-testing-sync
                   (request-testing-url "redirect/redirect/report/some-path")
                   :parser 'request-parser-json))
-         (redirect-to (plist-get (plist-get result :status) :redirect-to))
+         (redirect (plist-get (plist-get result :status) :redirect))
          (response-status (plist-get result :response-status))
          (data (plist-get result :data)))
-    (should (string-match "^http://.*/report/some-path$"
-                          redirect-to))
+    (should (string-match "^http://.*/report/some-path$" redirect))
     (should (equal response-status 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "GET"))))
@@ -142,7 +141,7 @@ Date: Sat, 15 Dec 2012 23:04:26 GMT\r
 RESPONSE-BODY"))
       (should (equal info
                      (list :num-redirects 0
-                           :redirect-to nil
+                           :redirect nil
                            :version "1.0" :code 200))))))
 
 (ert-deftest request--curl-preprocess/two-redirects ()
@@ -183,7 +182,7 @@ Date: Sat, 15 Dec 2012 23:04:26 GMT\r
 RESPONSE-BODY"))
       (should (equal info
                      (list :num-redirects 2
-                           :redirect-to "http://example.com/a/b"
+                           :redirect "http://example.com/a/b"
                            :version "1.0" :code 200))))))
 
 (provide 'test-request)
