@@ -173,7 +173,7 @@ Date: Sat, 15 Dec 2012 23:04:26 GMT\r
 RESPONSE-BODY"))
       (should (equal info
                      (list :num-redirects 0
-                           :redirect nil
+                           :redirects nil
                            :version "1.0" :code 200))))))
 
 (ert-deftest request--curl-preprocess/two-redirects ()
@@ -214,7 +214,8 @@ Date: Sat, 15 Dec 2012 23:04:26 GMT\r
 RESPONSE-BODY"))
       (should (equal info
                      (list :num-redirects 2
-                           :redirect "http://example.com/a/b"
+                           :redirects '("http://example.com/a/b"
+                                        "http://example.com/redirect/a/b")
                            :version "1.0" :code 200))))))
 
 (provide 'test-request)

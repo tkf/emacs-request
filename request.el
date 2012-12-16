@@ -149,7 +149,7 @@ See: http://api.jquery.com/jQuery.ajax/"
 
 (defstruct request-response
   "A structure holding all relevant information of a request."
-  status-code status-text history data error-thrown symbol-status url
+  status-code status-text redirects data error-thrown symbol-status url
   settings
   ;; internal variables
   -buffer -timer)
@@ -169,8 +169,8 @@ This is an accessor for `request-response' object.
 (request--document-response request-response-status-text
   "Reason phrase of HTTP response (e.g., \"OK\").")
 
-(request--document-response request-response-history
-  "Redirection history (a list of `request-response' objects).
+(request--document-response request-response-redirects
+  "Redirection history (a list of URLs).
 The first element will be the oldest redirection.")
 
 (request--document-response request-response-data
@@ -370,7 +370,13 @@ then kill the current buffer."
       (setf (request-response-error-thrown response) error-thrown)
       (let ((redirect (plist-get :redirect status)))
         (when redirect
-          (setf (request-response-url response) redirect)))
+          (setf (request-response-url response) redirect)
+          (setf (request-response-redirects response)
+                (loop with l = nil
+                      for (k v) on redirect by 'cddr
+                      when (eq k :redirect)
+                      do (push v l)
+                      finally return l))))
 
       (let ((args (list :data data
                         :symbol-status symbol-status
@@ -453,24 +459,23 @@ See also `request--curl-write-out-template'."
 
 (defun request--curl-preprocess ()
   "Pre-process current buffer before showing it to user."
-  (let (redirect)
+  (let (redirects)
     (destructuring-bind (&key num-redirects)
         (request--curl-read-and-delete-tail-info)
       (goto-char (point-min))
       (when (> num-redirects 0)
-        (loop repeat num-redirects
+        (loop with case-fold-search = t
+              repeat num-redirects
               for beg = (point)
               do (request--goto-next-body)
-              finally do
-              (let ((case-fold-search t)
-                    (point (point)))
-                (re-search-backward
-                 "^location: \\([^\r\n]+\\)\r\n"
-                 beg)
-                (setq redirect (match-string 1))
-                ;; Remove headers for redirection.
-                (delete-region (point-min) point))))
-      (nconc (list :num-redirects num-redirects :redirect redirect)
+              for end = (point)
+              do (progn
+                   (re-search-backward "^location: \\([^\r\n]+\\)\r\n" beg)
+                   (push (match-string 1) redirects)
+                   (goto-char end))
+              ;; Remove headers for redirection.
+              finally do (delete-region (point-min) end)))
+      (nconc (list :num-redirects num-redirects :redirects redirects)
              (request--parse-response-at-point)))))
 
 (defun request--curl-callback (proc event)
@@ -488,7 +493,7 @@ See also `request--curl-write-out-template'."
                settings)))
      ((equal event "finished\n")
       (with-current-buffer buffer
-        (destructuring-bind (&key version code num-redirects redirect error)
+        (destructuring-bind (&key version code num-redirects redirects error)
             (condition-case err
                 (request--curl-preprocess)
               ((debug error)
@@ -496,7 +501,8 @@ See also `request--curl-write-out-template'."
           (setq url-http-response-status code)
           (apply #'request--callback
                  (cond
-                  (redirect (list :redirect redirect))
+                  (redirects (loop for r in redirects
+                                   collect :redirect collect r))
                   (error (list :error error)))
                  settings)))))))
 
