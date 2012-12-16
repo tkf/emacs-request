@@ -365,11 +365,11 @@ then kill the current buffer."
         (request-log 'debug "Executing %s callback."
                      (if (eq symbol-status 'success) "success" "error"))
         (request--safe-apply
-         (if (eq symbol-status 'success) success error) args)))
+         (if (eq symbol-status 'success) success error) args)
 
-    (when status-code-callback
-      (request-log 'debug "Executing status-code callback.")
-      (request--safe-call status-code-callback :status status :data data))))
+        (when status-code-callback
+          (request-log 'debug "Executing status-code callback.")
+          (request--safe-apply status-code-callback args))))))
 
 
 ;;; Backend: curl
