@@ -95,8 +95,6 @@ See: http://api.jquery.com/jQuery.ajax/"
   (concat url (format-time-string "?_=%s")))
 
 (defun request-parser-json ()
-  (goto-char (point-max))
-  (backward-sexp)
   (json-read))
 
 (defmacro request--document-function (function docstring)
@@ -280,7 +278,10 @@ Here, N-1, N-2,... are integer status codes such as 200.
 * :PARSER function
 
 PARSER function takes no argument and it is executed in the
-buffer with HTTP response.
+buffer with HTTP response.  The current position in the
+HTTP response buffer is at the beginning of the response
+body.  So, for example, you can pass `json-read' to parse
+JSON object in the buffer.
 
 This is analogous to the `dataType' argument of `$.ajax'.
 Only this function can accuses to the process buffer, which
@@ -338,6 +339,13 @@ then kill the current buffer."
     (unwind-protect
         (prog1
             (when (and parser (not status-error))
+              (goto-char (point-min))
+              ;; Shoul be no \r.  See `url-http-clean-headers'.  But
+              ;; it looks like sometimes `url-http-clean-headers'
+              ;; fails to cleanup.  So, let's be bit permissive here...
+              (re-search-forward "^\r?$")
+              ;; `forward-char' will fail when there is no body.
+              (ignore-errors (forward-char))
               (funcall parser))
           (setq noerror t))
       (unless noerror
@@ -506,8 +514,18 @@ See also `request--curl-write-out-template'."
                    (goto-char end))
               ;; Remove headers for redirection.
               finally do (delete-region (point-min) end)))
-      (nconc (list :num-redirects num-redirects :redirects redirects)
-             (request--parse-response-at-point)))))
+
+      (prog1
+          (nconc (list :num-redirects num-redirects :redirects redirects)
+                 (request--parse-response-at-point))
+
+        ;; To make the header format same as of `url-retrieve' backend,
+        ;; remove trailing \r from headers.
+        ;; See: `url-http-clean-headers'
+        (goto-char (point-min))
+        (request--goto-next-body)
+        (while (re-search-backward "\r$" (point-min) t)
+          (replace-match ""))))))
 
 (defun request--curl-callback (proc event)
   (let ((buffer (process-buffer proc))
