@@ -76,10 +76,11 @@
 (request-deftest request-get-code-success ()
   (loop for code in (nconc (loop for c from 200 to 207 collect c)
                            (list 226))
-        for response = (request-testing-sync (format "code/%d" code)
-                                             :parser 'ignore)
-        for status-code = (request-response-status-code response)
-        do (should (equal status-code code))))
+        do (request-testing-with-response-slots
+               (request-testing-sync (format "code/%d" code)
+                                     :parser 'ignore)
+             (should-not error-thrown)
+             (should (equal status-code code)))))
 
 (request-deftest request-get-code-client-error ()
   (loop for code in (loop for c from 400 to 418
@@ -93,20 +94,22 @@
                           ;;      FIXME: how to support this?
                           unless (member c '(401 402 407))
                           collect c)
-        for response = (request-testing-sync (format "code/%d" code)
-                                             :parser 'ignore)
-        for status-code = (request-response-status-code response)
-        do (should (equal status-code code))))
+        do (request-testing-with-response-slots
+               (request-testing-sync (format "code/%d" code)
+                                     :parser 'ignore)
+             (should (equal error-thrown `(error . (http ,code))))
+             (should (equal status-code code)))))
 
 (request-deftest request-get-code-server-error ()
   (loop for code in (loop for c from 500 to 510
                           ;; flask does not support them:
                           unless (member c '(506 508 509))
                           collect c)
-        for response = (request-testing-sync (format "code/%d" code)
-                                             :parser 'ignore)
-        for status-code = (request-response-status-code response)
-        do (should (equal status-code code))))
+        do (request-testing-with-response-slots
+               (request-testing-sync (format "code/%d" code)
+                                     :parser 'ignore)
+             (should (equal error-thrown `(error . (http ,code))))
+             (should (equal status-code code)))))
 
 
 ;;; POST
