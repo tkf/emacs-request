@@ -157,7 +157,7 @@ See: http://api.jquery.com/jQuery.ajax/"
   status-code redirects data error-thrown symbol-status url
   settings
   ;; internal variables
-  -buffer -timer)
+  -buffer -timer -backend)
 
 (defmacro request--document-response (function docstring)
   (declare (indent defun)
@@ -245,6 +245,7 @@ API of `request' is similar to `jQuery.ajax'.
 :TIMEOUT    (number) : timeout in second
 :STATUS-CODE (alist) : map status code (int) to callback
 
+
 * Callback functions
 
 Callback functions STATUS, ERROR, COMPLETE and `cdr's in element of
@@ -290,10 +291,11 @@ is killed immediately after the execution of this function.
     (setq url (request--url-no-cache url)))
   (unless error
     (setq error (apply-partially #'request-default-error-callback url))
-    (plist-put settings :error error))
+    (setq settings (plist-put settings :error error)))
   (setq settings (plist-put settings :response response))
   (setf (request-response-settings response) settings)
-  (setf (request-response-url response) url)
+  (setf (request-response-url      response) url)
+  (setf (request-response--backend response) request-backend)
   (apply
    (or (assoc-default request-backend request-backend-alist)
        (error "%S is not valid `request-backend'." request-backend))
@@ -327,19 +329,23 @@ is killed immediately after the execution of this function.
     (set-process-query-on-exit-flag proc nil)
     response))
 
-(defun request--parse-data (parser status-error)
-  "Run PARSER in current buffer if STATUS-ERROR is nil,
+(defun request--parse-data (parser error-thrown backend)
+  "Run PARSER in current buffer if ERROR-THROWN is nil,
 then kill the current buffer."
   (let ((buffer (current-buffer)) ; NOTE: `parser' could change buffer...
         noerror)
     (unwind-protect
         (prog1
-            (when (and parser (not status-error))
+            (when (and parser (not error-thrown))
               (goto-char (point-min))
-              ;; Shoul be no \r.  See `url-http-clean-headers'.  But
-              ;; it looks like sometimes `url-http-clean-headers'
-              ;; fails to cleanup.  So, let's be bit permissive here...
-              (re-search-forward "^\r?$")
+              ;; Should be no \r.
+              ;; See `url-http-clean-headers' and `request--curl-preprocess'.
+              (if (eq backend 'url-retrieve)
+                  ;; FIXME: make this workaround optional.
+                  ;; But it looks like sometimes `url-http-clean-headers'
+                  ;; fails to cleanup.  So, let's be bit permissive here...
+                  (re-search-forward "^\r?$")
+                (re-search-forward "^$"))
               ;; `forward-char' will fail when there is no body.
               (ignore-errors (forward-char))
               (funcall parser))
@@ -372,7 +378,9 @@ then kill the current buffer."
   (let* ((response-status url-http-response-status)
          (status-code-callback (cdr (assq response-status status-code)))
          (error-thrown (plist-get status :error))
-         (data (request--parse-data parser error-thrown)))
+         (data (request--parse-data
+                parser error-thrown
+                (request-response--backend response))))
     (request-log 'debug "data = %s" data)
 
     (symbol-macrolet
