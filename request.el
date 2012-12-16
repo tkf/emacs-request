@@ -156,7 +156,7 @@ See: http://api.jquery.com/jQuery.ajax/"
 (defstruct request-response
   "A structure holding all relevant information of a request."
   status-code redirects data error-thrown symbol-status url
-  settings
+  settings cookies
   ;; internal variables
   -buffer -timer -backend)
 
@@ -190,6 +190,10 @@ One of success/error/timeout.")  ; FIMXE: add abort/parse-error
 
 (request--document-response request-response-url
   "Final URL location of response.")
+
+(request--document-response request-response-cookies
+  "Cookies (alist).  Can be used only in curl backend now.")
+;; FIXME: can this be implemented in `url-retrieve' backend?
 
 (request--document-response request-response-settings
   "Keyword arguments passed to `request' function.")
@@ -501,6 +505,25 @@ See also `request--curl-write-out-template'."
           (read (current-buffer))
         (delete-region beg (point-max))))))
 
+(defvar request--cookie-reserved-re
+  (mapconcat
+   (lambda (x) (concat "\\(^" x "\\'\\)"))
+   '("comment" "commenturl" "discard" "domain" "max-age" "path" "port"
+     "secure" "version" "expires")
+   "\\|")
+  "Uninterested keys in cookie.
+See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
+
+(defun request--cookie-name-value (cookies)
+  (loop named outer
+        with case-fold-search = t
+        for c in cookies
+        when
+        (loop for (k . v) in (url-parse-args c t)
+              unless (string-match request--cookie-reserved-re k)
+              return (cons k v))
+        return it))
+
 (defun request--curl-preprocess ()
   "Pre-process current buffer before showing it to user."
   (let (redirects cookies cookies2)
@@ -541,17 +564,23 @@ See also `request--curl-write-out-template'."
 
       (goto-char (point-min))
       (nconc (list :num-redirects num-redirects :redirects redirects
-                   :cookies cookies :cookies2 cookies2)
+                   ;; FIMXE: handle multiple key-value pairs
+                   ;; FIXME: verify if this way of choosing
+                   ;;        cookies/cookies2 is OK
+                   :cookies
+                   (cond
+                    (cookies (list (request--cookie-name-value cookies)))
+                    (cookies2 (list (request--cookie-name-value cookies2)))))
              (request--parse-response-at-point)))))
 
 (defun request--curl-callback (proc event)
-  (let ((buffer (process-buffer proc))
-        (settings (request-response-settings
-                   (process-get proc :request-response)))
-        ;; `request--callback' needs the following variables to be
-        ;; defined.  I should refactor `request--callback' at some
-        ;; point.
-        url-http-method url-http-response-status)
+  (let* ((buffer (process-buffer proc))
+         (response (process-get proc :request-response))
+         (settings (request-response-settings response))
+         ;; `request--callback' needs the following variables to be
+         ;; defined.  I should refactor `request--callback' at some
+         ;; point.
+         url-http-method url-http-response-status)
     (cond
      ((string-match "exited abnormally" event)
       (with-current-buffer buffer
@@ -560,11 +589,12 @@ See also `request--curl-write-out-template'."
      ((equal event "finished\n")
       (with-current-buffer buffer
         (destructuring-bind (&key version code num-redirects redirects error
-                                  cookies cookies2)
+                                  cookies)
             (condition-case err
                 (request--curl-preprocess)
               ((debug error)
                (list :error err)))
+          (setf (request-response-cookies response) cookies)
           (setq url-http-response-status code)
           (let ((status (append
                          (loop for r in redirects
