@@ -51,7 +51,7 @@
 
 (request-deftest request-simple-get ()
   (request-testing-with-response-slots
-      (request-testing-sync (request-testing-url "report/some-path")
+      (request-testing-sync "report/some-path"
                             :parser 'request-parser-json)
     (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
@@ -59,8 +59,7 @@
 
 (request-deftest request-redirection-get ()
   (request-testing-with-response-slots
-      (request-testing-sync (request-testing-url
-                             "redirect/redirect/report/some-path")
+      (request-testing-sync "redirect/redirect/report/some-path"
                             :parser 'request-parser-json)
     (if (and noninteractive (eq request-backend 'url-retrieve))
         ;; `url-retrieve' adds %0D to redirection path when the test
@@ -77,8 +76,7 @@
 (request-deftest request-get-code-success ()
   (loop for code in (nconc (loop for c from 200 to 207 collect c)
                            (list 226))
-        for response = (request-testing-sync (request-testing-url
-                                              (format "code/%d" code))
+        for response = (request-testing-sync (format "code/%d" code)
                                              :parser 'ignore)
         for status-code = (request-response-status-code response)
         do (should (equal status-code code))))
@@ -95,8 +93,7 @@
                           ;;      FIXME: how to support this?
                           unless (member c '(401 402 407))
                           collect c)
-        for response = (request-testing-sync (request-testing-url
-                                              (format "code/%d" code))
+        for response = (request-testing-sync (format "code/%d" code)
                                              :parser 'ignore)
         for status-code = (request-response-status-code response)
         do (should (equal status-code code))))
@@ -106,8 +103,7 @@
                           ;; flask does not support them:
                           unless (member c '(506 508 509))
                           collect c)
-        for response = (request-testing-sync (request-testing-url
-                                              (format "code/%d" code))
+        for response = (request-testing-sync (format "code/%d" code)
                                              :parser 'ignore)
         for status-code = (request-response-status-code response)
         do (should (equal status-code code))))
@@ -117,7 +113,7 @@
 
 (request-deftest request-simple-post ()
   (request-testing-with-response-slots
-      (request-testing-sync (request-testing-url "report/some-path")
+      (request-testing-sync "report/some-path"
                             :type "POST" :data "key=value"
                             :parser 'request-parser-json)
     (should (equal status-code 200))
@@ -130,7 +126,7 @@
 
 (request-deftest request-simple-put ()
   (request-testing-with-response-slots
-      (request-testing-sync (request-testing-url "report/some-path")
+      (request-testing-sync "report/some-path"
                             :type "PUT" :data "dummy-data"
                             :headers '(("Content-Type" . "text/plain"))
                             :parser 'request-parser-json)
@@ -141,7 +137,7 @@
 
 (request-deftest request-simple-put-json ()
   (request-testing-with-response-slots
-      (request-testing-sync (request-testing-url "report/some-path")
+      (request-testing-sync "report/some-path"
                             :type "PUT" :data "{\"a\": 1, \"b\": 2, \"c\": 3}"
                             :headers '(("Content-Type" . "application/json"))
                             :parser 'request-parser-json)
@@ -156,7 +152,7 @@
 
 (request-deftest request-simple-delete ()
   (request-testing-with-response-slots
-      (request-testing-sync (request-testing-url "report/some-path")
+      (request-testing-sync "report/some-path"
                             :type "DELETE"
                             :parser 'request-parser-json)
     (should (equal status-code 200))

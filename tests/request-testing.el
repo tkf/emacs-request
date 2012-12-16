@@ -97,7 +97,7 @@
         do (setq url (concat url "/" p))
         finally return url))
 
-(defun request-testing-sync (&rest args)
+(defun request-testing-sync (url &rest args)
   (lexical-let (err timeout)
     (let ((result
            (deferred:sync!
@@ -105,7 +105,7 @@
                request-testing-timeout
                (setq timeout t)
                (deferred:try
-                 (apply #'request-deferred args)
+                 (apply #'request-deferred (request-testing-url url) args)
                  :catch
                  (lambda (x) (setq err x)))))))
       (if timeout
