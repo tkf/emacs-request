@@ -55,6 +55,19 @@
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "GET"))))
 
+(request-deftest request-redirection-get ()
+  (let* ((result (request-testing-sync
+                  (request-testing-url "redirect/redirect/report/some-path")
+                  :parser 'request-parser-json))
+         (redirect-to (plist-get (plist-get result :status) :redirect-to))
+         (response-status (plist-get result :response-status))
+         (data (plist-get result :data)))
+    (should (string-match "^http://.*/report/some-path$"
+                          redirect-to))
+    (should (equal response-status 200))
+    (should (equal (assoc-default 'path data) "some-path"))
+    (should (equal (assoc-default 'method data) "GET"))))
+
 (request-deftest request-simple-post ()
   (let* ((result (request-testing-sync
                   (request-testing-url "report/some-path")
