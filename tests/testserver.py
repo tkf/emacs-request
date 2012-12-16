@@ -18,7 +18,6 @@ def page_report(path):
     """
     Report back path, input data, parameter, etc. as JSON.
     """
-    print session
     return jsonify(dict(
         path=path,
         data=request.data,
@@ -60,7 +59,6 @@ def page_login():
 @app.route('/logout')
 def page_logout():
     session.pop('username', None)
-    print session
     return redirect('report/from-logout')
 
 
