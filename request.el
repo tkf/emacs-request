@@ -357,9 +357,11 @@ then kill the current buffer."
         (setq symbol-status (or (plist-get status :error) 'success)))
       (request-log 'debug "symbol-status = %s" symbol-status)
 
+      (setf (request-response-status-code response) response-status)
+
       (let ((args (list :status status :data data
-                        :response-status response-status
-                        :symbol-status symbol-status)))
+                        :symbol-status symbol-status
+                        :response response)))
         (request-log 'debug "Executing %s callback."
                      (if (eq symbol-status 'success) "success" "error"))
         (request--safe-apply
