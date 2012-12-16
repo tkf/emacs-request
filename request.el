@@ -391,7 +391,7 @@ then kill the current buffer."
    (list url)))
 
 (defun* request--curl (url &rest settings
-                           &key type data headers timeout
+                           &key type data headers timeout response
                            &allow-other-keys)
   "cURL-based request backend.
 
@@ -414,8 +414,9 @@ removed from the buffer before it is shown to the parser function.
          (command (apply #'request--curl-command url settings))
          (proc (apply #'start-process "request curl" buffer command)))
     (request-log 'debug "Run: %s" (mapconcat 'identity command " "))
+    (setf (request-response--buffer response) buffer)
+    (process-put proc :request-response response)
     (set-process-query-on-exit-flag proc nil)
-    (process-put proc :request settings)
     (set-process-sentinel proc #'request--curl-callback)
     (when data
       (process-send-string proc data)
@@ -458,7 +459,8 @@ See also `request--curl-write-out-template'."
 
 (defun request--curl-callback (proc event)
   (let ((buffer (process-buffer proc))
-        (settings (process-get proc :request))
+        (settings (request-response-settings
+                   (process-get proc :request-response)))
         ;; `request--callback' needs the following variables to be
         ;; defined.  I should refactor `request--callback' at some
         ;; point.
