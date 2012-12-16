@@ -26,6 +26,7 @@
 
 ;;; Code:
 
+(eval-when-compile (require 'cl))
 (require 'request-testing)
 
 (let ((level (getenv "EL_REQUEST_MESSAGE_LEVEL")))
@@ -79,6 +80,16 @@
       (should (equal path "some-path")))
     (should (equal status-code 200))
     (should (equal (assoc-default 'method data) "GET"))))
+
+(request-deftest request-get-code-success ()
+  (loop for code in (nconc (loop for c from 200 to 207 collect c)
+                           (list 226))
+        for result = (request-testing-sync
+                      (request-testing-url (format "code/%d" code))
+                      :parser 'ignore)
+        for response = (plist-get result :response)
+        for status-code = (request-response-status-code response)
+        do (should (equal status-code code))))
 
 
 ;;; POST

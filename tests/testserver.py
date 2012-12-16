@@ -1,7 +1,8 @@
 import os
 
 from flask import (
-    Flask, request, redirect, url_for, jsonify)
+    Flask, request, redirect, abort, jsonify)
+from werkzeug.http import HTTP_STATUS_CODES
 
 app = Flask(__name__)
 
@@ -25,6 +26,14 @@ def page_report(path):
 @app.route('/redirect/<path:path>', methods=all_methods)
 def page_redirect(path):
     return redirect(path)
+
+
+@app.route('/code/<int:code>')
+def page_code(code):
+    try:
+        return abort(code)
+    except LookupError:
+        return HTTP_STATUS_CODES[code], code
 
 
 def get_open_port():
