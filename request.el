@@ -59,14 +59,6 @@
   "Backend to be used for HTTP request."
   :group 'request)
 
-(defcustom request-backend-alist
-  '((url-retrieve . ((request     . request--urllib)
-                     (get-cookies . request--url-retrieve-get-cookies)))
-    (curl         . ((request     . request--curl)
-                     (get-cookies . request--curl-get-cookies))))
-  "Available request backends."
-  :group 'request)
-
 (defcustom request-timeout 1
   "Default request timeout in second."
   :group 'request)
@@ -216,10 +208,20 @@ One of success/error/timeout.")  ; FIMXE: add abort/parse-error
       (cancel-timer timer)
       (setq timer nil))))
 
+
+;;; Backend dispatcher
+
+(defvar request--backend-alist
+  '((url-retrieve . ((request     . request--urllib)
+                     (get-cookies . request--url-retrieve-get-cookies)))
+    (curl         . ((request     . request--curl)
+                     (get-cookies . request--curl-get-cookies))))
+  "Available request backends.")
+
 (defun request--choose-backend (method)
   (assoc-default
    method
-   (or (assoc-default request-backend request-backend-alist)
+   (or (assoc-default request-backend request--backend-alist)
        (error "%S is not valid `request-backend'." request-backend))))
 
 
