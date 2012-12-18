@@ -118,6 +118,14 @@
                       y (symbol-name (car y)))
                 (string-lessp x y))))
 
+(defun request-deftest--url-retrieve-isolate (body)
+  "[Macro helper] Isolate execution of BODY from normal environment."
+  `((let (url-cookie-storage
+          url-cookie-secure-storage
+          url-cookie-file
+          url-cookies-changed-since-last-save)
+      ,@body)))
+
 (defmacro* request-deftest (name () &body docstring-and-body)
   "`ert-deftest' for test requiring test server.
 
@@ -162,6 +170,8 @@ TEMPFILES
       (setq ert-keys (nreverse ert-keys))
       (setq req-keys (nreverse req-keys)))
 
+    (setq body (request-deftest--url-retrieve-isolate body))
+
     `(ert-deftest ,name ()
        ,@(when docstring (list docstring))
        ,@ert-keys
@@ -173,12 +183,7 @@ TEMPFILES
              (let ,(loop for f in tempfiles
                          collect `(,f (make-temp-file "emacs-request-")))
                (unwind-protect
-                   ;; separated url.el cookie environment
-                   (let (url-cookie-storage
-                         url-cookie-secure-storage
-                         url-cookie-file
-                         url-cookies-changed-since-last-save)
-                     ,@body)
+                   ,@body
                  ,@(loop for f in tempfiles
                          collect `(ignore-errors (delete-file ,f))))))))))
 
