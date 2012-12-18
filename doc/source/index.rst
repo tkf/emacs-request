@@ -1,22 +1,38 @@
-.. Request.el documentation master file, created by
-   sphinx-quickstart on Tue Dec 18 20:00:05 2012.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+===================
+ Request.el manual
+===================
 
-Welcome to Request.el's documentation!
-======================================
+API
+===
 
-Contents:
+.. el:package:: request
 
-.. toctree::
-   :maxdepth: 2
+.. el:function:: request
+
+Response object
+---------------
+
+.. el:function:: request-response-status-code
+.. el:function:: request-response-redirects
+.. el:function:: request-response-data
+.. el:function:: request-response-error-thrown
+.. el:function:: request-response-symbol-status
+.. el:function:: request-response-url
+.. el:function:: request-response-settings
 
 
+Cookie
+------
 
-Indices and tables
-==================
+.. el:function:: request-cookie-string
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 
+Configuration
+=============
+
+.. el:variable:: request-storage-directory
+.. el:variable:: request-curl
+.. el:variable:: request-backend
+.. el:variable:: request-timeout
+.. el:variable:: request-log-level
+.. el:variable:: request-message-level
