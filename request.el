@@ -153,7 +153,7 @@ See: http://api.jquery.com/jQuery.ajax/"
            (doc-string 2))
   `(request--document-function ,function ,(concat docstring "
 
-This is an accessor for `request-response' object.
+.. This is an accessor for `request-response' object.
 
 \(fn RESPONSE)")))
 
@@ -226,7 +226,7 @@ One of success/error/timeout.")  ; FIMXE: add abort/parse-error
 
 Example::
 
-   (request-cookie-string \"127.0.0.1\" \"/\")
+ (request-cookie-string \"127.0.0.1\" \"/\")  ; => \"key=value; key2=value2\"
 "
   (let ((cookies (funcall (request--choose-backend 'get-cookies)
                           host localpart secure)))
@@ -258,6 +258,7 @@ Example::
                      (response (make-request-response)))
   "Send request to URL.
 
+Request.el has a single entry point.  It is `request'.
 API of `request' is similar to `jQuery.ajax'.
 
 ==================== ========================================================
