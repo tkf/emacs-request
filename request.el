@@ -60,8 +60,10 @@
   :group 'request)
 
 (defcustom request-backend-alist
-  '((url-retrieve . request--urllib)
-    (curl         . request--curl))
+  '((url-retrieve . ((request     . request--urllib)
+                     (get-cookies . request--url-retrieve-get-cookies)))
+    (curl         . ((request     . request--curl)
+                     (get-cookies . request--curl-get-cookies))))
   "Available request backends."
   :group 'request)
 
@@ -214,6 +216,29 @@ One of success/error/timeout.")  ; FIMXE: add abort/parse-error
       (cancel-timer timer)
       (setq timer nil))))
 
+(defun request--choose-backend (method)
+  (assoc-default
+   method
+   (or (assoc-default request-backend request-backend-alist)
+       (error "%S is not valid `request-backend'." request-backend))))
+
+
+;;; Cookie
+
+(defun request-cookie-string (host &optional localpart secure)
+  "Return cookie string (like `document.cookie').
+
+Example::
+
+   (request-cookie-string \"127.0.0.1\" \"/\")
+"
+  (let ((cookies (funcall (request--choose-backend 'get-cookies)
+                          host localpart secure)))
+    (mapconcat
+     (lambda (nv) (concat (car nv) "=" (cdr nv)))
+     cookies
+     "; ")))
+
 
 ;;; Main
 
@@ -302,8 +327,7 @@ is killed immediately after the execution of this function.
   (setf (request-response-url      response) url)
   (setf (request-response--backend response) request-backend)
   (apply
-   (or (assoc-default request-backend request-backend-alist)
-       (error "%S is not valid `request-backend'." request-backend))
+   (request--choose-backend 'request)
    url settings))
 
 
