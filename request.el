@@ -332,34 +332,6 @@ is killed immediately after the execution of this function.
    (request--choose-backend 'request)
    url settings))
 
-
-;;; Backend: `url-retrieve'
-
-(defun* request--url-retrieve (url &rest settings
-                                   &key type data headers timeout response
-                                   &allow-other-keys)
-  (when (and (equal type "POST") data)
-    (push '("Content-Type" . "application/x-www-form-urlencoded") headers)
-    (setq settings (plist-put settings :headers headers)))
-  (let* ((url-request-extra-headers headers)
-         (url-request-method type)
-         (url-request-data data)
-         (buffer (url-retrieve url #'request--callback
-                               (nconc (list :response response) settings)))
-         (proc (get-buffer-process buffer)))
-    (setf (request-response--buffer response) buffer)
-    (process-put proc :request-response response)
-    (request-log 'debug "Start querying: %s" url)
-    (when timeout
-      (request-log 'debug "Start timer: timeout=%s ms" timeout)
-      (with-current-buffer buffer
-        (setf (request-response--timer response)
-              (run-at-time timeout nil
-                           #'request-response--timeout-callback
-                           response))))
-    (set-process-query-on-exit-flag proc nil)
-    response))
-
 (defun request--parse-data (parser error-thrown backend)
   "Run PARSER in current buffer if ERROR-THROWN is nil,
 then kill the current buffer."
@@ -386,6 +358,11 @@ then kill the current buffer."
                      parser))
       (kill-buffer buffer))))
 
+;; FIXME: Define `request--url-retrieve-callback' and move
+;;        `url-retrieve' -specific stuff to there.  Currently,
+;;        `request--callback' is defined for `url-retrieve' and
+;;        `request--curl-callback' need to be complex than it really
+;;        is.
 (defun* request--callback (status &key
                                   (headers nil)
                                   (parser nil)
@@ -452,6 +429,34 @@ then kill the current buffer."
         (when complete
           (request-log 'debug "Executing complete callback.")
           (request--safe-apply complete args))))))
+
+
+;;; Backend: `url-retrieve'
+
+(defun* request--url-retrieve (url &rest settings
+                                   &key type data headers timeout response
+                                   &allow-other-keys)
+  (when (and (equal type "POST") data)
+    (push '("Content-Type" . "application/x-www-form-urlencoded") headers)
+    (setq settings (plist-put settings :headers headers)))
+  (let* ((url-request-extra-headers headers)
+         (url-request-method type)
+         (url-request-data data)
+         (buffer (url-retrieve url #'request--callback
+                               (nconc (list :response response) settings)))
+         (proc (get-buffer-process buffer)))
+    (setf (request-response--buffer response) buffer)
+    (process-put proc :request-response response)
+    (request-log 'debug "Start querying: %s" url)
+    (when timeout
+      (request-log 'debug "Start timer: timeout=%s ms" timeout)
+      (with-current-buffer buffer
+        (setf (request-response--timer response)
+              (run-at-time timeout nil
+                           #'request-response--timeout-callback
+                           response))))
+    (set-process-query-on-exit-flag proc nil)
+    response))
 
 (defun request--url-retrieve-get-cookies (host localpart secure)
   (mapcar
@@ -641,7 +646,7 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
                                 host localpart secure))
 
 
-;;; Netscape cookie.txt parsre
+;;; Netscape cookie.txt parser
 
 (defun request--netscape-cookie-parse ()
   "Parse Netscape/Mozilla cookie format."
