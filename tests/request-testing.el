@@ -128,12 +128,17 @@
 
 (defun request-deftest--tempfiles (tempfiles body)
   "[Macro helper] Execute BODY with TEMPFILES and then remove them."
-  `((let ,(loop for f in tempfiles
-                collect `(,f (make-temp-file "emacs-request-")))
-      (unwind-protect
-          ,@body
-        ,@(loop for f in tempfiles
-                collect `(ignore-errors (delete-file ,f)))))))
+  (let ((symbols (loop for f in tempfiles
+                       collect (make-symbol (format "%s*" f)))))
+    `((let ,(loop for s in symbols
+                  collect `(,s (make-temp-file "emacs-request-")))
+        (let ,(loop for f in tempfiles
+                    for s in symbols
+                    collect `(,f ,s))
+          (unwind-protect
+              (progn ,@body)
+            ,@(loop for s in symbols
+                    collect `(ignore-errors (delete-file ,s)))))))))
 
 (defun request-deftest--backends (backends name body)
   "[Macro helper] Execute BODY only when `request-backend' is in BACKENDS."
