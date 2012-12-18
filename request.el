@@ -605,6 +605,10 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
                                      `(error . (http ,code))))))))
             (apply #'request--callback status settings))))))))
 
+(defun request--curl-get-cookies (host localpart secure)
+  (request--netscape-get-cookies request-curl-cookie-jar
+                                host localpart secure))
+
 
 ;;; Netscape cookie.txt parsre
 
@@ -635,6 +639,20 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
                         (string-to-number expiration)
                         name
                         value))))
+
+(defun request--netscape-filter-cookies (cookies host localpart secure)
+  (loop for (domain flag path secure-1 expiration name value) in cookies
+        when (and (equal domain host)
+                  (equal path localpart)
+                  (or secure (not secure-1)))
+        collect (cons name value)))
+
+(defun request--netscape-get-cookies (filename host localpart secure)
+  (when (file-readable-p filename)
+    (with-temp-buffer
+      (erase-buffer)
+      (request--netscape-filter-cookies (insert-file-contents filename)
+                                        host localpart secure))))
 
 (provide 'request)
 
