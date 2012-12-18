@@ -135,6 +135,13 @@
         ,@(loop for f in tempfiles
                 collect `(ignore-errors (delete-file ,f)))))))
 
+(defun request-deftest--backends (backends name body)
+  "[Macro helper] Execute BODY only when `request-backend' is in BACKENDS."
+  `((if (and ',backends (not (memq request-backend ',backends)))
+        (message "REQUEST: Test %s for backend %s is not supported."
+                 ',name request-backend)
+      ,@body)))
+
 (defmacro* request-deftest (name () &body docstring-and-body)
   "`ert-deftest' for test requiring test server.
 
@@ -179,20 +186,18 @@ TEMPFILES
       (setq ert-keys (nreverse ert-keys))
       (setq req-keys (nreverse req-keys)))
 
+    ;; "Decorate" BODY.
     (setq body (request-deftest--url-retrieve-isolate body))
     (destructuring-bind (&key backends tempfiles) req-keys
       (setq body (request-deftest--tempfiles tempfiles body))
-      )
+      (setq body (request-deftest--backends backends name body)))
 
+    ;; Finally, define test.
     `(ert-deftest ,name ()
        ,@(when docstring (list docstring))
        ,@ert-keys
        (request-testing-server)
-       ,(destructuring-bind (&key backends tempfiles) req-keys
-          `(if (and ',backends (not (memq request-backend ',backends)))
-               (message "REQUEST: Test %s for backend %s is not supported."
-                        ',name request-backend)
-             ,@body)))))
+       ,@body)))
 
 (provide 'request-testing)
 
