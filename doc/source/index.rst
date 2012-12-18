@@ -30,6 +30,9 @@ Cookie
 Configuration
 =============
 
+Configuration variables are for users.
+Libraries using request.el must not modify these variables.
+
 .. el:variable:: request-storage-directory
 .. el:variable:: request-curl
 .. el:variable:: request-backend
