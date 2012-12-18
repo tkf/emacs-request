@@ -288,11 +288,23 @@ arguments (i.e., it's better to use `&allow-other-keys').::
      :data          data           ; whatever PARSER function returns, or nil
      :error-thrown  error-thrown   ; (ERROR-SYMBOL . DATA), or nil
      :symbol-status symbol-status  ; success
-     :response      response       ; `request-response' object
+     :response      response       ; request-ponse object
      ...)
 
+Arguments data, error-thrown, symbol-status can be accessed by
+`request-response-data', `request-response-error-thrown',
+`request-response-status' assessors, i.e.::
 
-* :STATUS-CODE callback
+    (request-response-data RESPONSE)  ; same as data
+
+Response object holds other information which can be accessed by
+the following assessors:
+`request-response-status-code',
+`request-response-redirects',
+`request-response-url' and
+`request-response-settings'
+
+* STATUS-CODE callback
 
 STATUS-CODE is an alist of the following format::
 
@@ -303,7 +315,7 @@ STATUS-CODE is an alist of the following format::
 Here, N-1, N-2,... are integer status codes such as 200.
 
 
-* :PARSER function
+* PARSER function
 
 PARSER function takes no argument and it is executed in the
 buffer with HTTP response.  The current position in the
