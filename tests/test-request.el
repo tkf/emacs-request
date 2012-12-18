@@ -176,17 +176,17 @@
 ;;; Cookie
 
 (request-deftest request-simple-cookie ()
-  :backends (curl)
   :tempfiles (request-curl-cookie-jar)
   (request-testing-with-response-slots
       (request-testing-sync "cookies/cookie-name/cookie-value"
                             :parser 'json-read)
     (should (equal status-code 200))
-    (should (equal (assoc-default 'path data) "from-cookies"))
-    (should (equal (assoc-default 'cookie-name (assoc-default 'cookies data))
-                   "cookie-value"))
-    (should (equal (request-cookie-string "127.0.0.1" "/")
-                   "cookie-name=cookie-value"))
+    (unless (and noninteractive (eq request-backend 'url-retrieve))
+      (should (equal (assoc-default 'path data) "from-cookies"))
+      (should (equal (assoc-default 'cookie-name (assoc-default 'cookies data))
+                     "cookie-value"))
+      (should (equal (request-cookie-string "127.0.0.1" "/")
+                     "cookie-name=cookie-value")))
     (should (equal (assoc-default 'method data) "GET"))))
 
 (defun request-testing-assert-username-is (username)

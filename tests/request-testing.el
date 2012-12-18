@@ -173,7 +173,12 @@ TEMPFILES
              (let ,(loop for f in tempfiles
                          collect `(,f (make-temp-file "emacs-request-")))
                (unwind-protect
-                   (progn ,@body)
+                   ;; separated url.el cookie environment
+                   (let (url-cookie-storage
+                         url-cookie-secure-storage
+                         url-cookie-file
+                         url-cookies-changed-since-last-save)
+                     ,@body)
                  ,@(loop for f in tempfiles
                          collect `(ignore-errors (delete-file ,f))))))))))
 
