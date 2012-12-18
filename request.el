@@ -260,16 +260,20 @@ Example::
 
 API of `request' is similar to `jQuery.ajax'.
 
-:CACHE       (nil/t) : append time-stamp to URL so the URL is always loaded.
-:TYPE       (string) : type of request to make: POST/GET/PUT/DELETE
-:DATA       (string) : data to be sent to the server
-:PARSER     (symbol) : a function that reads current buffer and return data
-:HEADERS     (alist) : additional headers to send with the request
-:SUCCESS  (function) : called on success
-:ERROR    (function) : called on error
-:COMPLETE (function) : called on both success and error
-:TIMEOUT    (number) : timeout in second
-:STATUS-CODE (alist) : map status code (int) to callback
+==================== ========================================================
+Keyword argument      Explanation
+==================== ========================================================
+CACHE       (nil/t)   append time-stamp to URL so that URL is always loaded.
+TYPE       (string)   type of request to make: POST/GET/PUT/DELETE
+DATA       (string)   data to be sent to the server
+PARSER     (symbol)   a function that reads current buffer and return data
+HEADERS     (alist)   additional headers to send with the request
+SUCCESS  (function)   called on success
+ERROR    (function)   called on error
+COMPLETE (function)   called on both success and error
+TIMEOUT    (number)   timeout in second
+STATUS-CODE (alist)   map status code (int) to callback
+==================== ========================================================
 
 
 * Callback functions
@@ -277,7 +281,7 @@ API of `request' is similar to `jQuery.ajax'.
 Callback functions STATUS, ERROR, COMPLETE and `cdr's in element of
 the alist STATUS-CODE take same keyword arguments listed below.  For
 forward compatibility, these functions must ignore unused keyword
-arguments (i.e., it's better to use `&allow-other-keys').
+arguments (i.e., it's better to use `&allow-other-keys').::
 
     (CALLBACK                      ; SUCCESS/ERROR/COMPLETE/STATUS-CODE
      :data          data           ; whatever PARSER function returns, or nil
