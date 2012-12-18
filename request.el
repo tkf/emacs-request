@@ -427,6 +427,11 @@ then kill the current buffer."
           (request-log 'debug "Executing complete callback.")
           (request--safe-apply complete args))))))
 
+(defun request--url-retrieve-get-cookies (host localpart secure)
+  (mapcar
+   (lambda (c) (cons (url-cookie-name c) (url-cookie-value c)))
+   (url-cookie-retrieve host localpart secure)))
+
 
 ;;; Backend: curl
 
