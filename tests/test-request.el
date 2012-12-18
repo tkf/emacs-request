@@ -176,7 +176,7 @@
 ;;; Cookie
 
 (request-deftest request-simple-cookie ()
-  :tempfiles (request-curl-cookie-jar)
+  :tempfiles (request--curl-cookie-jar)
   (request-testing-with-response-slots
       (request-testing-sync "cookies/cookie-name/cookie-value"
                             :parser 'json-read)
@@ -200,7 +200,7 @@
 
 (request-deftest request-session-cookie ()
   :backends (curl)
-  :tempfiles (request-curl-cookie-jar)
+  :tempfiles (request--curl-cookie-jar)
   (request-testing-assert-username-is nil)
   ;; login
   (request-testing-with-response-slots

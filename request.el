@@ -47,12 +47,6 @@
   "Executable for curl command."
   :group 'request)
 
-(defcustom request-curl-cookie-jar
-  (concat (file-name-as-directory request-storage-directory)
-          "curl-cookie-jar")
-  "Cookie storage for curl backend."
-  :group 'request)
-
 (defcustom request-backend (if (executable-find request-curl)
                                'curl
                              'url-retrieve)
@@ -466,20 +460,29 @@ then kill the current buffer."
 
 ;;; Backend: curl
 
+(defvar request--curl-cookie-jar nil
+  "Override what the function `request--curl-cookie-jar' returns.
+Currently it is used only for testing.")
+
+(defun request--curl-cookie-jar ()
+  "Cookie storage for curl backend."
+  (or request--curl-cookie-jar
+      (expand-file-name "curl-cookie-jar" request-storage-directory)))
+
 (defvar request--curl-write-out-template
   "\\n(:num-redirects %{num_redirects})")
 ;; FIXME: should % be escaped for Windows?
 
 (defun request--curl-mkdir-for-cookie-jar ()
   (ignore-errors
-    (make-directory (file-name-directory request-curl-cookie-jar) t)))
+    (make-directory (file-name-directory (request--curl-cookie-jar)) t)))
 
 (defun* request--curl-command
     (url &key type data headers timeout
          &allow-other-keys
          &aux
          (cookie-jar (convert-standard-filename
-                      (expand-file-name request-curl-cookie-jar))))
+                      (expand-file-name (request--curl-cookie-jar)))))
   (append
    (list request-curl "--silent" "--include"
          "--location"
@@ -642,8 +645,8 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
             (apply #'request--callback status settings))))))))
 
 (defun request--curl-get-cookies (host localpart secure)
-  (request--netscape-get-cookies request-curl-cookie-jar
-                                host localpart secure))
+  (request--netscape-get-cookies (request--curl-cookie-jar)
+                                 host localpart secure))
 
 
 ;;; Netscape cookie.txt parser
