@@ -126,6 +126,15 @@
           url-cookies-changed-since-last-save)
       ,@body)))
 
+(defun request-deftest--tempfiles (tempfiles body)
+  "[Macro helper] Execute BODY with TEMPFILES and then remove them."
+  `((let ,(loop for f in tempfiles
+                collect `(,f (make-temp-file "emacs-request-")))
+      (unwind-protect
+          ,@body
+        ,@(loop for f in tempfiles
+                collect `(ignore-errors (delete-file ,f)))))))
+
 (defmacro* request-deftest (name () &body docstring-and-body)
   "`ert-deftest' for test requiring test server.
 
@@ -171,6 +180,9 @@ TEMPFILES
       (setq req-keys (nreverse req-keys)))
 
     (setq body (request-deftest--url-retrieve-isolate body))
+    (destructuring-bind (&key backends tempfiles) req-keys
+      (setq body (request-deftest--tempfiles tempfiles body))
+      )
 
     `(ert-deftest ,name ()
        ,@(when docstring (list docstring))
@@ -180,12 +192,7 @@ TEMPFILES
           `(if (and ',backends (not (memq request-backend ',backends)))
                (message "REQUEST: Test %s for backend %s is not supported."
                         ',name request-backend)
-             (let ,(loop for f in tempfiles
-                         collect `(,f (make-temp-file "emacs-request-")))
-               (unwind-protect
-                   ,@body
-                 ,@(loop for f in tempfiles
-                         collect `(ignore-errors (delete-file ,f))))))))))
+             ,@body)))))
 
 (provide 'request-testing)
 
