@@ -212,7 +212,7 @@ One of success/error/timeout.")  ; FIMXE: add abort/parse-error
 ;;; Backend dispatcher
 
 (defvar request--backend-alist
-  '((url-retrieve . ((request     . request--urllib)
+  '((url-retrieve . ((request     . request--url-retrieve)
                      (get-cookies . request--url-retrieve-get-cookies)))
     (curl         . ((request     . request--curl)
                      (get-cookies . request--curl-get-cookies))))
@@ -335,9 +335,9 @@ is killed immediately after the execution of this function.
 
 ;;; Backend: `url-retrieve'
 
-(defun* request--urllib (url &rest settings
-                             &key type data headers timeout response
-                             &allow-other-keys)
+(defun* request--url-retrieve (url &rest settings
+                                   &key type data headers timeout response
+                                   &allow-other-keys)
   (when (and (equal type "POST") data)
     (push '("Content-Type" . "application/x-www-form-urlencoded") headers)
     (setq settings (plist-put settings :headers headers)))
