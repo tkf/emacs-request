@@ -185,6 +185,8 @@
     (should (equal (assoc-default 'path data) "from-cookies"))
     (should (equal (assoc-default 'cookie-name (assoc-default 'cookies data))
                    "cookie-value"))
+    (should (equal (request-cookie-string "127.0.0.1" "/")
+                   "cookie-name=cookie-value"))
     (should (equal (assoc-default 'method data) "GET"))))
 
 (defun request-testing-assert-username-is (username)

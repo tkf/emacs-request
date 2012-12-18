@@ -680,7 +680,8 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
   (when (file-readable-p filename)
     (with-temp-buffer
       (erase-buffer)
-      (request--netscape-filter-cookies (insert-file-contents filename)
+      (insert-file-contents filename)
+      (request--netscape-filter-cookies (request--netscape-cookie-parse)
                                         host localpart secure))))
 
 (provide 'request)
