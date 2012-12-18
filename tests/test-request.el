@@ -58,6 +58,15 @@
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "GET"))))
 
+(request-deftest request-get-with-args ()
+  (request-testing-with-response-slots
+      (request-testing-sync "report/some-path?a=1&b=2"
+                            :parser 'json-read)
+    (should (equal status-code 200))
+    (should (equal (request-testing-sort-alist (assoc-default 'args data))
+                   '((a . "1") (b . "2"))))
+    (should (equal (assoc-default 'path data) "some-path"))))
+
 (request-deftest request-redirection-get ()
   (request-testing-with-response-slots
       (request-testing-sync "redirect/redirect/report/some-path"

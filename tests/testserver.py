@@ -22,6 +22,8 @@ def page_report(path):
         path=path,
         data=request.data,
         form=request.form,
+        args=request.args,
+        cookies=request.cookies,
         method=request.method,
         json=request.json,
         username=session.get('username'),
