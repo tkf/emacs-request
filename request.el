@@ -605,6 +605,37 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
                                      `(error . (http ,code))))))))
             (apply #'request--callback status settings))))))))
 
+
+;;; Netscape cookie.txt parsre
+
+(defun request--netscape-cookie-parse ()
+  "Parse Netscape/Mozilla cookie format."
+  (goto-char (point-min))
+  (let ((tsv-re (concat "^\\="
+                        (loop repeat 6 concat "\\([^\t\n]+\\)\t")
+                        "\\(.*\\)"))
+        cookies)
+    (while
+        (and
+         (cond
+          ((re-search-forward "^\\=#" nil t))
+          ((re-search-forward "^\\=$" nil t))
+          ((re-search-forward tsv-re)
+           (push (loop for i from 1 to 7 collect (match-string i))
+                 cookies)
+           t))
+         (= (forward-line 1) 0)
+         (not (= (point) (point-max)))))
+    (setq cookies (nreverse cookies))
+    (loop for (domain flag path secure expiration name value) in cookies
+          collect (list domain
+                        (equal flag "TRUE")
+                        path
+                        (equal secure "TRUE")
+                        (string-to-number expiration)
+                        name
+                        value))))
+
 (provide 'request)
 
 ;;; request.el ends here
