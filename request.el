@@ -3,6 +3,7 @@
 ;; Copyright (C) 2012 Takafumi Arakaki
 
 ;; Author: Takafumi Arakaki <aka.tkf at gmail.com>
+;; Version: 0.1.0alpha0
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -34,6 +35,8 @@
   "Compatible layer for URL request in Emacs."
   :group 'comm
   :prefix "request-")
+
+(defconst request-version "0.1.0alpha0")
 
 
 ;;; Customize variables
