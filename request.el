@@ -366,7 +366,11 @@ PARSER function takes no argument and it is executed in the
 buffer with HTTP response.  The current position in the
 HTTP response buffer is at the beginning of the response
 body.  So, for example, you can pass `json-read' to parse
-JSON object in the buffer.
+JSON object in the buffer.  To fetch whole buffer as a string,
+pass `buffer-string'.  If you want just the response part
+without header, pass::
+
+    (lambda () (buffer-substring (point) (point-max)))
 
 This is analogous to the `dataType' argument of jQuery.ajax_.
 Only this function can accuses to the process buffer, which
