@@ -134,6 +134,114 @@
     (should (equal (assoc-default 'method data) "POST"))
     (should (equal (assoc-default 'form data) '((key . "value"))))))
 
+(request-deftest request-post-files/simple-buffer ()
+  :backends (curl)
+  (with-current-buffer (get-buffer-create " *request-test-temp*")
+    (erase-buffer)
+    (insert "BUFFER CONTENTS"))
+  (request-testing-with-response-slots
+      (request-testing-sync
+       "report/some-path"
+       :type "POST"
+       :files `(("name" . ,(get-buffer-create " *request-test-temp*")))
+       :parser 'json-read)
+    (should (equal status-code 200))
+    (should (equal (assoc-default 'path data) "some-path"))
+    (should (equal (assoc-default 'method data) "POST"))
+    (should (= (length (assoc-default 'files data)) 1))
+    (should (equal
+             (request-testing-sort-alist (elt (assoc-default 'files data) 0))
+             '((data . "BUFFER CONTENTS")
+               (filename . " *request-test-temp*")
+               (name . "name"))))))
+
+(request-deftest request-post-files/simple-file ()
+  :backends (curl)
+  :tempfiles (tf)
+  (with-temp-buffer
+    (erase-buffer)
+    (insert "BUFFER CONTENTS")
+    (write-region (point-min) (point-max) tf nil 'silent))
+  (request-testing-with-response-slots
+      (request-testing-sync
+       "report/some-path"
+       :type "POST"
+       :files `(("name" . ,tf))
+       :parser 'json-read)
+    (should (equal status-code 200))
+    (should (equal (assoc-default 'path data) "some-path"))
+    (should (equal (assoc-default 'method data) "POST"))
+    (should (= (length (assoc-default 'files data)) 1))
+    (should (equal
+             (request-testing-sort-alist (elt (assoc-default 'files data) 0))
+             `((data . "BUFFER CONTENTS")
+               (filename . ,(file-name-nondirectory tf))
+               (name . "name"))))))
+
+(request-deftest request-post-files/standard-buffer ()
+  :backends (curl)
+  (with-current-buffer (get-buffer-create " *request-test-temp*")
+    (erase-buffer)
+    (insert "BUFFER CONTENTS"))
+  (request-testing-with-response-slots
+      (request-testing-sync
+       "report/some-path"
+       :type "POST"
+       :files `(("name" .
+                 ("filename"
+                  :buffer ,(get-buffer-create " *request-test-temp*"))))
+       :parser 'json-read)
+    (should (equal status-code 200))
+    (should (equal (assoc-default 'path data) "some-path"))
+    (should (equal (assoc-default 'method data) "POST"))
+    (should (= (length (assoc-default 'files data)) 1))
+    (should (equal
+             (request-testing-sort-alist (elt (assoc-default 'files data) 0))
+             '((data . "BUFFER CONTENTS")
+               (filename . "filename")
+               (name . "name"))))))
+
+(request-deftest request-post-files/standard-file ()
+  :backends (curl)
+  :tempfiles (tf)
+  (with-temp-buffer
+    (erase-buffer)
+    (insert "BUFFER CONTENTS")
+    (write-region (point-min) (point-max) tf nil 'silent))
+  (request-testing-with-response-slots
+      (request-testing-sync
+       "report/some-path"
+       :type "POST"
+       :files `(("name" . ("filename" :file ,tf)))
+       :parser 'json-read)
+    (should (equal status-code 200))
+    (should (equal (assoc-default 'path data) "some-path"))
+    (should (equal (assoc-default 'method data) "POST"))
+    (should (= (length (assoc-default 'files data)) 1))
+    (should (equal
+             (request-testing-sort-alist (elt (assoc-default 'files data) 0))
+             '((data . "BUFFER CONTENTS")
+               (filename . "filename")
+               (name . "name"))))))
+
+(request-deftest request-post-files/standard-data ()
+  :backends (curl)
+  (request-testing-with-response-slots
+      (request-testing-sync
+       "report/some-path"
+       :type "POST"
+       :files '(("name" . ("data.csv" :data "1,2,3\n4,5,6\n")))
+       :parser 'json-read)
+    (should (equal status-code 200))
+    (should (equal (assoc-default 'path data) "some-path"))
+    (should (equal (assoc-default 'method data) "POST"))
+    (should (= (length (assoc-default 'files data)) 1))
+    (should (equal
+             (request-testing-sort-alist (elt (assoc-default 'files data) 0))
+             '((data . "1,2,3\n4,5,6\n")
+               (filename . "data.csv")
+               (name . "name"))))))
+
 
 ;;; PUT
 
@@ -301,6 +409,38 @@ RESPONSE-BODY"))
                                         "http://example.com/redirect/a/b")
                            :cookies nil
                            :version "1.0" :code 200))))))
+
+(ert-deftest request--curl-preprocess/100 ()
+  (with-temp-buffer
+    (erase-buffer)
+    (insert "\
+HTTP/1.1 100 Continue\r
+\r
+HTTP/1.1 200 OK\r
+Content-Type: application/json\r
+Date: Wed, 19 Dec 2012 16:51:53 GMT\r
+Server: gunicorn/0.13.4\r
+Content-Length: 492\r
+Connection: keep-alive\r
+\r
+RESPONSE-BODY")
+    (insert "\n(:num-redirects 0)")
+    (let ((info (request--curl-preprocess)))
+      (should (equal (buffer-string)
+                     "\
+HTTP/1.1 200 OK
+Content-Type: application/json
+Date: Wed, 19 Dec 2012 16:51:53 GMT
+Server: gunicorn/0.13.4
+Content-Length: 492
+Connection: keep-alive
+
+RESPONSE-BODY"))
+      (should (equal info
+                     (list :num-redirects 0
+                           :redirects nil
+                           :cookies nil
+                           :version "1.1" :code 200))))))
 
 (ert-deftest request--curl-preprocess/cookies ()
   (with-temp-buffer

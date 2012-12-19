@@ -146,7 +146,7 @@
   status-code redirects data error-thrown symbol-status url
   settings cookies
   ;; internal variables
-  -buffer -timer -backend)
+  -buffer -timer -backend -tempfiles)
 
 (defmacro request--document-response (function docstring)
   (declare (indent defun)
@@ -247,6 +247,7 @@ Example::
                      &key
                      (type "GET")
                      (data nil)
+                     (files nil)
                      (parser nil)
                      (headers nil)
                      (success nil)
@@ -265,6 +266,7 @@ Keyword argument      Explanation
 ==================== ========================================================
 TYPE       (string)   type of request to make: POST/GET/PUT/DELETE
 DATA       (string)   data to be sent to the server
+FILES       (alist)   files to be sent to the server (see below)
 PARSER     (symbol)   a function that reads current buffer and return data
 HEADERS     (alist)   additional headers to send with the request
 SUCCESS  (function)   called on success
@@ -311,6 +313,37 @@ STATUS-CODE is an alist of the following format::
      ...)
 
 Here, N-1, N-2,... are integer status codes such as 200.
+
+
+* FILES
+
+FILES is an alist of the following format::
+
+    ((NAME-1 . FILE-1)
+     (NAME-2 . FILE-2)
+     ...)
+
+where FILE-N is a list of the form::
+
+    (FILENAME &key PATH BUFFER STRING MIME-TYPE)
+
+FILE-N can also be a string (path to the file) or a buffer object
+where FILENAME is inferred.
+
+Example FILES argument::
+
+    `((\"passwd\"   . \"/etc/passwd\")                ; filename = passwd
+      (\"scratch\"  . ,(get-buffer \"*scratch*\"))    ; filename = *scratch*
+      (\"passwd2\"  . (\"password.txt\" :file \"/etc/passwd\"))
+      (\"scratch2\" . (\"scratch.txt\"  :buffer ,(get-buffer \"*scratch*\")))
+      (\"data\"     . (\"data.csv\"     :data \"1,2,3\\n4,5,6\\n\")))
+
+.. note:: FILES is implemented only for curl backend for now.
+   As furl.el_ supports multipart POST, it should be possible to
+   support FILES in pure elisp by making furl.el_ another backend.
+   Contributions are welcome.
+
+   .. _furl.el: http://code.google.com/p/furl-el/
 
 
 * PARSER function
@@ -438,14 +471,21 @@ then kill the current buffer."
 
         (when complete
           (request-log 'debug "Executing complete callback.")
-          (request--safe-apply complete args))))))
+          (request--safe-apply complete args))))
+
+    ;; Remove temporary files
+    ;; FIXME: Make tempfile cleanup more reliable.  It is possible
+    ;;        callback is never called.
+    (request--safe-delete-files (request-response--tempfiles response))))
 
 
 ;;; Backend: `url-retrieve'
 
 (defun* request--url-retrieve (url &rest settings
-                                   &key type data headers timeout response
+                                   &key type data headers files timeout response
                                    &allow-other-keys)
+  (when files
+    (error "`url-retrieve' backend does not support FILES."))
   (when (and (equal type "POST") data)
     (push '("Content-Type" . "application/x-www-form-urlencoded") headers)
     (setq settings (plist-put settings :headers headers)))
@@ -494,7 +534,7 @@ Currently it is used only for testing.")
     (make-directory (file-name-directory (request--curl-cookie-jar)) t)))
 
 (defun* request--curl-command
-    (url &key type data headers timeout
+    (url &key type data headers timeout files*
          &allow-other-keys
          &aux
          (cookie-jar (convert-standard-filename
@@ -506,6 +546,12 @@ Currently it is used only for testing.")
          ;;        running multiple requests.
          "--cookie" cookie-jar "--cookie-jar" cookie-jar
          "--write-out" request--curl-write-out-template)
+   (loop for (name filename path mime-type) in files*
+         collect "--form"
+         collect (format "%s=@%s;filename=%s%s" name path filename
+                         (if mime-type
+                             (format ";type=%s" mime-type)
+                           "")))
    (when data (list "--data-binary" "@-"))
    (when type (list "--request" type))
    (when timeout (list "--max-time" (format "%s" timeout)))
@@ -514,8 +560,56 @@ Currently it is used only for testing.")
          collect (format "%s: %s" k v))
    (list url)))
 
+(defun request--curl-normalize-files-1 (files get-temp-file)
+  (loop for (name . item) in files
+        collect
+        (destructuring-bind (filename &key file buffer data mime-type)
+            (cond
+             ((stringp item) (list (file-name-nondirectory item) :file item))
+             ((bufferp item) (list (buffer-name item) :buffer item))
+             (t item))
+          (unless (= (loop for v in (list file buffer data) if v sum 1) 1)
+            (error "Only one of :file/:buffer/:data must be given.  Got: %S"
+                   (cons name item)))
+          (cond
+           (file
+            (list name filename file mime-type))
+           (buffer
+            (let ((tf (funcall get-temp-file)))
+              (with-current-buffer buffer
+                (write-region (point-min) (point-max) tf))
+              (list name filename tf mime-type)))
+           (data
+            (let ((tf (funcall get-temp-file)))
+              (with-temp-buffer
+                (erase-buffer)
+                (insert data)
+                (write-region (point-min) (point-max) tf))
+              (list name filename tf mime-type)))))))
+
+(defun request--curl-normalize-files (files)
+  (let (tempfiles noerror)
+    (unwind-protect
+        (prog1 (list (request--curl-normalize-files-1
+                      files
+                      (lambda () (let ((tf (make-temp-file "emacs-request-)")))
+                                   (push tf tempfiles)
+                                   tf)))
+                     tempfiles)
+          (setq noerror t))
+      (unless noerror
+        ;; Remove temporary files only when an error occurs
+        (request--safe-delete-files tempfiles)))))
+
+(defun request--safe-delete-files (files)
+  (mapc (lambda (f) (condition-case err
+                        (delete-file f)
+                      (error (request-log 'error
+                               "Failed delete file %s. Got: %S" f err))))
+        files))
+
 (defun* request--curl (url &rest settings
-                           &key type data headers timeout response
+                           &key type data files headers timeout response
                            &allow-other-keys)
   "cURL-based request backend.
 
@@ -536,7 +630,12 @@ removed from the buffer before it is shown to the parser function.
   (let* (;; Use pipe instead of pty.  Otherwise, curl process hangs.
          (process-connection-type nil)
          (buffer (generate-new-buffer " *request curl*"))
-         (command (apply #'request--curl-command url settings))
+         (command (destructuring-bind
+                      (files* tempfiles)
+                      (request--curl-normalize-files files)
+                    (setf (request-response--tempfiles response) tempfiles)
+                    (apply #'request--curl-command url :files* files*
+                           settings)))
          (proc (apply #'start-process "request curl" buffer command)))
     (request-log 'debug "Run: %s" (mapconcat 'identity command " "))
     (setf (request-response--buffer response) buffer)
@@ -579,15 +678,25 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
               return (cons k v))
         return it))
 
+(defun request--consume-100-continue ()
+  (destructuring-bind (&key code &allow-other-keys)
+      (save-excursion (ignore-errors (request--parse-response-at-point)))
+    (when (equal code 100)
+      (delete-region (point) (progn (request--goto-next-body) (point)))
+      ;; FIXME: Does this make sense?  Is it possible to have multiple 100?
+      (request--consume-100-continue))))
+
 (defun request--curl-preprocess ()
   "Pre-process current buffer before showing it to user."
   (let (redirects cookies cookies2)
     (destructuring-bind (&key num-redirects)
         (request--curl-read-and-delete-tail-info)
       (goto-char (point-min))
+      (request--consume-100-continue)
       (when (> num-redirects 0)
         (loop with case-fold-search = t
               repeat num-redirects
+              do (request--consume-100-continue)
               for beg = (point)
               do (request--goto-next-body)
               for end = (point)
