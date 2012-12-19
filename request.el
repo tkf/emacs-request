@@ -143,6 +143,7 @@
 ;;; Header parser
 
 (defun request--parse-response-at-point ()
+  "Parse the first header line such as \"HTTP/1.1 200 OK\"."
   (re-search-forward "\\=[ \t\n]*HTTP/\\([0-9\\.]+\\) +\\([0-9]+\\)")
   (list :version (match-string 1)
         :code (string-to-number (match-string 2))))
@@ -617,6 +618,11 @@ Currently it is used only for testing.")
               (list name filename tf mime-type)))))))
 
 (defun request--curl-normalize-files (files)
+  "Change FILES into a list of (NAME FILENAME PATH MIME-TYPE).
+This is to make `request--curl-command' cleaner by converting
+FILES to a homogeneous list.  It returns a list (FILES* TEMPFILES)
+where FILES* is a converted FILES and TEMPFILES is a list of
+temporary file paths."
   (let (tempfiles noerror)
     (unwind-protect
         (prog1 (list (request--curl-normalize-files-1
@@ -631,6 +637,7 @@ Currently it is used only for testing.")
         (request--safe-delete-files tempfiles)))))
 
 (defun request--safe-delete-files (files)
+  "Remove FILES but do not raise error when failed to do so."
   (mapc (lambda (f) (condition-case err
                         (delete-file f)
                       (error (request-log 'error
@@ -698,6 +705,7 @@ See also `request--curl-write-out-template'."
 See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
 
 (defun request--cookie-name-value (cookies)
+  "Return first non-trivial name-value pair in COOKIES."
   (loop named outer
         with case-fold-search = t
         for c in cookies
@@ -708,6 +716,7 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
         return it))
 
 (defun request--consume-100-continue ()
+  "Remove \"HTTP/* 100 Continue\" header at the point."
   (destructuring-bind (&key code &allow-other-keys)
       (save-excursion (ignore-errors (request--parse-response-at-point)))
     (when (equal code 100)
