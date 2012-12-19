@@ -155,6 +155,29 @@
                (filename . " *request-test-temp*")
                (name . "name"))))))
 
+(request-deftest request-post-files/simple-file ()
+  :backends (curl)
+  :tempfiles (tf)
+  (with-temp-buffer
+    (erase-buffer)
+    (insert "BUFFER CONTENTS")
+    (write-region (point-min) (point-max) tf nil 'silent))
+  (request-testing-with-response-slots
+      (request-testing-sync
+       "report/some-path"
+       :type "POST"
+       :files `(("name" . ,tf))
+       :parser 'json-read)
+    (should (equal status-code 200))
+    (should (equal (assoc-default 'path data) "some-path"))
+    (should (equal (assoc-default 'method data) "POST"))
+    (should (= (length (assoc-default 'files data)) 1))
+    (should (equal
+             (request-testing-sort-alist (elt (assoc-default 'files data) 0))
+             `((data . "BUFFER CONTENTS")
+               (filename . ,(file-name-nondirectory tf))
+               (name . "name"))))))
+
 
 ;;; PUT
 
