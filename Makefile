@@ -25,6 +25,7 @@ clean-elpa:
 print-deps: elpa
 	@echo "----------------------- Dependencies -----------------------"
 	$(EMACS) --version
+	curl --version
 	@echo "------------------------------------------------------------"
 
 travis-ci: print-deps test
