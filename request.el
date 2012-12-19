@@ -329,6 +329,14 @@ where FILE-N is a list of the form::
 FILE-N can also be a string (path to the file) or a buffer object
 where FILENAME is inferred.
 
+Example FILES argument::
+
+    `((\"passwd\"   . \"/etc/passwd\")                ; filename = passwd
+      (\"scratch\"  . ,(get-buffer \"*scratch*\"))    ; filename = *scratch*
+      (\"passwd2\"  . (\"password\" \"/etc/passwd\"))
+      (\"scratch2\" . (\"scratch\" ,(get-buffer \"*scratch*\")))
+      (\"data\"     . (\"data.csv\" :contents \"1,2,3\\n4,5,6\\n\")))
+
 .. note:: FILES is implemented only for curl backend for now.
    As furl.el_ supports multipart POST, it should be possible to
    support FILES in pure elisp by making furl.el_ another backend.
@@ -557,6 +565,7 @@ Currently it is used only for testing.")
 (defun request--curl-normalize-files (files)
   (loop with files*
         with tempfiles
+        ;; FIXME: support the case when the element is string or buffer
         for (name filename bop . rest) in files
         if (symbolp bop)
         do (progn (push bop rest)
