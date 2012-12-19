@@ -627,7 +627,7 @@ temporary file paths."
     (unwind-protect
         (prog1 (list (request--curl-normalize-files-1
                       files
-                      (lambda () (let ((tf (make-temp-file "emacs-request-)")))
+                      (lambda () (let ((tf (make-temp-file "emacs-request-")))
                                    (push tf tempfiles)
                                    tf)))
                      tempfiles)
