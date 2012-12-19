@@ -559,9 +559,7 @@ Currently it is used only for testing.")
    (list url)))
 
 (defun request--curl-normalize-files-1 (files get-temp-file)
-  (loop with files*
-        with tempfiles
-        for (name . item) in files
+  (loop for (name . item) in files
         collect
         (destructuring-bind (filename &key file buffer data mime-type)
             (cond
@@ -576,31 +574,26 @@ Currently it is used only for testing.")
             (list name filename file mime-type))
            (buffer
             (let ((tf (funcall get-temp-file)))
-              ;; FIXME: add more error handling
               (with-current-buffer buffer
                 (write-region (point-min) (point-max) tf))
-              (push tf tempfiles)
               (list name filename tf mime-type)))
            (data
             (let ((tf (funcall get-temp-file)))
-              ;; FIXME: add more error handling
               (with-temp-buffer
                 (erase-buffer)
                 (insert data)
                 (write-region (point-min) (point-max) tf))
-              (push tf tempfiles)
-              (list name filename tf mime-type)))))
-        into files*
-        finally return (list files* tempfiles)))
+              (list name filename tf mime-type)))))))
 
 (defun request--curl-normalize-files (files)
   (let (tempfiles* noerror)
     (unwind-protect
-        (prog1 (request--curl-normalize-files-1
-                files
-                (lambda () (let ((tf (make-temp-file "emacs-request-)")))
-                             (push tf tempfiles*)
-                             tf)))
+        (prog1 (list (request--curl-normalize-files-1
+                      files
+                      (lambda () (let ((tf (make-temp-file "emacs-request-)")))
+                                   (push tf tempfiles*)
+                                   tf)))
+                     tempfiles*)
           (setq noerror t))
       (unless noerror
         ;; Remove temporary files only when an error occurs
