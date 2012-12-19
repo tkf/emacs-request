@@ -482,8 +482,10 @@ then kill the current buffer."
 ;;; Backend: `url-retrieve'
 
 (defun* request--url-retrieve (url &rest settings
-                                   &key type data headers timeout response
+                                   &key type data headers files timeout response
                                    &allow-other-keys)
+  (when files
+    (error "`url-retrieve' backend does not support FILES."))
   (when (and (equal type "POST") data)
     (push '("Content-Type" . "application/x-www-form-urlencoded") headers)
     (setq settings (plist-put settings :headers headers)))
