@@ -486,7 +486,9 @@ then kill the current buffer."
                                    &allow-other-keys)
   (when files
     (error "`url-retrieve' backend does not support FILES."))
-  (when (and (equal type "POST") data)
+  (when (and (equal type "POST")
+             data
+             (not (assoc-string headers "Content-Type" t)))
     (push '("Content-Type" . "application/x-www-form-urlencoded") headers)
     (setq settings (plist-put settings :headers headers)))
   (let* ((url-request-extra-headers headers)
