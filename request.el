@@ -76,11 +76,11 @@
 (defun request--safe-call (function &rest arguments)
   (request--safe-apply function arguments))
 
-(defun request--url-no-cache (url)
-  "Imitate `cache=false' of `jQuery.ajax'.
-See: http://api.jquery.com/jQuery.ajax/"
-  ;; FIXME: parse URL before adding ?_=TIME.
-  (concat url (format-time-string "?_=%s")))
+;; (defun request--url-no-cache (url)
+;;   "Imitate `cache=false' of `jQuery.ajax'.
+;; See: http://api.jquery.com/jQuery.ajax/"
+;;   ;; FIXME: parse URL before adding ?_=TIME.
+;;   (concat url (format-time-string "?_=%s")))
 
 (defmacro request--document-function (function docstring)
   "Document FUNCTION with DOCSTRING.  Use this for defstruct accessor etc."
@@ -245,7 +245,6 @@ Example::
 
 (defun* request (url &rest settings
                      &key
-                     (cache t)
                      (type "GET")
                      (data nil)
                      (parser nil)
@@ -264,7 +263,6 @@ API of `request' is similar to `jQuery.ajax'.
 ==================== ========================================================
 Keyword argument      Explanation
 ==================== ========================================================
-CACHE       (nil/t)   append time-stamp to URL so that URL is always loaded.
 TYPE       (string)   type of request to make: POST/GET/PUT/DELETE
 DATA       (string)   data to be sent to the server
 PARSER     (symbol)   a function that reads current buffer and return data
@@ -330,8 +328,9 @@ is killed immediately after the execution of this function.
 
 * See also: http://api.jquery.com/jQuery.ajax/"
   (request-log 'debug "REQUEST")
-  (unless cache
-    (setq url (request--url-no-cache url)))
+  ;; FIXME: support CACHE argument (if possible)
+  ;; (unless cache
+  ;;   (setq url (request--url-no-cache url)))
   (unless error
     (setq error (apply-partially #'request-default-error-callback url))
     (setq settings (plist-put settings :error error)))
