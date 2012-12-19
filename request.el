@@ -385,7 +385,9 @@ and requests.request_ (Python).
   (unless error
     (setq error (apply-partially #'request-default-error-callback url))
     (setq settings (plist-put settings :error error)))
-  (when (and (listp data) (not (assoc-string headers "Content-Type" t)))
+  (unless (or (stringp data)
+              (null data)
+              (assoc-string headers "Content-Type" t))
     (setq data (request--urlencode-alist data))
     (setq settings (plist-put settings :data data)))
   (setq url (concat url (if (string-match-p "\\?" url) "&" "?")
