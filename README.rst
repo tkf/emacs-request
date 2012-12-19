@@ -1,5 +1,5 @@
 ================================================
- Request.el -- Easy HTTP request for Emacs user
+ Request.el -- Easy HTTP request for Emacs Lisp
 ================================================
 
 * `Documentation (at GitHub Pages) <http://tkf.github.com/emacs-request/>`_
@@ -27,7 +27,7 @@ experience for users who have curl.
 As request.el is implemented in extensible manner, it is possible to
 implement other backend such as wget.  Also, if future version of
 Emacs support linking with libcurl, it is possible to implement a
-backend using it.  Libraries using request.el automatically get can
+backend using it.  Libraries using request.el automatically can
 use these backend without modifying their code.
 
 
