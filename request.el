@@ -128,6 +128,17 @@
            (message "REQUEST %s" msg))))))
 
 
+;;; HTTP specific utilities
+
+(defun request--urlencode-alist (alist)
+  (loop for sep = "" then "&"
+        for (k . v) in alist
+        concat sep
+        concat (url-hexify-string (format "%s" k))
+        concat "="
+        concat (url-hexify-string v)))
+
+
 ;;; Header parser
 
 (defun request--parse-response-at-point ()

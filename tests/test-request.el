@@ -339,6 +339,15 @@
 ;; Following tests does not depend on the value of `request-backend'.
 ;; Move them to another file when this test suite get bigger.
 
+(ert-deftest request--urlencode-alist/simple ()
+  (should (equal (request--urlencode-alist '((a . "1") (b . "2")))
+                 "a=1&b=2")))
+
+(ert-deftest request--urlencode-alist/hexified ()
+  (should (equal (request--urlencode-alist
+                  '(("key with space" . "*evil* !values!")))
+                 "key%20with%20space=%2Aevil%2A%20%21values%21")))
+
 (ert-deftest request--curl-preprocess/no-redirects ()
   (with-temp-buffer
     (erase-buffer)
