@@ -134,6 +134,27 @@
     (should (equal (assoc-default 'method data) "POST"))
     (should (equal (assoc-default 'form data) '((key . "value"))))))
 
+(request-deftest request-post-files/simple-buffer ()
+  :backends (curl)
+  (with-current-buffer (get-buffer-create " *request-test-temp*")
+    (erase-buffer)
+    (insert "BUFFER CONTENTS"))
+  (request-testing-with-response-slots
+      (request-testing-sync
+       "report/some-path"
+       :type "POST"
+       :files `(("name" . ,(get-buffer-create " *request-test-temp*")))
+       :parser 'json-read)
+    (should (equal status-code 200))
+    (should (equal (assoc-default 'path data) "some-path"))
+    (should (equal (assoc-default 'method data) "POST"))
+    (should (= (length (assoc-default 'files data)) 1))
+    (should (equal
+             (request-testing-sort-alist (elt (assoc-default 'files data) 0))
+             '((data . "BUFFER CONTENTS")
+               (filename . " *request-test-temp*")
+               (name . "name"))))))
+
 
 ;;; PUT
 

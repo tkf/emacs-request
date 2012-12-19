@@ -18,10 +18,13 @@ def page_report(path):
     """
     Report back path, input data, parameter, etc. as JSON.
     """
+    # see: http://flask.pocoo.org/docs/api/#incoming-request-data
     return jsonify(dict(
         path=path,
         data=request.data,
         form=request.form,
+        files=[dict(name=k, filename=f.filename, data=f.read())
+               for (k, f) in request.files.items()],
         args=request.args,
         cookies=request.cookies,
         method=request.method,
