@@ -511,7 +511,7 @@ Currently it is used only for testing.")
     (make-directory (file-name-directory (request--curl-cookie-jar)) t)))
 
 (defun* request--curl-command
-    (url &key type data headers timeout
+    (url &key type data headers timeout files*
          &allow-other-keys
          &aux
          (cookie-jar (convert-standard-filename
@@ -523,6 +523,12 @@ Currently it is used only for testing.")
          ;;        running multiple requests.
          "--cookie" cookie-jar "--cookie-jar" cookie-jar
          "--write-out" request--curl-write-out-template)
+   (loop for (name filename path mime-type) in files*
+         collect "--form"
+         collect (format "%s=@%s;filename=%s%s" name path filename
+                         (if mime-type
+                             (format ";type=%s" mime-type)
+                           "")))
    (when data (list "--data-binary" "@-"))
    (when type (list "--request" type))
    (when timeout (list "--max-time" (format "%s" timeout)))
