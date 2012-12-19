@@ -565,13 +565,16 @@ Currently it is used only for testing.")
 (defun request--curl-normalize-files (files)
   (loop with files*
         with tempfiles
-        ;; FIXME: support the case when the element is string or buffer
-        for (name filename bop . rest) in files
-        if (symbolp bop)
-        do (progn (push bop rest)
-                  (setq bop nil))
+        for (name . item) in files
+        do (cond
+            ((stringp item)
+             (setq item (list (file-name-nondirectory item) item)))
+            ((bufferp item)
+             (setq item (list (buffer-name item) item)))
+            ((symbolp (cadr item))
+             (setq item (list (car item) nil (cddr item)))))
         collect
-        (destructuring-bind (&key contents mime-type) rest
+        (destructuring-bind (filename bop &key contents mime-type) item
           (cond
            ((stringp bop)
             (assert (null contents))
