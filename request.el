@@ -278,7 +278,7 @@ Request.el has a single entry point.  It is `request'.
 Keyword argument      Explanation
 ==================== ========================================================
 TYPE       (string)   type of request to make: POST/GET/PUT/DELETE
-PARAMS  (str/alist)   set \"?key=val\" part in URL
+PARAMS      (alist)   set \"?key=val\" part in URL
 DATA (string/alist)   data to be sent to the server
 FILES       (alist)   files to be sent to the server (see below)
 PARSER     (symbol)   a function that reads current buffer and return data
