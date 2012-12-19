@@ -671,15 +671,25 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
               return (cons k v))
         return it))
 
+(defun request--consume-100-continue ()
+  (destructuring-bind (&key code &allow-other-keys)
+      (save-excursion (ignore-errors (request--parse-response-at-point)))
+    (when (equal code 100)
+      (delete-region (point) (progn (request--goto-next-body) (point)))
+      ;; FIXME: Does this make sense?  Is it possible to have multiple 100?
+      (request--consume-100-continue))))
+
 (defun request--curl-preprocess ()
   "Pre-process current buffer before showing it to user."
   (let (redirects cookies cookies2)
     (destructuring-bind (&key num-redirects)
         (request--curl-read-and-delete-tail-info)
       (goto-char (point-min))
+      (request--consume-100-continue)
       (when (> num-redirects 0)
         (loop with case-fold-search = t
               repeat num-redirects
+              do (request--consume-100-continue)
               for beg = (point)
               do (request--goto-next-body)
               for end = (point)
