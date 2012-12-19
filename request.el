@@ -146,7 +146,7 @@
   status-code redirects data error-thrown symbol-status url
   settings cookies
   ;; internal variables
-  -buffer -timer -backend)
+  -buffer -timer -backend -tempfiles)
 
 (defmacro request--document-response (function docstring)
   (declare (indent defun)
@@ -455,7 +455,17 @@ then kill the current buffer."
 
         (when complete
           (request-log 'debug "Executing complete callback.")
-          (request--safe-apply complete args))))))
+          (request--safe-apply complete args))))
+
+    ;; Remove temporary files
+    ;; FIXME: Make tempfile cleanup more reliable.  It is possible
+    ;;        callback is never called.
+    (mapc (lambda (tf) (condition-case err
+                           (delete-file tf)
+                         (error (request-log 'error
+                                  "Failed delete temporary file %s. Got: %S"
+                                  tf err))))
+          (request-response--tempfiles response))))
 
 
 ;;; Backend: `url-retrieve'
@@ -537,8 +547,42 @@ Currently it is used only for testing.")
          collect (format "%s: %s" k v))
    (list url)))
 
+(defun request--curl-normalize-files (files)
+  (loop with files*
+        with tempfiles
+        for (name filename bop . rest) in files
+        if (symbolp bop)
+        do (progn (push bop rest)
+                  (setq bop nil))
+        collect
+        (destructuring-bind (&key contents mime-type) rest
+          (cond
+           ((stringp bop)
+            (assert (null contents))
+            (list name filename bop mime-type))
+           ((bufferp bop)
+            (assert (null contents))
+            (let ((tf (make-temp-file "emacs-request-")))
+              ;; FIXME: add more error handling
+              (with-current-buffer bop
+                (write-region (point-min) (point-max) tf))
+              (push tf tempfiles)
+              (list name filename tf mime-type)))
+           ((stringp contents)
+            (let ((tf (make-temp-file "emacs-request-")))
+              ;; FIXME: add more error handling
+              (with-temp-buffer
+                (erase-buffer)
+                (insert contents)
+                (write-region (point-min) (point-max) tf))
+              (push tf tempfiles)
+              (list name filename tf mime-type)))
+           (t (error "invalid FILES argument."))))
+        into files*
+        finally return (list files* tempfiles)))
+
 (defun* request--curl (url &rest settings
-                           &key type data headers timeout response
+                           &key type data files headers timeout response
                            &allow-other-keys)
   "cURL-based request backend.
 
@@ -559,7 +603,12 @@ removed from the buffer before it is shown to the parser function.
   (let* (;; Use pipe instead of pty.  Otherwise, curl process hangs.
          (process-connection-type nil)
          (buffer (generate-new-buffer " *request curl*"))
-         (command (apply #'request--curl-command url settings))
+         (command (destructuring-bind
+                      (files* tempfiles)
+                      (request--curl-normalize-files files)
+                    (setf (request-response--tempfiles response) tempfiles)
+                    (apply #'request--curl-command url :files* files*
+                           settings)))
          (proc (apply #'start-process "request curl" buffer command)))
     (request-log 'debug "Run: %s" (mapconcat 'identity command " "))
     (setf (request-response--buffer response) buffer)
