@@ -265,6 +265,7 @@ Keyword argument      Explanation
 ==================== ========================================================
 TYPE       (string)   type of request to make: POST/GET/PUT/DELETE
 DATA       (string)   data to be sent to the server
+FILES       (alist)   files to be sent to the server (see below)
 PARSER     (symbol)   a function that reads current buffer and return data
 HEADERS     (alist)   additional headers to send with the request
 SUCCESS  (function)   called on success
@@ -311,6 +312,22 @@ STATUS-CODE is an alist of the following format::
      ...)
 
 Here, N-1, N-2,... are integer status codes such as 200.
+
+
+* FILES
+
+FILES is an alist of the following format::
+
+    ((NAME-1 . FILE-1)
+     (NAME-2 . FILE-2)
+     ...)
+
+where FILE-N is a list of the form::
+
+    (FILENAME [PATH | BUFFER] [:contents STRING] [:mime-type MIME-TYPE])
+
+FILE-N can also be a string (path to the file) or a buffer object
+where FILENAME is inferred.
 
 
 * PARSER function
