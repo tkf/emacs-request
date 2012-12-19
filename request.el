@@ -366,9 +366,17 @@ HTTP response buffer is at the beginning of the response
 body.  So, for example, you can pass `json-read' to parse
 JSON object in the buffer.
 
-This is analogous to the `dataType' argument of `$.ajax'.
+This is analogous to the `dataType' argument of jQuery.ajax_.
 Only this function can accuses to the process buffer, which
 is killed immediately after the execution of this function.
+
+* Note
+
+API of `request' is somewhat mixture of jQuery.ajax_ (Javascript)
+and requests.request_ (Python).
+
+.. _jQuer.ajax: http://api.jquery.com/jQuery.ajax/
+.. _requests.request: http://docs.python-requests.org
 "
   (request-log 'debug "REQUEST")
   ;; FIXME: support CACHE argument (if possible)
