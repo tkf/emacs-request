@@ -257,6 +257,7 @@ Example::
 (defun* request (url &rest settings
                      &key
                      (type "GET")
+                     (params nil)
                      (data nil)
                      (files nil)
                      (parser nil)
@@ -270,12 +271,12 @@ Example::
   "Send request to URL.
 
 Request.el has a single entry point.  It is `request'.
-API of `request' is similar to `jQuery.ajax'.
 
 ==================== ========================================================
 Keyword argument      Explanation
 ==================== ========================================================
 TYPE       (string)   type of request to make: POST/GET/PUT/DELETE
+PARAMS  (str/alist)   set \"?key=val\" part in URL
 DATA (string/alist)   data to be sent to the server
 FILES       (alist)   files to be sent to the server (see below)
 PARSER     (symbol)   a function that reads current buffer and return data
@@ -368,9 +369,7 @@ JSON object in the buffer.
 This is analogous to the `dataType' argument of `$.ajax'.
 Only this function can accuses to the process buffer, which
 is killed immediately after the execution of this function.
-
-
-* See also: http://api.jquery.com/jQuery.ajax/"
+"
   (request-log 'debug "REQUEST")
   ;; FIXME: support CACHE argument (if possible)
   ;; (unless cache
@@ -381,6 +380,8 @@ is killed immediately after the execution of this function.
   (when (and (listp data) (not (assoc-string headers "Content-Type" t)))
     (setq data (request--urlencode-alist data))
     (setq settings (plist-put settings :data data)))
+  (setq url (concat url (if (string-match-p "\\?" url) "&" "?")
+                    (request--urlencode-alist params)))
   (setq settings (plist-put settings :response response))
   (setf (request-response-settings response) settings)
   (setf (request-response-url      response) url)

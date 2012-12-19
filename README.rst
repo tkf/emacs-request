@@ -37,7 +37,8 @@ Examples
 GET::
 
   (request
-   "http://search.twitter.com/search.json?q=emacs"
+   "http://search.twitter.com/search.json"
+   :params '((q . "emacs awesome"))
    :parser 'json-read
    :success (function*
              (lambda (&key data &allow-other-keys)
