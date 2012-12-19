@@ -329,6 +329,13 @@ where FILE-N is a list of the form::
 FILE-N can also be a string (path to the file) or a buffer object
 where FILENAME is inferred.
 
+.. note:: FILES is implemented only for curl backend for now.
+   As furl.el_ supports multipart POST, it should be possible to
+   support FILES in pure elisp by making furl.el_ another backend.
+   Contributions are welcome.
+
+   .. _furl.el: http://code.google.com/p/furl-el/
+
 
 * PARSER function
 
