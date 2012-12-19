@@ -178,6 +178,70 @@
                (filename . ,(file-name-nondirectory tf))
                (name . "name"))))))
 
+(request-deftest request-post-files/standard-buffer ()
+  :backends (curl)
+  (with-current-buffer (get-buffer-create " *request-test-temp*")
+    (erase-buffer)
+    (insert "BUFFER CONTENTS"))
+  (request-testing-with-response-slots
+      (request-testing-sync
+       "report/some-path"
+       :type "POST"
+       :files `(("name" .
+                 ("filename"
+                  :buffer ,(get-buffer-create " *request-test-temp*"))))
+       :parser 'json-read)
+    (should (equal status-code 200))
+    (should (equal (assoc-default 'path data) "some-path"))
+    (should (equal (assoc-default 'method data) "POST"))
+    (should (= (length (assoc-default 'files data)) 1))
+    (should (equal
+             (request-testing-sort-alist (elt (assoc-default 'files data) 0))
+             '((data . "BUFFER CONTENTS")
+               (filename . "filename")
+               (name . "name"))))))
+
+(request-deftest request-post-files/standard-file ()
+  :backends (curl)
+  :tempfiles (tf)
+  (with-temp-buffer
+    (erase-buffer)
+    (insert "BUFFER CONTENTS")
+    (write-region (point-min) (point-max) tf nil 'silent))
+  (request-testing-with-response-slots
+      (request-testing-sync
+       "report/some-path"
+       :type "POST"
+       :files `(("name" . ("filename" :file ,tf)))
+       :parser 'json-read)
+    (should (equal status-code 200))
+    (should (equal (assoc-default 'path data) "some-path"))
+    (should (equal (assoc-default 'method data) "POST"))
+    (should (= (length (assoc-default 'files data)) 1))
+    (should (equal
+             (request-testing-sort-alist (elt (assoc-default 'files data) 0))
+             '((data . "BUFFER CONTENTS")
+               (filename . "filename")
+               (name . "name"))))))
+
+(request-deftest request-post-files/standard-data ()
+  :backends (curl)
+  (request-testing-with-response-slots
+      (request-testing-sync
+       "report/some-path"
+       :type "POST"
+       :files '(("name" . ("data.csv" :data "1,2,3\n4,5,6\n")))
+       :parser 'json-read)
+    (should (equal status-code 200))
+    (should (equal (assoc-default 'path data) "some-path"))
+    (should (equal (assoc-default 'method data) "POST"))
+    (should (= (length (assoc-default 'files data)) 1))
+    (should (equal
+             (request-testing-sort-alist (elt (assoc-default 'files data) 0))
+             '((data . "1,2,3\n4,5,6\n")
+               (filename . "data.csv")
+               (name . "name"))))))
+
 
 ;;; PUT
 
