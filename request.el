@@ -586,18 +586,18 @@ Currently it is used only for testing.")
               (list name filename tf mime-type)))))))
 
 (defun request--curl-normalize-files (files)
-  (let (tempfiles* noerror)
+  (let (tempfiles noerror)
     (unwind-protect
         (prog1 (list (request--curl-normalize-files-1
                       files
                       (lambda () (let ((tf (make-temp-file "emacs-request-)")))
-                                   (push tf tempfiles*)
+                                   (push tf tempfiles)
                                    tf)))
-                     tempfiles*)
+                     tempfiles)
           (setq noerror t))
       (unless noerror
         ;; Remove temporary files only when an error occurs
-        (request--safe-delete-files tempfiles*)))))
+        (request--safe-delete-files tempfiles)))))
 
 (defun request--safe-delete-files (files)
   (mapc (lambda (f) (condition-case err
