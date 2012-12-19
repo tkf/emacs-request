@@ -325,7 +325,7 @@ FILES is an alist of the following format::
 
 where FILE-N is a list of the form::
 
-    (FILENAME [PATH | BUFFER] [:contents STRING] [:mime-type MIME-TYPE])
+    (FILENAME &key PATH BUFFER STRING MIME-TYPE)
 
 FILE-N can also be a string (path to the file) or a buffer object
 where FILENAME is inferred.
@@ -334,9 +334,9 @@ Example FILES argument::
 
     `((\"passwd\"   . \"/etc/passwd\")                ; filename = passwd
       (\"scratch\"  . ,(get-buffer \"*scratch*\"))    ; filename = *scratch*
-      (\"passwd2\"  . (\"password\" \"/etc/passwd\"))
-      (\"scratch2\" . (\"scratch\" ,(get-buffer \"*scratch*\")))
-      (\"data\"     . (\"data.csv\" :contents \"1,2,3\\n4,5,6\\n\")))
+      (\"passwd2\"  . (\"password.txt\" :file \"/etc/passwd\"))
+      (\"scratch2\" . (\"scratch.txt\"  :buffer ,(get-buffer \"*scratch*\")))
+      (\"data\"     . (\"data.csv\"     :data \"1,2,3\\n4,5,6\\n\")))
 
 .. note:: FILES is implemented only for curl backend for now.
    As furl.el_ supports multipart POST, it should be possible to
@@ -567,37 +567,34 @@ Currently it is used only for testing.")
   (loop with files*
         with tempfiles
         for (name . item) in files
-        do (cond
-            ((stringp item)
-             (setq item (list (file-name-nondirectory item) item)))
-            ((bufferp item)
-             (setq item (list (buffer-name item) item)))
-            ((symbolp (cadr item))
-             (setq item (list (car item) nil (cddr item)))))
         collect
-        (destructuring-bind (filename bop &key contents mime-type) item
+        (destructuring-bind (filename &key file buffer data mime-type)
+            (cond
+             ((stringp item) (list (file-name-nondirectory item) :file item))
+             ((bufferp item) (list (buffer-name item) :buffer item))
+             (t item))
+          (unless (= (loop for v in (list file buffer data) if v sum 1) 1)
+            (error "Only one of :file/:buffer/:data must be given.  Got: %S"
+                   (cons name item)))
           (cond
-           ((stringp bop)
-            (assert (null contents))
-            (list name filename bop mime-type))
-           ((bufferp bop)
-            (assert (null contents))
+           (file
+            (list name filename file mime-type))
+           (buffer
             (let ((tf (make-temp-file "emacs-request-")))
               ;; FIXME: add more error handling
-              (with-current-buffer bop
+              (with-current-buffer buffer
                 (write-region (point-min) (point-max) tf))
               (push tf tempfiles)
               (list name filename tf mime-type)))
-           ((stringp contents)
+           (data
             (let ((tf (make-temp-file "emacs-request-")))
               ;; FIXME: add more error handling
               (with-temp-buffer
                 (erase-buffer)
-                (insert contents)
+                (insert data)
                 (write-region (point-min) (point-max) tf))
               (push tf tempfiles)
-              (list name filename tf mime-type)))
-           (t (error "invalid FILES argument."))))
+              (list name filename tf mime-type)))))
         into files*
         finally return (list files* tempfiles)))
 
