@@ -247,6 +247,7 @@ Example::
                      &key
                      (type "GET")
                      (data nil)
+                     (files nil)
                      (parser nil)
                      (headers nil)
                      (success nil)
