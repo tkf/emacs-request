@@ -53,8 +53,9 @@
   "Backend to be used for HTTP request."
   :group 'request)
 
-(defcustom request-timeout 1
-  "Default request timeout in second."
+(defcustom request-timeout 60
+  "Default request timeout in second.
+`nil' means no timeout."
   :group 'request)
 
 (defcustom request-log-level -1
