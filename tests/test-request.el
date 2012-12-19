@@ -302,6 +302,38 @@ RESPONSE-BODY"))
                            :cookies nil
                            :version "1.0" :code 200))))))
 
+(ert-deftest request--curl-preprocess/100 ()
+  (with-temp-buffer
+    (erase-buffer)
+    (insert "\
+HTTP/1.1 100 Continue\r
+\r
+HTTP/1.1 200 OK\r
+Content-Type: application/json\r
+Date: Wed, 19 Dec 2012 16:51:53 GMT\r
+Server: gunicorn/0.13.4\r
+Content-Length: 492\r
+Connection: keep-alive\r
+\r
+RESPONSE-BODY")
+    (insert "\n(:num-redirects 0)")
+    (let ((info (request--curl-preprocess)))
+      (should (equal (buffer-string)
+                     "\
+HTTP/1.1 200 OK
+Content-Type: application/json
+Date: Wed, 19 Dec 2012 16:51:53 GMT
+Server: gunicorn/0.13.4
+Content-Length: 492
+Connection: keep-alive
+
+RESPONSE-BODY"))
+      (should (equal info
+                     (list :num-redirects 0
+                           :redirects nil
+                           :cookies nil
+                           :version "1.1" :code 200))))))
+
 (ert-deftest request--curl-preprocess/cookies ()
   (with-temp-buffer
     (erase-buffer)
