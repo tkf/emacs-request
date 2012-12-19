@@ -390,8 +390,9 @@ and requests.request_ (Python).
               (assoc-string headers "Content-Type" t))
     (setq data (request--urlencode-alist data))
     (setq settings (plist-put settings :data data)))
-  (setq url (concat url (if (string-match-p "\\?" url) "&" "?")
-                    (request--urlencode-alist params)))
+  (when params
+    (setq url (concat url (if (string-match-p "\\?" url) "&" "?")
+                      (request--urlencode-alist params))))
   (setq settings (plist-put settings :response response))
   (setf (request-response-settings response) settings)
   (setf (request-response-url      response) url)
