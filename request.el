@@ -607,14 +607,14 @@ Currently it is used only for testing.")
            (buffer
             (let ((tf (funcall get-temp-file)))
               (with-current-buffer buffer
-                (write-region (point-min) (point-max) tf))
+                (write-region (point-min) (point-max) tf nil 'silent))
               (list name filename tf mime-type)))
            (data
             (let ((tf (funcall get-temp-file)))
               (with-temp-buffer
                 (erase-buffer)
                 (insert data)
-                (write-region (point-min) (point-max) tf))
+                (write-region (point-min) (point-max) tf nil 'silent))
               (list name filename tf mime-type)))))))
 
 (defun request--curl-normalize-files (files)
