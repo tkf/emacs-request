@@ -476,12 +476,7 @@ then kill the current buffer."
     ;; Remove temporary files
     ;; FIXME: Make tempfile cleanup more reliable.  It is possible
     ;;        callback is never called.
-    (mapc (lambda (tf) (condition-case err
-                           (delete-file tf)
-                         (error (request-log 'error
-                                  "Failed delete temporary file %s. Got: %S"
-                                  tf err))))
-          (request-response--tempfiles response))))
+    (request--safe-delete-files (request-response--tempfiles response))))
 
 
 ;;; Backend: `url-retrieve'
