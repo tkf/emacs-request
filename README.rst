@@ -51,7 +51,8 @@ POST::
   (request
    "http://httpbin.org/post"
    :type "POST"
-   :data "key=value&key2=value2"
+   :data '(("key" . "value") ("key2" . "value2"))
+   ;; :data "key=value&key2=value2"  ; this is equivalent
    :parser 'json-read
    :success (function*
              (lambda (&key data &allow-other-keys)

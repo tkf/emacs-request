@@ -276,7 +276,7 @@ API of `request' is similar to `jQuery.ajax'.
 Keyword argument      Explanation
 ==================== ========================================================
 TYPE       (string)   type of request to make: POST/GET/PUT/DELETE
-DATA       (string)   data to be sent to the server
+DATA (string/alist)   data to be sent to the server
 FILES       (alist)   files to be sent to the server (see below)
 PARSER     (symbol)   a function that reads current buffer and return data
 HEADERS     (alist)   additional headers to send with the request
@@ -378,6 +378,9 @@ is killed immediately after the execution of this function.
   (unless error
     (setq error (apply-partially #'request-default-error-callback url))
     (setq settings (plist-put settings :error error)))
+  (when (and (listp data) (not (assoc-string headers "Content-Type" t)))
+    (setq data (request--urlencode-alist data))
+    (setq settings (plist-put settings :data data)))
   (setq settings (plist-put settings :response response))
   (setf (request-response-settings response) settings)
   (setf (request-response-url      response) url)
