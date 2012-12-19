@@ -563,7 +563,7 @@ Currently it is used only for testing.")
          collect (format "%s: %s" k v))
    (list url)))
 
-(defun request--curl-normalize-files (files)
+(defun request--curl-normalize-files-1 (files get-temp-file)
   (loop with files*
         with tempfiles
         for (name . item) in files
@@ -580,14 +580,14 @@ Currently it is used only for testing.")
            (file
             (list name filename file mime-type))
            (buffer
-            (let ((tf (make-temp-file "emacs-request-")))
+            (let ((tf (funcall get-temp-file)))
               ;; FIXME: add more error handling
               (with-current-buffer buffer
                 (write-region (point-min) (point-max) tf))
               (push tf tempfiles)
               (list name filename tf mime-type)))
            (data
-            (let ((tf (make-temp-file "emacs-request-")))
+            (let ((tf (funcall get-temp-file)))
               ;; FIXME: add more error handling
               (with-temp-buffer
                 (erase-buffer)
@@ -597,6 +597,26 @@ Currently it is used only for testing.")
               (list name filename tf mime-type)))))
         into files*
         finally return (list files* tempfiles)))
+
+(defun request--curl-normalize-files (files)
+  (let (tempfiles* noerror)
+    (unwind-protect
+        (prog1 (request--curl-normalize-files-1
+                files
+                (lambda () (let ((tf (make-temp-file "emacs-request-)")))
+                             (push tf tempfiles*)
+                             tf)))
+          (setq noerror t))
+      (unless noerror
+        ;; Remove temporary files only when an error occurs
+        (request--safe-delete-files tempfiles*)))))
+
+(defun request--safe-delete-files (files)
+  (mapc (lambda (f) (condition-case err
+                        (delete-file f)
+                      (error (request-log 'error
+                               "Failed delete file %s. Got: %S" f err))))
+        files))
 
 (defun* request--curl (url &rest settings
                            &key type data files headers timeout response
