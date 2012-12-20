@@ -190,7 +190,7 @@ re-raised (`signal'ed) by ``(signal ERROR-SYMBOL DATA)``.")
 
 (request--document-response request-response-symbol-status
   "A symbol representing the status of *request* (not response).
-One of success/error/timeout.")  ; FIMXE: add abort/parse-error
+One of success/error/timeout.")  ; FIXME: add abort/parse-error
 
 (request--document-response request-response-url
   "Final URL location of response.")
@@ -304,13 +304,13 @@ arguments (i.e., it's better to use `&allow-other-keys').::
     (CALLBACK                      ; SUCCESS/ERROR/COMPLETE/STATUS-CODE
      :data          data           ; whatever PARSER function returns, or nil
      :error-thrown  error-thrown   ; (ERROR-SYMBOL . DATA), or nil
-     :symbol-status symbol-status  ; success
-     :response      response       ; request-ponse object
+     :symbol-status symbol-status  ; success/error/timeout (symbol)
+     :response      response       ; request-response object
      ...)
 
 Arguments data, error-thrown, symbol-status can be accessed by
 `request-response-data', `request-response-error-thrown',
-`request-response-status' assessors, i.e.::
+`request-response-symbol-status' assessors, i.e.::
 
     (request-response-data RESPONSE)  ; same as data
 
@@ -384,7 +384,7 @@ is killed immediately after the execution of this function.
 API of `request' is somewhat mixture of jQuery.ajax_ (Javascript)
 and requests.request_ (Python).
 
-.. _jQuer.ajax: http://api.jquery.com/jQuery.ajax/
+.. _jQuery.ajax: http://api.jquery.com/jQuery.ajax/
 .. _requests.request: http://docs.python-requests.org
 "
   (request-log 'debug "REQUEST")
