@@ -14,7 +14,11 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) sou
 # the i18n builder cannot share the environment and doctrees with the others
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) source
 
-.PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest gettext
+.PHONY: help clean html dirhtml singlehtml pickle \
+	json htmlhelp qthelp devhelp epub latex latexpdf \
+	text man changes linkcheck doctest gettext \
+	_gh-pages-assert-repo gh-pages-update gh-pages-push \
+	gh-pages-clone gh-pages-pull
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -39,7 +43,7 @@ help:
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 
 clean:
-	-rm -rf $(BUILDDIR)/*
+	-rm -rf $(BUILDDIR)/*/*
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
@@ -151,3 +155,32 @@ doctest:
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
+
+
+## GitHub Pages
+REPO_URL = git@github.com:tkf/emacs-request.git
+
+# Check if build/html is really a git repository.  Otherwise,
+# committing files in there is pretty dangerous as it might goes into
+# Jedi's master branch.
+_gh-pages-assert-repo:
+	test -d build/html/.git
+
+gh-pages-clone:
+	rm -rf build/html
+	git clone --branch gh-pages $(REPO_URL) build/html
+
+gh-pages-pull: _gh-pages-assert-repo
+	cd build/html && git pull
+
+gh-pages-update: _gh-pages-assert-repo clean html
+	@echo "Update gh-pages"
+	cd build/html/ && \
+		git add . && \
+		if [ -n "$$(git ls-files --deleted)" ]; then \
+			git ls-files --deleted | xargs git rm; \
+		fi && \
+		git commit -m "Update"
+
+gh-pages-push: _gh-pages-assert-repo
+	cd build/html && git push -u origin gh-pages
