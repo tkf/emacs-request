@@ -344,9 +344,14 @@
                  "a=1&b=2")))
 
 (ert-deftest request--urlencode-alist/hexified ()
-  (should (equal (request--urlencode-alist
-                  '(("key with space" . "*evil* !values!")))
-                 "key%20with%20space=%2Aevil%2A%20%21values%21")))
+  ;; Down-case string so that the test passes in Emacs 24.2.
+  ;; In Emacs 24.2 hexadecimal digits were lower case while it's
+  ;; upper case in 24.3.
+  ;; See: http://bzr.savannah.gnu.org/lh/emacs/trunk/revision/108173
+  (should (equal (downcase
+                  (request--urlencode-alist
+                   '(("key with space" . "*evil* !values!"))))
+                 "key%20with%20space=%2aevil%2a%20%21values%21")))
 
 (ert-deftest request--curl-preprocess/no-redirects ()
   (with-temp-buffer
