@@ -134,13 +134,24 @@
 
 ;;; HTTP specific utilities
 
+(defconst request--url-unreserved-chars
+  '(?a ?b ?c ?d ?e ?f ?g ?h ?i ?j ?k ?l ?m ?n ?o ?p ?q ?r ?s ?t ?u ?v ?w ?x ?y ?z
+    ?A ?B ?C ?D ?E ?F ?G ?H ?I ?J ?K ?L ?M ?N ?O ?P ?Q ?R ?S ?T ?U ?V ?W ?X ?Y ?Z
+    ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9
+    ?- ?_ ?. ?~)
+  "`url-unreserved-chars' copied from Emacs 24.3 release candidate.
+This is used for making `request--urlencode-alist' RFC 3986 compliant
+for older Emacs versions.")
+
 (defun request--urlencode-alist (alist)
-  (loop for sep = "" then "&"
-        for (k . v) in alist
-        concat sep
-        concat (url-hexify-string (format "%s" k))
-        concat "="
-        concat (url-hexify-string v)))
+  ;; FIXME: make monkey patching `url-unreserved-chars' optional
+  (let ((url-unreserved-chars request--url-unreserved-chars))
+    (loop for sep = "" then "&"
+          for (k . v) in alist
+          concat sep
+          concat (url-hexify-string (format "%s" k))
+          concat "="
+          concat (url-hexify-string v))))
 
 
 ;;; Header parser
