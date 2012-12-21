@@ -102,6 +102,9 @@
         do (setq url (concat url "/" p))
         finally return url))
 
+(defun request-testing-async (url &rest args)
+  (apply #'request (request-testing--url url) args))
+
 (defun request-testing-sync (url &rest args)
   (lexical-let (err timeout)
     (let ((result

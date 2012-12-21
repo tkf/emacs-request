@@ -417,9 +417,9 @@ and requests.request_ (Python).
   (setf (request-response-settings response) settings)
   (setf (request-response-url      response) url)
   (setf (request-response--backend response) request-backend)
-  (apply
-   (request--choose-backend 'request)
-   url settings))
+  ;; Call `request--url-retrieve' or `request--curl'.
+  (apply (request--choose-backend 'request) url settings)
+  response)
 
 (defun request--parse-data (parser error-thrown backend)
   "Run PARSER in current buffer if ERROR-THROWN is nil,
@@ -524,6 +524,15 @@ then kill the current buffer."
     ;;        callback is never called.
     (request--safe-delete-files (request-response--tempfiles response))))
 
+
+(defun request-abort (response)
+  "Abort request for RESPONSE (the object returned by `request')."
+  (symbol-macrolet ((buffer (request-response--buffer response))
+                    (symbol-status (request-response-symbol-status response)))
+    (when (and (buffer-live-p buffer) (not symbol-status))
+      (setq symbol-status 'abort)
+      (kill-buffer buffer))))
+
 
 ;;; Backend: `url-retrieve'
 
@@ -553,8 +562,7 @@ then kill the current buffer."
               (run-at-time timeout nil
                            #'request-response--timeout-callback
                            response))))
-    (set-process-query-on-exit-flag proc nil)
-    response))
+    (set-process-query-on-exit-flag proc nil)))
 
 (defun request--url-retrieve-get-cookies (host localpart secure)
   (mapcar
@@ -698,8 +706,7 @@ removed from the buffer before it is shown to the parser function.
     (set-process-sentinel proc #'request--curl-callback)
     (when data
       (process-send-string proc data)
-      (process-send-eof proc))
-    buffer))
+      (process-send-eof proc))))
 
 (defun request--curl-read-and-delete-tail-info ()
   "Read a sexp at the end of buffer and remove it and preceding character.

@@ -297,6 +297,19 @@ See also:
     (should (equal (assoc-default 'method data) "DELETE"))))
 
 
+;;; Abort
+
+(request-deftest request-abort-simple ()
+  (request-testing-with-response-slots
+      (request-testing-async "report/some-path" :parser 'json-read)
+    (should-not symbol-status)
+    (should (buffer-live-p -buffer))
+    (request-abort response)
+    (should (equal symbol-status 'abort))
+    (should (bufferp -buffer))
+    (should-not (buffer-live-p -buffer))))
+
+
 ;;; Cookie
 
 (request-deftest request-simple-cookie ()
