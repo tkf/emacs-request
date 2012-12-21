@@ -310,6 +310,16 @@ See also:
     (should-not (buffer-live-p -buffer))))
 
 
+;;; Parse error
+
+(request-deftest request-parse-error-simple ()
+  (request-testing-with-response-slots
+      (request-testing-sync "report/some-path"
+                            :parser (lambda () (error "Bad parser!")))
+    (should (equal symbol-status 'parse-error))
+    (should (equal error-thrown '(error . ("Bad parser!"))))))
+
+
 ;;; Cookie
 
 (request-deftest request-simple-cookie ()

@@ -475,9 +475,13 @@ then kill the current buffer."
   (let* ((response-status url-http-response-status)
          (status-code-callback (cdr (assq response-status status-code)))
          (error-thrown (plist-get status :error))
-         (data (request--parse-data
-                parser error-thrown
-                (request-response--backend response))))
+         (data (condition-case err
+                   (request--parse-data parser error-thrown
+                                        (request-response--backend response))
+                 (error
+                  (setf (request-response-symbol-status response)
+                        'parse-error)
+                  (setq error-thrown err)))))
     (request-log 'debug "data = %s" data)
 
     (symbol-macrolet
