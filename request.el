@@ -201,7 +201,7 @@ re-raised (`signal'ed) by ``(signal ERROR-SYMBOL DATA)``.")
 
 (request--document-response request-response-symbol-status
   "A symbol representing the status of request (not HTTP response code).
-One of success/error/timeout.")  ; FIXME: add abort/parse-error
+One of success/error/timeout/abort/parse-error.")
 
 (request--document-response request-response-url
   "Final URL location of response.")
@@ -315,7 +315,7 @@ arguments (i.e., it's better to use `&allow-other-keys').::
     (CALLBACK                      ; SUCCESS/ERROR/COMPLETE/STATUS-CODE
      :data          data           ; whatever PARSER function returns, or nil
      :error-thrown  error-thrown   ; (ERROR-SYMBOL . DATA), or nil
-     :symbol-status symbol-status  ; success/error/timeout (symbol)
+     :symbol-status symbol-status  ; success/error/timeout/abort/parse-error
      :response      response       ; request-response object
      ...)
 
