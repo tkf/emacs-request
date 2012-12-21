@@ -106,19 +106,19 @@ arguments (i.e., it&#8217;s better to use <tt class="xref el el-symbol docutils 
 <div class="highlight-cl"><div class="highlight"><pre><span class="p">(</span><span class="nv">CALLBACK</span>                      <span class="c1">; SUCCESS/ERROR/COMPLETE/STATUS-CODE</span>
  <span class="ss">:data</span>          <span class="nv">data</span>           <span class="c1">; whatever PARSER function returns, or nil</span>
  <span class="ss">:error-thrown</span>  <span class="nv">error-thrown</span>   <span class="c1">; (ERROR-SYMBOL . DATA), or nil</span>
- <span class="ss">:symbol-status</span> <span class="nv">symbol-status</span>  <span class="c1">; success/error/timeout (symbol)</span>
+ <span class="ss">:symbol-status</span> <span class="nv">symbol-status</span>  <span class="c1">; success/error/timeout/abort/parse-error</span>
  <span class="ss">:response</span>      <span class="nv">response</span>       <span class="c1">; request-response object</span>
  <span class="o">...</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Arguments data, error-thrown, symbol-status can be accessed by
 <a class="reference internal" href="#request-response-data" title="request-response-data"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-data</span></tt></a>, <a class="reference internal" href="#request-response-error-thrown" title="request-response-error-thrown"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-error-thrown</span></tt></a>,
-<a class="reference internal" href="#request-response-symbol-status" title="request-response-symbol-status"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-symbol-status</span></tt></a> assessors, i.e.:</p>
+<a class="reference internal" href="#request-response-symbol-status" title="request-response-symbol-status"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-symbol-status</span></tt></a> accessors, i.e.:</p>
 <div class="highlight-cl"><div class="highlight"><pre><span class="p">(</span><span class="nv">request-response-data</span> <span class="nv">RESPONSE</span><span class="p">)</span>  <span class="c1">; same as data</span>
 </pre></div>
 </div>
 <p>Response object holds other information which can be accessed by
-the following assessors:
+the following accessors:
 <a class="reference internal" href="#request-response-status-code" title="request-response-status-code"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-status-code</span></tt></a>,
 <a class="reference internal" href="#request-response-redirects" title="request-response-redirects"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-redirects</span></tt></a>,
 <a class="reference internal" href="#request-response-url" title="request-response-url"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-url</span></tt></a> and
@@ -146,8 +146,8 @@ the following assessors:
 <div class="highlight-cl"><div class="highlight"><pre><span class="p">(</span><span class="nv">FILENAME</span> <span class="k">&amp;key</span> <span class="nv">PATH</span> <span class="nv">BUFFER</span> <span class="nv">STRING</span> <span class="nv">MIME-TYPE</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>FILE-N can also be a string (path to the file) or a buffer object
-where FILENAME is inferred.</p>
+<p>FILE-N can also be a string (path to the file) or a buffer object.
+In that case, FILENAME is set to the file name or buffer name.</p>
 <p>Example FILES argument:</p>
 <div class="highlight-cl"><div class="highlight"><pre><span class="o">`</span><span class="p">((</span><span class="s">&quot;passwd&quot;</span>   <span class="o">.</span> <span class="s">&quot;/etc/passwd&quot;</span><span class="p">)</span>                <span class="c1">; filename = passwd</span>
   <span class="p">(</span><span class="s">&quot;scratch&quot;</span>  <span class="o">.</span> <span class="o">,</span><span class="p">(</span><span class="nv">get-buffer</span> <span class="s">&quot;*scratch*&quot;</span><span class="p">))</span>    <span class="c1">; filename = *scratch*</span>
@@ -177,7 +177,7 @@ without header, pass:</p>
 </pre></div>
 </div>
 <p>This is analogous to the <tt class="xref el el-symbol docutils literal"><span class="pre">dataType</span></tt> argument of <a class="reference external" href="http://api.jquery.com/jQuery.ajax/">jQuery.ajax</a>.
-Only this function can accuses to the process buffer, which
+Only this function can access to the process buffer, which
 is killed immediately after the execution of this function.</p>
 <ul class="simple">
 <li>Note</li>
@@ -198,7 +198,7 @@ and <a class="reference external" href="http://docs.python-requests.org">request
 <dt id="request-response-redirects">
 <em class="property">function </em><big>(</big><tt class="descname">request-response-redirects </tt><em>cl-x</em><big>)</big><a class="headerlink" href="#request-response-redirects" title="Permalink to this definition">¶</a></dt>
 <dd><p>Redirection history (a list of URLs).
-The first element will be the oldest redirection.</p>
+The first element is the oldest redirection.</p>
 </dd></dl>
 
 <dl class="function">
@@ -218,8 +218,8 @@ re-raised (<tt class="xref el el-symbol docutils literal"><span class="pre">sign
 <dl class="function">
 <dt id="request-response-symbol-status">
 <em class="property">function </em><big>(</big><tt class="descname">request-response-symbol-status </tt><em>cl-x</em><big>)</big><a class="headerlink" href="#request-response-symbol-status" title="Permalink to this definition">¶</a></dt>
-<dd><p>A symbol representing the status of <em>request</em> (not response).
-One of success/error/timeout.</p>
+<dd><p>A symbol representing the status of request (not HTTP response code).
+One of success/error/timeout/abort/parse-error.</p>
 </dd></dl>
 
 <dl class="function">
