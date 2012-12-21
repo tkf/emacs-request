@@ -321,12 +321,12 @@ arguments (i.e., it's better to use `&allow-other-keys').::
 
 Arguments data, error-thrown, symbol-status can be accessed by
 `request-response-data', `request-response-error-thrown',
-`request-response-symbol-status' assessors, i.e.::
+`request-response-symbol-status' accessors, i.e.::
 
     (request-response-data RESPONSE)  ; same as data
 
 Response object holds other information which can be accessed by
-the following assessors:
+the following accessors:
 `request-response-status-code',
 `request-response-redirects',
 `request-response-url' and
@@ -387,7 +387,7 @@ without header, pass::
     (lambda () (buffer-substring (point) (point-max)))
 
 This is analogous to the `dataType' argument of jQuery.ajax_.
-Only this function can accuses to the process buffer, which
+Only this function can access to the process buffer, which
 is killed immediately after the execution of this function.
 
 * Note
