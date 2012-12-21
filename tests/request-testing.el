@@ -72,13 +72,11 @@
   "Get running test server and return its root URL."
   (interactive)
   (unless request-testing-server--port
-    (let* ((process
-            (start-process "request-testing" " *request-testing*"
-                           "python"
-                           (expand-file-name
-                            "testserver.py"
-                            request-testing-source-dir)))
-           (buffer (process-buffer process)))
+    (let ((process (start-process "request-testing" " *request-testing*"
+                                  "python"
+                                  (expand-file-name
+                                   "testserver.py"
+                                   request-testing-source-dir))))
       (setq request-testing-server--process process)
       (setq request-testing-server--port
             (string-to-number
