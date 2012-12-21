@@ -2,7 +2,7 @@ CARTON ?= carton
 EMACS ?= emacs
 TEST_1 = make EMACS=${EMACS} CARTON=${CARTON} test-1
 
-.PHONY : test test-1 clean-elpa clean print-deps travis-ci
+.PHONY : test test-1 compile clean-elpa clean print-deps travis-ci
 
 test: elpa
 	EL_REQUEST_BACKEND=url-retrieve ${TEST_1}
@@ -15,6 +15,10 @@ test-1:
 
 elpa:
 	${CARTON} install
+
+compile: clean
+	EMACS=${EMACS} ${CARTON} exec ${EMACS} -Q -batch -L . -L tests \
+		-f batch-byte-compile *.el */*.el
 
 clean:
 	rm -f *.elc */*.elc
