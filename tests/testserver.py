@@ -38,6 +38,17 @@ def page_redirect(path):
     return redirect(path)
 
 
+@app.route('/broken_redirect/<path:path>', methods=all_methods)
+def page_broken_redirect(path):
+    """
+    A pathological redirection.  Location does not contain the scheme part.
+    """
+    response = redirect(path)
+    response.headers['Location'] = '/' + path  # URL w/o scheme part
+    response.autocorrect_location_header = False
+    return response
+
+
 @app.route('/code/<int:code>')
 def page_code(code):
     try:
