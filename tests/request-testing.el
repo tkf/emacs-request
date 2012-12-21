@@ -55,6 +55,19 @@
 (defvar request-testing-server--process nil)
 (defvar request-testing-server--port nil)
 
+(defun request-testing--wait-process-until (process output-regexp)
+  "Wait until PROCESS outputs text which matches to OUTPUT-REGEXP."
+  (loop with buffer = (process-buffer process)
+        repeat 30
+        do (accept-process-output process 0.1 nil t)
+        for str = (with-current-buffer buffer (buffer-string))
+        do (cond
+            ((string-match output-regexp str)
+             (return str))
+            ((not (eq 'run (process-status process)))
+             (error "Server startup error.")))
+        finally do (error "Server timeout error.")))
+
 (defun request-testing-server ()
   "Get running test server and return its root URL."
   (interactive)
@@ -67,17 +80,10 @@
                             request-testing-source-dir)))
            (buffer (process-buffer process)))
       (setq request-testing-server--process process)
-      (loop repeat 30
-            do (accept-process-output process 0 100 t)
-            for port-str = (with-current-buffer buffer (buffer-string))
-            do (cond
-                ((string-match "^[0-9]+$" port-str)
-                 (setq request-testing-server--port
-                       (string-to-number port-str))
-                 (return))
-                ((not (eq 'run (process-status process)))
-                 (error "Server startup error.")))
-            finally do (error "Server timeout error."))))
+      (setq request-testing-server--port
+            (string-to-number
+             (request-testing--wait-process-until process "^[0-9]+$")))
+      (request-testing--wait-process-until process "Running on")))
   (request-testing--url))
 
 (defun request-testing-stop-server ()
