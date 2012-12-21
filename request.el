@@ -189,7 +189,7 @@ for older Emacs versions.")
 
 (request--document-response request-response-redirects
   "Redirection history (a list of URLs).
-The first element will be the oldest redirection.")
+The first element is the oldest redirection.")
 
 (request--document-response request-response-data
   "Response parsed by the given parser.")
@@ -200,7 +200,7 @@ It takes the form of ``(ERROR-SYMBOL . DATA)``, which can be
 re-raised (`signal'ed) by ``(signal ERROR-SYMBOL DATA)``.")
 
 (request--document-response request-response-symbol-status
-  "A symbol representing the status of *request* (not response).
+  "A symbol representing the status of request (not HTTP response code).
 One of success/error/timeout.")  ; FIXME: add abort/parse-error
 
 (request--document-response request-response-url
@@ -355,8 +355,8 @@ where FILE-N is a list of the form::
 
     (FILENAME &key PATH BUFFER STRING MIME-TYPE)
 
-FILE-N can also be a string (path to the file) or a buffer object
-where FILENAME is inferred.
+FILE-N can also be a string (path to the file) or a buffer object.
+In that case, FILENAME is set to the file name or buffer name.
 
 Example FILES argument::
 
