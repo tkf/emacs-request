@@ -33,7 +33,7 @@ elpa:
 clean-elpa:
 	rm -rf elpa
 
-compile: clean-elc
+compile: clean-elc elpa
 	${EL4T_CARTON_EMACS} -Q -batch -L . -L tests \
 		-f batch-byte-compile *.el */*.el
 
