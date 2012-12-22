@@ -28,7 +28,8 @@ test-1:
 		-f ert-run-tests-batch-and-exit
 
 elpa:
-	${EL4T_CARTON} install
+	mkdir elpa
+	${EL4T_CARTON} install 2> elpa/install.log
 
 clean-elpa:
 	rm -rf elpa
