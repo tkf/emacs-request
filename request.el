@@ -807,12 +807,19 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
 (defun request--curl-callback (proc event)
   (let* ((buffer (process-buffer proc))
          (response (process-get proc :request-response))
+         (symbol-status (request-response-symbol-status response))
          (settings (request-response-settings response))
          ;; `request--callback' needs the following variables to be
          ;; defined.  I should refactor `request--callback' at some
          ;; point.
          url-http-method url-http-response-status)
+    (request-log 'debug "REQUEST--CURL-CALLBACK event = %s" event)
+    (request-log 'debug "REQUEST--CURL-CALLBACK proc = %S" proc)
+    (request-log 'debug "REQUEST--CURL-CALLBACK buffer = %S" buffer)
+    (request-log 'debug "REQUEST--CURL-CALLBACK symbol-status = %S"
+                 symbol-status)
     (cond
+     ((eq symbol-status 'abort))        ; ignore when aborted
      ((string-match "exited abnormally" event)
       (with-current-buffer buffer
         (apply #'request--callback (list :error (cons 'error event))
