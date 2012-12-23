@@ -14,13 +14,6 @@ test: elpa
 	EL_REQUEST_BACKEND=url-retrieve ${TEST_1}
 	EL_REQUEST_BACKEND=curl ${TEST_1}
 
-# Run test against Emacs listed in ${EL4T_EMACS_LIST}.
-# E.g.: make EL4T_EMACS_LIST="emacs emacs-snapshot emacs23" test-all
-test-all:
-	for e in ${EL4T_EMACS_LIST}; do \
-		make EMACS=$$e clean test; \
-	done
-
 # Run test without checking elpa directory.
 test-1:
 	${EL4T_CARTON_EMACS} -Q -batch \
@@ -50,3 +43,21 @@ print-deps: elpa
 	@echo "------------------------------------------------------------"
 
 travis-ci: print-deps test
+
+
+
+# Run test against Emacs listed in ${EL4T_EMACS_LIST}.
+# This is for running tests for multiple Emacs versions.
+# This is not used in Travis CI.  Usage::
+#
+#     make EL4T_EMACS_LIST="emacs emacs-snapshot emacs23" test-all
+#
+# See: http://stackoverflow.com/a/12110773/727827
+
+JOBS := $(addprefix job-,${EL4T_EMACS_LIST})
+.PHONY: ${JOBS}
+
+${JOBS}: job-%:
+	make EMACS=$* clean test
+
+test-all: ${JOBS}
