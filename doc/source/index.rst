@@ -29,6 +29,18 @@ Cookie
 .. el:function:: request-cookie-string
 
 
+Deferred
+--------
+
+deferred.el_ is a concise way to write callback chain.
+You can use :el:symbol:`require-deferred` to do requests
+with deferred.el_.
+
+.. _deferred.el: https://github.com/kiwanami/emacs-deferred
+
+.. el:function:: request-deferred
+
+
 Configuration
 =============
 

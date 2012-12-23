@@ -3,3 +3,6 @@
   (add-to-list 'load-path project-path))
 
 (require 'request)
+
+(provide 'deferred)     ; Pretend like deferred.el is already imported
+(require 'request-deferred)

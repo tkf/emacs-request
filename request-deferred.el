@@ -30,6 +30,26 @@
 (require 'deferred)
 
 (defun request-deferred (url &rest args)
+  "Send a request and return deferred object associated with it.
+
+Following deferred callback takes a response object regardless of
+the response result.  To make sure no error occurs during the
+request, check `request-response-error-thrown'.
+
+Arguments are the same as `request', but COMPLETE callback cannot
+be used as it is used for starting deferred callback chain.
+
+Example::
+
+  (require 'request-deferred)
+
+  (deferred:$
+    (request-deferred \"http://httpbin.org/get\" :parser 'json-read)
+    (deferred:nextc it
+      (lambda (response)
+        (message \"Got: %S\" (request-response-data response)))))
+"
+
   (let* ((d (deferred:new #'identity))
          (callback-post (apply-partially
                          (lambda (d &rest args)
