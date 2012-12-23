@@ -218,7 +218,16 @@ One of success/error/timeout/abort/parse-error.")
   "Return t when the request is finished or aborted.")
 
 (request--document-response request-response-cookies
-  "Cookies (alist).  Can be used only in curl backend now.")
+  "Cookies (alist).  Can be used only in curl backend now.
+This slot holds the cookie set by this particular request, not
+all cookies for the host.  If you want all cookies for a
+particular host, use `request-cookie-string' which can be used
+for all backends.
+
+.. Is this function useful?  If you happen to find the use case
+   of this function, please file an issue here:
+   https://github.com/tkf/emacs-request/issues
+   Otherwise, I think it goes away by version 1.0.")
 ;; FIXME: can this be implemented in `url-retrieve' backend?
 
 (request--document-response request-response-settings
