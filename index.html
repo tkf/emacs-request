@@ -186,6 +186,15 @@ is killed immediately after the execution of this function.</p>
 and <a class="reference external" href="http://docs.python-requests.org">requests.request</a> (Python).</p>
 </dd></dl>
 
+<dl class="function">
+<dt id="request-abort">
+<em class="property">function </em><big>(</big><tt class="descname">request-abort </tt><em>response</em><big>)</big><a class="headerlink" href="#request-abort" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abort request for RESPONSE (the object returned by <a class="reference internal" href="#request" title="request"><tt class="xref el el-symbol docutils literal"><span class="pre">request</span></tt></a>).
+Note that this function invoke ERROR and COMPLETE callbacks.
+Callbacks may not be called immediately but called later when
+associated process is exited.</p>
+</dd></dl>
+
 <div class="section" id="response-object">
 <h3>Response object<a class="headerlink" href="#response-object" title="Permalink to this headline">¶</a></h3>
 <dl class="function">
@@ -229,9 +238,18 @@ One of success/error/timeout/abort/parse-error.</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="request-response-done-p">
+<em class="property">function </em><big>(</big><tt class="descname">request-response-done-p </tt><em>cl-x</em><big>)</big><a class="headerlink" href="#request-response-done-p" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return t when the request is finished or aborted.</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="request-response-settings">
 <em class="property">function </em><big>(</big><tt class="descname">request-response-settings </tt><em>cl-x</em><big>)</big><a class="headerlink" href="#request-response-settings" title="Permalink to this definition">¶</a></dt>
-<dd><p>Keyword arguments passed to <a class="reference internal" href="#request" title="request"><tt class="xref el el-symbol docutils literal"><span class="pre">request</span></tt></a> function.</p>
+<dd><p>Keyword arguments passed to <a class="reference internal" href="#request" title="request"><tt class="xref el el-symbol docutils literal"><span class="pre">request</span></tt></a> function.
+Some arguments such as HEADERS is changed to the one actually
+passed to the backend.  Also, it has additional keywords such
+as URL which is the requested URL.</p>
 </dd></dl>
 
 </div>
@@ -243,6 +261,43 @@ One of success/error/timeout/abort/parse-error.</p>
 <dd><p>Return cookie string (like <tt class="xref el el-symbol docutils literal"><span class="pre">document.cookie</span></tt>).</p>
 <p>Example:</p>
 <div class="highlight-cl"><div class="highlight"><pre><span class="p">(</span><span class="nv">request-cookie-string</span> <span class="s">&quot;127.0.0.1&quot;</span> <span class="s">&quot;/&quot;</span><span class="p">)</span>  <span class="c1">; =&gt; &quot;key=value; key2=value2&quot;</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="request-cookie-alist">
+<em class="property">function </em><big>(</big><tt class="descname">request-cookie-alist </tt><em>host</em> <em>&amp;optional</em> <em>localpart</em> <em>secure</em><big>)</big><a class="headerlink" href="#request-cookie-alist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return cookies as an alist.</p>
+<p>Example:</p>
+<div class="highlight-cl"><div class="highlight"><pre><span class="p">(</span><span class="nv">request-cookie-alist</span> <span class="s">&quot;127.0.0.1&quot;</span> <span class="s">&quot;/&quot;</span><span class="p">)</span>  <span class="c1">; =&gt; ((&quot;key&quot; . &quot;value&quot;) ...)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="deferred">
+<h3>Deferred<a class="headerlink" href="#deferred" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference external" href="https://github.com/kiwanami/emacs-deferred">deferred.el</a> is a concise way to write callback chain.
+You can use <tt class="xref el el-symbol docutils literal"><span class="pre">require-deferred</span></tt> to do requests
+with <a class="reference external" href="https://github.com/kiwanami/emacs-deferred">deferred.el</a>.</p>
+<dl class="function">
+<dt id="request-deferred">
+<em class="property">function </em><big>(</big><tt class="descname">request-deferred </tt><em>url</em> <em>&amp;rest</em> <em>args</em><big>)</big><a class="headerlink" href="#request-deferred" title="Permalink to this definition">¶</a></dt>
+<dd><p>Send a request and return deferred object associated with it.</p>
+<p>Following deferred callback takes a response object regardless of
+the response result.  To make sure no error occurs during the
+request, check <a class="reference internal" href="#request-response-error-thrown" title="request-response-error-thrown"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-error-thrown</span></tt></a>.</p>
+<p>Arguments are the same as <a class="reference internal" href="#request" title="request"><tt class="xref el el-symbol docutils literal"><span class="pre">request</span></tt></a>, but COMPLETE callback cannot
+be used as it is used for starting deferred callback chain.</p>
+<p>Example:</p>
+<div class="highlight-cl"><div class="highlight"><pre><span class="p">(</span><span class="nb">require</span> <span class="ss">&#39;request-deferred</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nv">deferred:$</span>
+  <span class="p">(</span><span class="nv">request-deferred</span> <span class="s">&quot;http://httpbin.org/get&quot;</span> <span class="ss">:parser</span> <span class="ss">&#39;json-read</span><span class="p">)</span>
+  <span class="p">(</span><span class="nv">deferred:nextc</span> <span class="nv">it</span>
+    <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="nv">response</span><span class="p">)</span>
+      <span class="p">(</span><span class="nv">message</span> <span class="s">&quot;Got: %S&quot;</span> <span class="p">(</span><span class="nv">request-response-data</span> <span class="nv">response</span><span class="p">)))))</span>
 </pre></div>
 </div>
 </dd></dl>
