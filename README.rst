@@ -58,3 +58,35 @@ POST::
    :success (function*
              (lambda (&key data &allow-other-keys)
                (message "I sent: %S" (assoc-default 'form data)))))
+
+
+Compatibility / backends
+========================
+
+Supported Emacs versions:
+
+====================== ========================== =================
+ Emacs version          Does request.el work?      Continues build
+====================== ========================== =================
+ GNU Emacs 24.3-devel   yes (as of this writing)   yes
+ GNU Emacs 24.2         yes                        yes
+ GNU Emacs 23.1         yes                        yes
+ GNU Emacs < 23         ?                          no
+====================== ========================== =================
+
+
+Supported backends:
+
+========== ============================================
+ Backends   Remarks
+========== ============================================
+ url.el     Included in Emacs.
+ curl       Reliable.  Needed for multipart form POST.
+========== ============================================
+
+
+License
+=======
+
+Request.el is free software under GPL v3.
+See COPYING file for details.
