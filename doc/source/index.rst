@@ -27,6 +27,7 @@ Cookie
 ------
 
 .. el:function:: request-cookie-string
+.. el:function:: request-cookie-alist
 
 
 Deferred

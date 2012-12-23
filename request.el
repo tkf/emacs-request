@@ -253,12 +253,18 @@ Example::
 
  (request-cookie-string \"127.0.0.1\" \"/\")  ; => \"key=value; key2=value2\"
 "
-  (let ((cookies (funcall (request--choose-backend 'get-cookies)
-                          host localpart secure)))
-    (mapconcat
-     (lambda (nv) (concat (car nv) "=" (cdr nv)))
-     cookies
-     "; ")))
+  (mapconcat (lambda (nv) (concat (car nv) "=" (cdr nv)))
+             (request-cookie-alist host localpart secure)
+             "; "))
+
+(defun request-cookie-alist (host &optional localpart secure)
+  "Return cookies as an alist.
+
+Example::
+
+ (request-cookie-alist \"127.0.0.1\" \"/\")  ; => ((\"key\" . \"value\") ...)
+"
+  (funcall (request--choose-backend 'get-cookies) host localpart secure))
 
 
 ;;; Main
