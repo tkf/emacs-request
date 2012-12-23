@@ -403,7 +403,7 @@ Server: Werkzeug/0.8.1 Python/2.7.2+\r
 Date: Sat, 15 Dec 2012 23:04:26 GMT\r
 \r
 RESPONSE-BODY")
-    (insert "\n(:num-redirects 0)")
+    (insert "\n(:num-redirects 0 :url-effective \"DUMMY-URL\")")
     (let ((info (request--curl-preprocess)))
       (should (equal (buffer-string)
                      "\
@@ -416,6 +416,7 @@ Date: Sat, 15 Dec 2012 23:04:26 GMT
 RESPONSE-BODY"))
       (should (equal info
                      (list :num-redirects 0
+                           :url-effective "DUMMY-URL"
                            :redirects nil
                            :cookies nil
                            :version "1.0" :code 200))))))
@@ -445,7 +446,7 @@ Server: Werkzeug/0.8.1 Python/2.7.2+\r
 Date: Sat, 15 Dec 2012 23:04:26 GMT\r
 \r
 RESPONSE-BODY")
-    (insert "\n(:num-redirects 2)")
+    (insert "\n(:num-redirects 2 :url-effective \"DUMMY-URL\")")
     (let ((info (request--curl-preprocess)))
       (should (equal (buffer-string)
                      "\
@@ -458,6 +459,7 @@ Date: Sat, 15 Dec 2012 23:04:26 GMT
 RESPONSE-BODY"))
       (should (equal info
                      (list :num-redirects 2
+                           :url-effective "DUMMY-URL"
                            :redirects '("http://example.com/a/b"
                                         "http://example.com/redirect/a/b")
                            :cookies nil
@@ -477,7 +479,7 @@ Content-Length: 492\r
 Connection: keep-alive\r
 \r
 RESPONSE-BODY")
-    (insert "\n(:num-redirects 0)")
+    (insert "\n(:num-redirects 0 :url-effective \"DUMMY-URL\")")
     (let ((info (request--curl-preprocess)))
       (should (equal (buffer-string)
                      "\
@@ -491,6 +493,7 @@ Connection: keep-alive
 RESPONSE-BODY"))
       (should (equal info
                      (list :num-redirects 0
+                           :url-effective "DUMMY-URL"
                            :redirects nil
                            :cookies nil
                            :version "1.1" :code 200))))))
@@ -507,7 +510,7 @@ Server: TornadoServer/2.2\r
 Set-Cookie: username=Nzk2ZmU; expires=Tue, 15 Jan 2013 22:50:19 GMT; Path=/\r
 \r
 ")
-    (insert "\n(:num-redirects 0)")
+    (insert "\n(:num-redirects 0 :url-effective \"DUMMY-URL\")")
     (let ((info (request--curl-preprocess)))
       (should (equal (buffer-string)
                      "\
@@ -521,6 +524,7 @@ Set-Cookie: username=Nzk2ZmU; expires=Tue, 15 Jan 2013 22:50:19 GMT; Path=/
 "))
       (should (equal info
                      (list :num-redirects 0
+                           :url-effective "DUMMY-URL"
                            :redirects nil
                            :cookies '(("username" . "Nzk2ZmU"))
                            :version "1.1" :code 302))))))

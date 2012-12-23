@@ -421,107 +421,80 @@ and requests.request_ (Python).
   (apply (request--choose-backend 'request) url settings)
   response)
 
-(defun request--parse-data (parser error-thrown backend)
+(defun request--parse-data (buffer parser error-thrown backend)
   "Run PARSER in current buffer if ERROR-THROWN is nil,
 then kill the current buffer."
-  (let ((buffer (current-buffer)) ; NOTE: `parser' could change buffer...
-        noerror)
+  (let (noerror)
     (unwind-protect
         (prog1
-            (when (and parser (not error-thrown))
-              (goto-char (point-min))
-              ;; Should be no \r.
-              ;; See `url-http-clean-headers' and `request--curl-preprocess'.
-              (if (eq backend 'url-retrieve)
-                  ;; FIXME: make this workaround optional.
-                  ;; But it looks like sometimes `url-http-clean-headers'
-                  ;; fails to cleanup.  So, let's be bit permissive here...
-                  (re-search-forward "^\r?$")
-                (re-search-forward "^$"))
-              ;; `forward-char' will fail when there is no body.
-              (ignore-errors (forward-char))
-              (funcall parser))
+            (when (and (buffer-live-p buffer) parser (not error-thrown))
+              (with-current-buffer buffer
+                (goto-char (point-min))
+                ;; Should be no \r.
+                ;; See `url-http-clean-headers' and `request--curl-preprocess'.
+                (if (eq backend 'url-retrieve)
+                    ;; FIXME: make this workaround optional.
+                    ;; But it looks like sometimes `url-http-clean-headers'
+                    ;; fails to cleanup.  So, let's be bit permissive here...
+                    (re-search-forward "^\r?$")
+                  (re-search-forward "^$"))
+                ;; `forward-char' will fail when there is no body.
+                (ignore-errors (forward-char))
+                (funcall parser)))
           (setq noerror t))
       (unless noerror
         (request-log 'error "REQUEST--PARSE-DATA: error from parser %S"
                      parser))
       (kill-buffer buffer))))
 
-;; FIXME: Define `request--url-retrieve-callback' and move
-;;        `url-retrieve' -specific stuff to there.  Currently,
-;;        `request--callback' is defined for `url-retrieve' and
-;;        `request--curl-callback' need to be complex than it really
-;;        is.
-(defun* request--callback (status &key
-                                  (headers nil)
-                                  (parser nil)
-                                  (success nil)
-                                  (error nil)
-                                  (complete nil)
-                                  (timeout nil)
-                                  (status-code nil)
-                                  response
+(defun* request--callback (buffer &key parser success error complete
+                                  timeout status-code response
                                   &allow-other-keys)
-  (declare (special url-http-method
-                    url-http-response-status))
-
   (request-log 'debug "REQUEST--CALLBACK")
-  (request-log 'debug "status = %S" status)
-  (request-log 'debug "url-http-method = %s" url-http-method)
-  (request-log 'debug "url-http-response-status = %s" url-http-response-status)
-  (request-log 'debug "(buffer-string) =\n%s" (buffer-string))
+  (request-log 'debug "(buffer-string) =\n%s"
+               (with-current-buffer buffer (buffer-string)))
 
   (request-response--cancel-timer response)
-  (let* ((response-status url-http-response-status)
-         (status-code-callback (cdr (assq response-status status-code)))
-         (error-thrown (plist-get status :error))
-         (data (condition-case err
-                   (request--parse-data parser error-thrown
+  (symbol-macrolet
+      ((error-thrown (request-response-error-thrown response))
+       (symbol-status (request-response-symbol-status response))
+       (data (request-response-data response)))
+
+    ;; Parse response body
+    (setq data (condition-case err
+                   (request--parse-data buffer parser error-thrown
                                         (request-response--backend response))
                  (error
-                  (setf (request-response-symbol-status response)
-                        'parse-error)
-                  (setq error-thrown err)))))
+                  (setq symbol-status 'parse-error)
+                  (setq error-thrown err))))
     (request-log 'debug "data = %s" data)
 
-    (symbol-macrolet
-        ((symbol-status (request-response-symbol-status response)))
+    ;; Determine `symbol-status'
+    (unless symbol-status
+      (setq symbol-status (if error-thrown 'error 'success)))
+    (request-log 'debug "symbol-status = %s" symbol-status)
 
-      (unless symbol-status
-        (setq symbol-status (if error-thrown 'error 'success)))
-      (request-log 'debug "symbol-status = %s" symbol-status)
-
-      (setf (request-response-status-code response) response-status)
-      (setf (request-response-data response) data)
-      (setf (request-response-error-thrown response) error-thrown)
-      (let ((redirect (plist-get :redirect status)))
-        (when redirect
-          (setf (request-response-url response) redirect)
-          (setf (request-response-redirects response)
-                (loop with l = nil
-                      for (k v) on redirect by 'cddr
-                      when (eq k :redirect)
-                      do (push v l)
-                      finally return l))))
-
-      (let* ((args (list :data data
-                         :symbol-status symbol-status
-                         :error-thrown error-thrown
-                         :response response))
-             (success-p (eq symbol-status 'success))
+    ;; Call callbacks
+    (let ((args (list :data data
+                      :symbol-status symbol-status
+                      :error-thrown error-thrown
+                      :response response)))
+      (let* ((success-p (eq symbol-status 'success))
              (cb (if success-p success error))
              (name (if success-p "success" "error")))
         (when cb
           (request-log 'debug "Executing %s callback." name)
-          (request--safe-apply cb args))
+          (request--safe-apply cb args)))
 
-        (when status-code-callback
+      (let ((cb (cdr (assq (request-response-status-code response)
+                           status-code))))
+        (when cb
           (request-log 'debug "Executing status-code callback.")
-          (request--safe-apply status-code-callback args))
+          (request--safe-apply cb args)))
 
-        (when complete
-          (request-log 'debug "Executing complete callback.")
-          (request--safe-apply complete args))))
+      (when complete
+        (request-log 'debug "Executing complete callback.")
+        (request--safe-apply complete args)))
 
     ;; Remove temporary files
     ;; FIXME: Make tempfile cleanup more reliable.  It is possible
@@ -553,7 +526,7 @@ then kill the current buffer."
   (let* ((url-request-extra-headers headers)
          (url-request-method type)
          (url-request-data data)
-         (buffer (url-retrieve url #'request--callback
+         (buffer (url-retrieve url #'request--url-retrieve-callback
                                (nconc (list :response response) settings)))
          (proc (get-buffer-process buffer)))
     (setf (request-response--buffer response) buffer)
@@ -567,6 +540,30 @@ then kill the current buffer."
                            #'request-response--timeout-callback
                            response))))
     (set-process-query-on-exit-flag proc nil)))
+
+(defun* request--url-retrieve-callback (status &rest settings
+                                               &key response
+                                               &allow-other-keys)
+  (declare (special url-http-method
+                    url-http-response-status))
+  (request-log 'debug "REQUEST--URL-RETRIEVE-CALLBACK")
+  (request-log 'debug "status = %S" status)
+  (request-log 'debug "url-http-method = %s" url-http-method)
+  (request-log 'debug "url-http-response-status = %s" url-http-response-status)
+
+  (setf (request-response-status-code response) url-http-response-status)
+  (let ((redirect (plist-get status :redirect)))
+    (when redirect
+      (setf (request-response-url response) redirect)
+      (setf (request-response-redirects response)
+            (loop with l = nil
+                  for (k v) on redirect by 'cddr
+                  when (eq k :redirect)
+                  do (push v l)
+                  finally return l))))
+  (setf (request-response-error-thrown response) (plist-get status :error))
+
+  (apply #'request--callback (current-buffer) settings))
 
 (defun request--url-retrieve-get-cookies (host localpart secure)
   (mapcar
@@ -586,7 +583,7 @@ Currently it is used only for testing.")
       (expand-file-name "curl-cookie-jar" request-storage-directory)))
 
 (defvar request--curl-write-out-template
-  "\\n(:num-redirects %{num_redirects})")
+  "\\n(:num-redirects %{num_redirects} :url-effective \"%{url_effective}\")")
 ;; FIXME: should % be escaped for Windows?
 
 (defun request--curl-mkdir-for-cookie-jar ()
@@ -756,7 +753,7 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
 (defun request--curl-preprocess ()
   "Pre-process current buffer before showing it to user."
   (let (redirects cookies cookies2)
-    (destructuring-bind (&key num-redirects)
+    (destructuring-bind (&key num-redirects url-effective)
         (request--curl-read-and-delete-tail-info)
       (goto-char (point-min))
       (request--consume-100-continue)
@@ -794,7 +791,8 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
         (widen))
 
       (goto-char (point-min))
-      (nconc (list :num-redirects num-redirects :redirects redirects
+      (nconc (list :num-redirects num-redirects :url-effective url-effective
+                   :redirects redirects
                    ;; FIMXE: handle multiple key-value pairs
                    ;; FIXME: verify if this way of choosing
                    ;;        cookies/cookies2 is OK
@@ -808,11 +806,7 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
   (let* ((buffer (process-buffer proc))
          (response (process-get proc :request-response))
          (symbol-status (request-response-symbol-status response))
-         (settings (request-response-settings response))
-         ;; `request--callback' needs the following variables to be
-         ;; defined.  I should refactor `request--callback' at some
-         ;; point.
-         url-http-method url-http-response-status)
+         (settings (request-response-settings response)))
     (request-log 'debug "REQUEST--CURL-CALLBACK event = %s" event)
     (request-log 'debug "REQUEST--CURL-CALLBACK proc = %S" proc)
     (request-log 'debug "REQUEST--CURL-CALLBACK buffer = %S" buffer)
@@ -821,27 +815,26 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
     (cond
      ((eq symbol-status 'abort))        ; ignore when aborted
      ((string-match "exited abnormally" event)
-      (with-current-buffer buffer
-        (apply #'request--callback (list :error (cons 'error event))
-               settings)))
+      (setf (request-response-error-thrown response) (cons 'error event))
+      (apply #'request--callback buffer settings))
      ((equal event "finished\n")
       (with-current-buffer buffer
         (destructuring-bind (&key version code num-redirects redirects error
-                                  cookies)
+                                  url-effective cookies)
             (condition-case err
                 (request--curl-preprocess)
               ((debug error)
                (list :error err)))
-          (setf (request-response-cookies response) cookies)
-          (setq url-http-response-status code)
-          (let ((status (append
-                         (loop for r in redirects
-                               collect :redirect collect r)
-                         (list :error
-                               (or error
-                                   (when (>= code 400)
-                                     `(error . (http ,code))))))))
-            (apply #'request--callback status settings))))))))
+          ;; FIXME: `redirects' contains relative paths for relative
+          ;;         redirection.
+          ;;         See test `request-get-broken-redirection'
+          (setf (request-response-cookies      response) cookies)
+          (setf (request-response-status-code  response) code)
+          (setf (request-response-url          response) url-effective)
+          (setf (request-response-redirects    response) (nreverse redirects))
+          (setf (request-response-error-thrown response)
+                (or error (when (>= code 400) `(error . (http ,code)))))
+          (apply #'request--callback buffer settings)))))))
 
 (defun request--curl-get-cookies (host localpart secure)
   (request--netscape-get-cookies (request--curl-cookie-jar)
