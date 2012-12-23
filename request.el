@@ -850,23 +850,23 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
       (setf (request-response-error-thrown response) (cons 'error event))
       (apply #'request--callback buffer settings))
      ((equal event "finished\n")
-      (with-current-buffer buffer
-        (destructuring-bind (&key version code num-redirects redirects error
-                                  url-effective cookies)
-            (condition-case err
-                (request--curl-preprocess)
-              ((debug error)
-               (list :error err)))
-          ;; FIXME: `redirects' contains relative paths for relative
-          ;;         redirection.
-          ;;         See test `request-get-broken-redirection'
-          (setf (request-response-cookies      response) cookies)
-          (setf (request-response-status-code  response) code)
-          (setf (request-response-url          response) url-effective)
-          (setf (request-response-redirects    response) (nreverse redirects))
-          (setf (request-response-error-thrown response)
-                (or error (when (>= code 400) `(error . (http ,code)))))
-          (apply #'request--callback buffer settings)))))))
+      (destructuring-bind (&key version code num-redirects redirects error
+                                url-effective cookies)
+          (condition-case err
+              (with-current-buffer buffer
+                (request--curl-preprocess))
+            ((debug error)
+             (list :error err)))
+        ;; FIXME: `redirects' contains relative paths for relative
+        ;;         redirection.
+        ;;         See test `request-get-broken-redirection'
+        (setf (request-response-cookies      response) cookies)
+        (setf (request-response-status-code  response) code)
+        (setf (request-response-url          response) url-effective)
+        (setf (request-response-redirects    response) (nreverse redirects))
+        (setf (request-response-error-thrown response)
+              (or error (when (>= code 400) `(error . (http ,code)))))
+        (apply #'request--callback buffer settings))))))
 
 (defun request--curl-get-cookies (host localpart secure)
   (request--netscape-get-cookies (request--curl-cookie-jar)
