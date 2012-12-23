@@ -221,22 +221,6 @@ One of success/error/timeout/abort/parse-error.")
 (request--document-response request-response-settings
   "Keyword arguments passed to `request' function.")
 
-(defun* request-response--timeout-callback (response)
-  (request-log 'debug "request-response--timeout-callback")
-  (setf (request-response-symbol-status response) 'timeout)
-  (let* ((buffer (request-response--buffer response))
-         (proc (and (buffer-live-p buffer) (get-buffer-process buffer))))
-    (when proc
-      ;; This will call `request--callback':
-      (delete-process proc))))
-
-(defun request-response--cancel-timer (response)
-  (request-log 'debug "REQUEST-RESPONSE--CANCEL-TIMER")
-  (symbol-macrolet ((timer (request-response--timer response)))
-    (when timer
-      (cancel-timer timer)
-      (setq timer nil))))
-
 
 ;;; Backend dispatcher
 
@@ -509,6 +493,22 @@ then kill the current buffer."
     ;; FIXME: Make tempfile cleanup more reliable.  It is possible
     ;;        callback is never called.
     (request--safe-delete-files (request-response--tempfiles response))))
+
+(defun* request-response--timeout-callback (response)
+  (request-log 'debug "request-response--timeout-callback")
+  (setf (request-response-symbol-status response) 'timeout)
+  (let* ((buffer (request-response--buffer response))
+         (proc (and (buffer-live-p buffer) (get-buffer-process buffer))))
+    (when proc
+      ;; This will call `request--callback':
+      (delete-process proc))))
+
+(defun request-response--cancel-timer (response)
+  (request-log 'debug "REQUEST-RESPONSE--CANCEL-TIMER")
+  (symbol-macrolet ((timer (request-response--timer response)))
+    (when timer
+      (cancel-timer timer)
+      (setq timer nil))))
 
 
 (defun request-abort (response)
