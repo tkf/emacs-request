@@ -179,7 +179,7 @@ for older Emacs versions.")
 (defstruct request-response
   "A structure holding all relevant information of a request."
   status-code redirects data error-thrown symbol-status url
-  settings cookies
+  done-p settings cookies
   ;; internal variables
   -buffer -timer -backend -tempfiles)
 
@@ -213,6 +213,9 @@ One of success/error/timeout/abort/parse-error.")
 
 (request--document-response request-response-url
   "Final URL location of response.")
+
+(request--document-response request-response-done-p
+  "Return t when the request is finished or aborted.")
 
 (request--document-response request-response-cookies
   "Cookies (alist).  Can be used only in curl backend now.")
@@ -451,7 +454,8 @@ then kill the current buffer."
   (symbol-macrolet
       ((error-thrown (request-response-error-thrown response))
        (symbol-status (request-response-symbol-status response))
-       (data (request-response-data response)))
+       (data (request-response-data response))
+       (done-p (request-response-done-p response)))
 
     ;; Parse response body
     (setq data (condition-case err
@@ -489,6 +493,8 @@ then kill the current buffer."
         (request-log 'debug "Executing complete callback.")
         (request--safe-apply complete args)))
 
+    (setq done-p t)
+
     ;; Remove temporary files
     ;; FIXME: Make tempfile cleanup more reliable.  It is possible
     ;;        callback is never called.
@@ -501,7 +507,18 @@ then kill the current buffer."
          (proc (and (buffer-live-p buffer) (get-buffer-process buffer))))
     (when proc
       ;; This will call `request--callback':
-      (delete-process proc))))
+      (delete-process proc))
+
+    (symbol-macrolet ((done-p (request-response-done-p response)))
+      (unless done-p
+        ;; This code should never be executed.  However, it occurs
+        ;; sometimes with `url-retrieve' backend.
+        (request-log 'error "Callback is not called when stopping process! \
+Explicitly calling from timer.")
+        (apply #'request--callback
+               (with-temp-buffer (current-buffer)) ; #<killed buffer>
+               (request-response-settings response))
+        (setq done-p t)))))
 
 (defun request-response--cancel-timer (response)
   (request-log 'debug "REQUEST-RESPONSE--CANCEL-TIMER")
@@ -514,9 +531,11 @@ then kill the current buffer."
 (defun request-abort (response)
   "Abort request for RESPONSE (the object returned by `request')."
   (symbol-macrolet ((buffer (request-response--buffer response))
-                    (symbol-status (request-response-symbol-status response)))
+                    (symbol-status (request-response-symbol-status response))
+                    (done-p (request-response-done-p response)))
     (when (and (buffer-live-p buffer) (not symbol-status))
       (setq symbol-status 'abort)
+      (setq done-p t)
       (kill-buffer buffer))))
 
 
