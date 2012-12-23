@@ -714,7 +714,7 @@ Number of redirects is printed out sexp-based message using
 This number is used for removing extra headers and parse
 location header from the last redirection header.
 
-Sexp at the end of buffer and extra headers for redicts are
+Sexp at the end of buffer and extra headers for redirects are
 removed from the buffer before it is shown to the parser function.
 "
   (request--curl-mkdir-for-cookie-jar)
