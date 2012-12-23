@@ -460,7 +460,8 @@ then kill the current buffer."
                                   &allow-other-keys)
   (request-log 'debug "REQUEST--CALLBACK")
   (request-log 'debug "(buffer-string) =\n%s"
-               (with-current-buffer buffer (buffer-string)))
+               (when (buffer-live-p buffer)
+                 (with-current-buffer buffer (buffer-string))))
 
   (request-response--cancel-timer response)
   (symbol-macrolet
