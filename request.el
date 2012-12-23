@@ -179,7 +179,7 @@ for older Emacs versions.")
 (defstruct request-response
   "A structure holding all relevant information of a request."
   status-code redirects data error-thrown symbol-status url
-  done-p settings cookies
+  done-p settings
   ;; internal variables
   -buffer -timer -backend -tempfiles)
 
@@ -216,19 +216,6 @@ One of success/error/timeout/abort/parse-error.")
 
 (request--document-response request-response-done-p
   "Return t when the request is finished or aborted.")
-
-(request--document-response request-response-cookies
-  "Cookies (alist).  Can be used only in curl backend now.
-This slot holds the cookie set by this particular request, not
-all cookies for the host.  If you want all cookies for a
-particular host, use `request-cookie-string' which can be used
-for all backends.
-
-.. Is this function useful?  If you happen to find the use case
-   of this function, please file an issue here:
-   https://github.com/tkf/emacs-request/issues
-   Otherwise, I think it goes away by version 1.0.")
-;; FIXME: can this be implemented in `url-retrieve' backend?
 
 (request--document-response request-response-settings
   "Keyword arguments passed to `request' function.
@@ -778,17 +765,6 @@ See also `request--curl-write-out-template'."
   "Uninterested keys in cookie.
 See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
 
-(defun request--cookie-name-value (cookies)
-  "Return first non-trivial name-value pair in COOKIES."
-  (loop named outer
-        with case-fold-search = t
-        for c in cookies
-        when
-        (loop for (k . v) in (url-parse-args c t)
-              unless (string-match request--cookie-reserved-re k)
-              return (cons k v))
-        return it))
-
 (defun request--consume-100-continue ()
   "Remove \"HTTP/* 100 Continue\" header at the point."
   (destructuring-bind (&key code &allow-other-keys)
@@ -800,7 +776,7 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
 
 (defun request--curl-preprocess ()
   "Pre-process current buffer before showing it to user."
-  (let (redirects cookies cookies2)
+  (let (redirects)
     (destructuring-bind (&key num-redirects url-effective)
         (request--curl-read-and-delete-tail-info)
       (goto-char (point-min))
@@ -828,26 +804,8 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
         (replace-match ""))
 
       (goto-char (point-min))
-      (unwind-protect
-          (progn
-            (narrow-to-region (point)
-                              (progn (re-search-forward "^$") (point)))
-            (setq cookies
-                  (nreverse (mail-fetch-field "Set-Cookie" nil nil t)))
-            (setq cookies2
-                  (nreverse (mail-fetch-field "Set-Cookie2" nil nil t))))
-        (widen))
-
-      (goto-char (point-min))
       (nconc (list :num-redirects num-redirects :url-effective url-effective
-                   :redirects redirects
-                   ;; FIMXE: handle multiple key-value pairs
-                   ;; FIXME: verify if this way of choosing
-                   ;;        cookies/cookies2 is OK
-                   :cookies
-                   (cond
-                    (cookies (list (request--cookie-name-value cookies)))
-                    (cookies2 (list (request--cookie-name-value cookies2)))))
+                   :redirects redirects)
              (request--parse-response-at-point)))))
 
 (defun request--curl-callback (proc event)
@@ -867,7 +825,7 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
       (apply #'request--callback buffer settings))
      ((equal event "finished\n")
       (destructuring-bind (&key version code num-redirects redirects error
-                                url-effective cookies)
+                                url-effective)
           (condition-case err
               (with-current-buffer buffer
                 (request--curl-preprocess))
@@ -876,7 +834,6 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
         ;; FIXME: `redirects' contains relative paths for relative
         ;;         redirection.
         ;;         See test `request-get-broken-redirection'
-        (setf (request-response-cookies      response) cookies)
         (setf (request-response-status-code  response) code)
         (setf (request-response-url          response) url-effective)
         (setf (request-response-redirects    response) (nreverse redirects))

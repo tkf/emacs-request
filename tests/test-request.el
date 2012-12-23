@@ -483,7 +483,6 @@ RESPONSE-BODY"))
                      (list :num-redirects 0
                            :url-effective "DUMMY-URL"
                            :redirects nil
-                           :cookies nil
                            :version "1.0" :code 200))))))
 
 (ert-deftest request--curl-preprocess/two-redirects ()
@@ -527,7 +526,6 @@ RESPONSE-BODY"))
                            :url-effective "DUMMY-URL"
                            :redirects '("http://example.com/a/b"
                                         "http://example.com/redirect/a/b")
-                           :cookies nil
                            :version "1.0" :code 200))))))
 
 (ert-deftest request--curl-preprocess/100 ()
@@ -560,39 +558,7 @@ RESPONSE-BODY"))
                      (list :num-redirects 0
                            :url-effective "DUMMY-URL"
                            :redirects nil
-                           :cookies nil
                            :version "1.1" :code 200))))))
-
-(ert-deftest request--curl-preprocess/cookies ()
-  (with-temp-buffer
-    (erase-buffer)
-    (insert "\
-HTTP/1.1 302 Found\r
-Content-Length: 0\r
-Content-Type: text/html; charset=UTF-8\r
-Location: /\r
-Server: TornadoServer/2.2\r
-Set-Cookie: username=Nzk2ZmU; expires=Tue, 15 Jan 2013 22:50:19 GMT; Path=/\r
-\r
-")
-    (insert "\n(:num-redirects 0 :url-effective \"DUMMY-URL\")")
-    (let ((info (request--curl-preprocess)))
-      (should (equal (buffer-string)
-                     "\
-HTTP/1.1 302 Found
-Content-Length: 0
-Content-Type: text/html; charset=UTF-8
-Location: /
-Server: TornadoServer/2.2
-Set-Cookie: username=Nzk2ZmU; expires=Tue, 15 Jan 2013 22:50:19 GMT; Path=/
-
-"))
-      (should (equal info
-                     (list :num-redirects 0
-                           :url-effective "DUMMY-URL"
-                           :redirects nil
-                           :cookies '(("username" . "Nzk2ZmU"))
-                           :version "1.1" :code 302))))))
 
 (ert-deftest request--netscape-cookie-parse ()
   (with-temp-buffer
