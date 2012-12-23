@@ -54,6 +54,7 @@
   (request-testing-with-response-slots
       (request-testing-sync "report/some-path"
                             :parser 'json-read)
+    (should done-p)
     (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "GET"))))
@@ -303,9 +304,11 @@ See also:
   (request-testing-with-response-slots
       (request-testing-async "report/some-path" :parser 'json-read)
     (should-not symbol-status)
+    (should-not done-p)
     (should (buffer-live-p -buffer))
     (request-abort response)
     (should (equal symbol-status 'abort))
+    (should done-p)
     (should (bufferp -buffer))
     (should-not (buffer-live-p -buffer))))
 
@@ -316,6 +319,7 @@ See also:
   (request-testing-with-response-slots
       (request-testing-sync "report/some-path"
                             :parser (lambda () (error "Bad parser!")))
+    (should done-p)
     (should (equal symbol-status 'parse-error))
     (should (equal error-thrown '(error . ("Bad parser!"))))))
 

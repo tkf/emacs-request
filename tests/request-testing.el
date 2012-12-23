@@ -46,6 +46,7 @@
                               error-thrown
                               symbol-status
                               url
+                              done-p
                               settings
                               -buffer
                               -timer)
