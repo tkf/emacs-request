@@ -850,7 +850,7 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
                  symbol-status)
     (cond
      ((or (string-match "exited abnormally" event)
-          (equal event "killed\n"))
+          (member event '("killed\n" "interrupt\n")))
       (setf (request-response-error-thrown response) (cons 'error event))
       (apply #'request--callback buffer settings))
      ((equal event "finished\n")
@@ -873,7 +873,7 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
         (apply #'request--callback buffer settings))))))
 
 (defun request--curl-kill-process-buffer (buffer)
-  (kill-process (get-buffer-process buffer)))
+  (interrupt-process (get-buffer-process buffer)))
 
 (defun request--curl-get-cookies (host localpart secure)
   (request--netscape-get-cookies (request--curl-cookie-jar)
