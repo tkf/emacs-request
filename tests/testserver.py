@@ -57,6 +57,13 @@ def page_code(code):
         return HTTP_STATUS_CODES[code], code
 
 
+@app.route('/sleep/<float:sleep>')
+def page_sleep(sleep):
+    import time
+    time.sleep(sleep)
+    return redirect('report/from-sleep')
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def page_login():
     error = 'Not logged-in'

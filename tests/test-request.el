@@ -307,7 +307,7 @@ See also:
 (request-deftest request-abort-simple ()
   (let (called)
     (request-testing-with-response-slots
-        (request-testing-async "report/some-path"
+        (request-testing-async "sleep/0.5"
                                :complete (lambda (&rest args)
                                            (push args called))
                                :parser 'json-read)
@@ -315,7 +315,7 @@ See also:
         (loop repeat 30
               when (request-testing-process-live-p process) return nil
               do (sleep-for 0.1)
-              finally (error "Timeout"))
+              finally (error "Timeout: failed to check process is started."))
 
         (should-not symbol-status)
         (should-not done-p)
@@ -325,7 +325,7 @@ See also:
         (loop repeat 30
               when called return nil
               do (sleep-for 0.1)
-              finally (error "Timeout"))
+              finally (error "Timeout: failed to check process is aborted."))
 
         (should (equal symbol-status 'abort))
         (should done-p)
