@@ -846,12 +846,11 @@ START-URL is the URL requested."
                 (request--curl-preprocess))
             ((debug error)
              (list :error err)))
-        ;; FIXME: `redirects' contains relative paths for relative
-        ;;         redirection.
-        ;;         See test `request-get-broken-redirection'
         (setf (request-response-status-code  response) code)
         (setf (request-response-url          response) url-effective)
-        (setf (request-response-redirects    response) (nreverse redirects))
+        (setf (request-response-redirects    response)
+              (request--curl-absolutify-redirects (plist-get settings :url)
+                                                  (nreverse redirects)))
         (setf (request-response-error-thrown response)
               (or error (when (>= code 400) `(error . (http ,code)))))
         (apply #'request--callback buffer settings))))))
