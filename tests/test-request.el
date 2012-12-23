@@ -305,16 +305,28 @@ See also:
 ;;; Abort
 
 (request-deftest request-abort-simple ()
-  (request-testing-with-response-slots
-      (request-testing-async "report/some-path" :parser 'json-read)
-    (should-not symbol-status)
-    (should-not done-p)
-    (should (buffer-live-p -buffer))
-    (request-abort response)
-    (should (equal symbol-status 'abort))
-    (should done-p)
-    (should (bufferp -buffer))
-    (should-not (buffer-live-p -buffer))))
+  (let (called)
+    (request-testing-with-response-slots
+        (request-testing-async "report/some-path"
+                               :complete (lambda (&rest args)
+                                           (push args called))
+                               :parser 'json-read)
+      (should-not symbol-status)
+      (should-not done-p)
+      (should (buffer-live-p -buffer))
+      (request-abort response)
+      (should (equal symbol-status 'abort))
+      (should done-p)
+      (should (bufferp -buffer))
+      (should-not (buffer-live-p -buffer)))
+
+    (should (= (length called) 1))
+    (destructuring-bind (&key data symbol-status error-thrown response)
+        (car called)
+      (should-not data)
+      (should (eq symbol-status 'abort))
+      (should error-thrown)
+      (should response))))
 
 
 ;;; Parse error
