@@ -375,6 +375,9 @@ See also:
                             :parser 'json-read)
     (should (equal status-code 200))
     (unless (and noninteractive (eq request-backend 'url-retrieve))
+      ;; *Sometimes* it fails.  As from-cookies\r is returned,
+      ;; it looks like url.el fails to clean tailing \r in the
+      ;; header fields.
       (should (equal (assoc-default 'path data) "from-cookies"))
       (should (equal (assoc-default 'cookie-name (assoc-default 'cookies data))
                      "cookie-value"))
