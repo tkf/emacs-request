@@ -231,12 +231,14 @@ as URL which is the requested URL.")
 ;;; Backend dispatcher
 
 (defvar request--backend-alist
-  '((url-retrieve . ((request     . request--url-retrieve)
-                     (kill-process-buffer . kill-buffer)
-                     (get-cookies . request--url-retrieve-get-cookies)))
-    (curl         . ((request     . request--curl)
-                     (kill-process-buffer . request--curl-kill-process-buffer)
-                     (get-cookies . request--curl-get-cookies))))
+  '((url-retrieve
+     . ((request             . request--url-retrieve)
+        (kill-process-buffer . kill-buffer)
+        (get-cookies         . request--url-retrieve-get-cookies)))
+    (curl
+     . ((request             . request--curl)
+        (kill-process-buffer . request--curl-kill-process-buffer)
+        (get-cookies         . request--curl-get-cookies))))
   "Available request backends.")
 
 (defun request--choose-backend (method)
