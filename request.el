@@ -590,7 +590,7 @@ Currently it is used only for testing.")
       (expand-file-name "curl-cookie-jar" request-storage-directory)))
 
 (defvar request--curl-write-out-template
-  "\\n(:num-redirects %{num_redirects})")
+  "\\n(:num-redirects %{num_redirects} :url-effective \"%{url_effective}\")")
 ;; FIXME: should % be escaped for Windows?
 
 (defun request--curl-mkdir-for-cookie-jar ()
@@ -760,7 +760,7 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
 (defun request--curl-preprocess ()
   "Pre-process current buffer before showing it to user."
   (let (redirects cookies cookies2)
-    (destructuring-bind (&key num-redirects)
+    (destructuring-bind (&key num-redirects url-effective)
         (request--curl-read-and-delete-tail-info)
       (goto-char (point-min))
       (request--consume-100-continue)
@@ -798,7 +798,8 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
         (widen))
 
       (goto-char (point-min))
-      (nconc (list :num-redirects num-redirects :redirects redirects
+      (nconc (list :num-redirects num-redirects :url-effective url-effective
+                   :redirects redirects
                    ;; FIMXE: handle multiple key-value pairs
                    ;; FIXME: verify if this way of choosing
                    ;;        cookies/cookies2 is OK
@@ -826,14 +827,14 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
      ((equal event "finished\n")
       (with-current-buffer buffer
         (destructuring-bind (&key version code num-redirects redirects error
-                                  cookies)
+                                  url-effective cookies)
             (condition-case err
                 (request--curl-preprocess)
               ((debug error)
                (list :error err)))
           (setf (request-response-cookies      response) cookies)
           (setf (request-response-status-code  response) code)
-          (setf (request-response-url          response) (car redirects))
+          (setf (request-response-url          response) url-effective)
           (setf (request-response-redirects    response) (nreverse redirects))
           (setf (request-response-error-thrown response)
                 (or error (when (>= code 400) `(error . (http ,code)))))
