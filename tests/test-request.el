@@ -385,6 +385,22 @@ See also:
                      "cookie-name=cookie-value")))
     (should (equal (assoc-default 'method data) "GET"))))
 
+(request-deftest request-multiple-cookies ()
+  :tempfiles (request--curl-cookie-jar)
+  (request-testing-with-response-slots
+      (request-testing-sync "cookies/set"
+                            :params '(("a" . "1") ("b" . "2"))
+                            :parser 'json-read)
+    (should (equal status-code 200))
+    (unless (and noninteractive (eq request-backend 'url-retrieve))
+      ;; See `request-simple-cookie'.
+      (should (equal (assoc-default 'path data) "from-cookies"))
+      (should (equal (request-testing-sort-alist (assoc-default 'cookies data))
+                     '((a . "1") (b . "2"))))
+      (should (member (request-cookie-string "127.0.0.1" "/") '("a=1; b=2"
+                                                                "b=2; a=1"))))
+    (should (equal (assoc-default 'method data) "GET"))))
+
 (defun request-testing-assert-username-is (username)
   (request-testing-with-response-slots
       (request-testing-sync "report/some-path"
