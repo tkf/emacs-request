@@ -849,8 +849,8 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
     (request-log 'debug "REQUEST--CURL-CALLBACK symbol-status = %S"
                  symbol-status)
     (cond
-     ((or (string-match "exited abnormally" event)
-          (member event '("killed\n" "interrupt\n")))
+     ((and (memq (process-status proc) '(exit signal))
+           (/= (process-exit-status proc) 0))
       (setf (request-response-error-thrown response) (cons 'error event))
       (apply #'request--callback buffer settings))
      ((equal event "finished\n")
