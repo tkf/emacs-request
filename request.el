@@ -459,7 +459,7 @@ then kill the current buffer."
                                   &allow-other-keys)
   (request-log 'debug "REQUEST--CALLBACK")
   (request-log 'debug "(buffer-string) =\n%s"
-               (with-current-buffer (buffer-string)))
+               (with-current-buffer buffer (buffer-string)))
 
   (request-response--cancel-timer response)
   (let* ((status-code-callback
@@ -533,7 +533,7 @@ then kill the current buffer."
   (let* ((url-request-extra-headers headers)
          (url-request-method type)
          (url-request-data data)
-         (buffer (url-retrieve url #'request--callback
+         (buffer (url-retrieve url #'request--url-retrieve-callback
                                (nconc (list :response response) settings)))
          (proc (get-buffer-process buffer)))
     (setf (request-response--buffer response) buffer)
@@ -559,7 +559,7 @@ then kill the current buffer."
   (request-log 'debug "url-http-response-status = %s" url-http-response-status)
 
   (setf (request-response-status-code response) url-http-response-status)
-  (let ((redirect (plist-get :redirect status)))
+  (let ((redirect (plist-get status :redirect)))
     (when redirect
       (setf (request-response-url response) redirect)
       (setf (request-response-redirects response)
