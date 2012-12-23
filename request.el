@@ -832,6 +832,9 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
                 (request--curl-preprocess)
               ((debug error)
                (list :error err)))
+          ;; FIXME: `redirects' contains relative paths for relative
+          ;;         redirection.
+          ;;         See test `request-get-broken-redirection'
           (setf (request-response-cookies      response) cookies)
           (setf (request-response-status-code  response) code)
           (setf (request-response-url          response) url-effective)
