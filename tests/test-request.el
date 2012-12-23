@@ -312,6 +312,11 @@ See also:
                                            (push args called))
                                :parser 'json-read)
       (let ((process (get-buffer-process -buffer)))
+        (loop repeat 30
+              when (request-testing--process-live-p process) return nil
+              do (sleep-for 0.1)
+              finally (error "Timeout"))
+
         (should-not symbol-status)
         (should-not done-p)
         (should (request-testing--process-live-p process))
