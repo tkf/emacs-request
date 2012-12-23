@@ -155,6 +155,20 @@ See also:
     (should (equal (assoc-default 'method data) "POST"))
     (should (equal (assoc-default 'form data) '((key . "value"))))))
 
+(request-deftest request-post-multibytes ()
+  (request-testing-with-response-slots
+      (request-testing-sync "report/some-path"
+                            :type "POST"
+                            :data '(("鍵" . "値"))
+                            :parser (lambda ()
+                                      (let ((json-key-type 'string))
+                                        (json-read))))
+    (should (equal status-code 200))
+    (should-not error-thrown)
+    (should (equal (assoc-default "path"   data) "some-path"))
+    (should (equal (assoc-default "method" data) "POST"))
+    (should (equal (assoc-default "form"   data) '(("鍵" . "値"))))))
+
 (request-deftest request-post-files/simple-buffer ()
   :backends (curl)
   (with-current-buffer (get-buffer-create " *request-test-temp*")
