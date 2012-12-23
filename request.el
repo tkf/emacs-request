@@ -537,7 +537,10 @@ Explicitly calling from timer.")
 
 
 (defun request-abort (response)
-  "Abort request for RESPONSE (the object returned by `request')."
+  "Abort request for RESPONSE (the object returned by `request').
+Note that this function invoke ERROR and COMPLETE callbacks.
+Callbacks may not be called immediately but called later when
+associated process is exited."
   (symbol-macrolet ((buffer (request-response--buffer response))
                     (symbol-status (request-response-symbol-status response))
                     (done-p (request-response-done-p response)))

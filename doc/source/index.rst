@@ -8,6 +8,7 @@ API
 .. el:package:: request
 
 .. el:function:: request
+.. el:function:: request-abort
 
 Response object
 ---------------
@@ -18,6 +19,7 @@ Response object
 .. el:function:: request-response-error-thrown
 .. el:function:: request-response-symbol-status
 .. el:function:: request-response-url
+.. el:function:: request-response-done-p
 .. el:function:: request-response-settings
 
 
