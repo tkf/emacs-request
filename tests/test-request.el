@@ -75,9 +75,9 @@
         ;; is run in noninteractive environment.
         ;; probably it's a bug in `url-retrieve'...
         (progn
-          (string-match (format "^http://.*/report/%s" path) url)
+          (should (string-prefix-p (request-testing-url "report" path) url))
           (should (string-prefix-p path (assoc-default 'path data))))
-      (should (string-match (format "^http://.*/report/%s$" path) url))
+      (should (equal (request-testing-url "report" path) url))
       (should (equal (assoc-default 'path data) path)))
     (should (equal status-code 200))
     (should (equal (assoc-default 'method data) "GET"))))

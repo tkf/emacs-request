@@ -83,7 +83,7 @@
             (string-to-number
              (request-testing--wait-process-until process "^[0-9]+$")))
       (request-testing--wait-process-until process "Running on")))
-  (request-testing--url))
+  (request-testing-url))
 
 (defun request-testing--process-live-p (process)
   "Copied from `process-live-p' for backward compatibility (Emacs < 24)."
@@ -100,14 +100,14 @@
   (setq request-testing-server--process nil))
 (add-hook 'kill-emacs-hook 'request-testing-stop-server)
 
-(defun request-testing--url (&rest path)
+(defun request-testing-url (&rest path)
   (loop with url = (format "http://127.0.0.1:%s" request-testing-server--port)
         for p in path
         do (setq url (concat url "/" p))
         finally return url))
 
 (defun request-testing-async (url &rest args)
-  (apply #'request (request-testing--url url) args))
+  (apply #'request (request-testing-url url) args))
 
 (defun request-testing-sync (url &rest args)
   (lexical-let (err timeout)
@@ -117,7 +117,7 @@
                request-testing-timeout
                (setq timeout t)
                (deferred:try
-                 (apply #'request-deferred (request-testing--url url) args)
+                 (apply #'request-deferred (request-testing-url url) args)
                  :catch
                  (lambda (x) (setq err x)))))))
       (if timeout
