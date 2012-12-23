@@ -86,14 +86,14 @@
       (request-testing--wait-process-until process "Running on")))
   (request-testing-url))
 
-(defun request-testing--process-live-p (process)
+(defun request-testing-process-live-p (process)
   "Copied from `process-live-p' for backward compatibility (Emacs < 24)."
   (memq (process-status process) '(run open listen connect stop)))
 
 (defun request-testing-stop-server ()
   (interactive)
   (let ((process request-testing-server--process))
-    (if (and (processp process) (request-testing--process-live-p process))
+    (if (and (processp process) (request-testing-process-live-p process))
         (quit-process process)
       (unless noninteractive
         (message "No server is running!"))))
