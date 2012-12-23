@@ -40,6 +40,10 @@
     (setq request-backend (intern backend))
     (message "Using request-backend = %S" request-backend)))
 
+(let ((no-capture (getenv "EL_REQUEST_NO_CAPTURE_MESSAGE")))
+  (when (and no-capture (not (equal no-capture "")))
+    (setq request-testing-capture-message nil)))
+
 ;; Quick snippets for interactive testing:
 ;;   (setq request-backend 'curl)
 ;;   (setq request-backend 'url-retrieve)

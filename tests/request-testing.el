@@ -160,6 +160,30 @@
                  ',name request-backend)
       ,@body)))
 
+(defvar request-testing-capture-message t
+  "Set this to nil to suppress message capturing during test case
+execution.  If it is non-nil, messages are not shown in the terminal
+unless an error occurs.")
+
+(defun request-deftest--capture-message (body)
+  (let ((orig-message (make-symbol "orig-message"))
+        (messages (make-symbol "messages"))
+        (noerror (make-symbol "noerror")))
+    `((if (and noninteractive request-testing-capture-message)
+          (let ((,orig-message (symbol-function 'message))
+                ,messages
+                ,noerror)
+            (unwind-protect
+                (progn
+                  (fset 'message (lambda (&rest args) (push args ,messages)))
+                  ,@body
+                  (setq ,noerror t))
+              (fset 'message ,orig-message)
+              (unless ,noerror
+                (loop for m in (nreverse ,messages)
+                      do (apply #'message m)))))
+        ,@body))))
+
 (defmacro* request-deftest (name () &body docstring-and-body)
   "`ert-deftest' for test requiring test server.
 
@@ -205,6 +229,7 @@ TEMPFILES
       (setq req-keys (nreverse req-keys)))
 
     ;; "Decorate" BODY.
+    (setq body (request-deftest--capture-message body))
     (setq body (request-deftest--url-retrieve-isolate body))
     (destructuring-bind (&key backends tempfiles) req-keys
       (setq body (request-deftest--tempfiles tempfiles body))
