@@ -447,7 +447,7 @@ then kill the current buffer."
                      parser))
       (kill-buffer buffer))))
 
-(defun* request--callback (buffer &key headers parser success error complete
+(defun* request--callback (buffer &key parser success error complete
                                   timeout status-code response
                                   &allow-other-keys)
   (request-log 'debug "REQUEST--CALLBACK")
@@ -459,38 +459,42 @@ then kill the current buffer."
       ((error-thrown (request-response-error-thrown response))
        (symbol-status (request-response-symbol-status response))
        (data (request-response-data response)))
+
+    ;; Parse response body
     (setq data (condition-case err
                    (request--parse-data buffer parser error-thrown
                                         (request-response--backend response))
                  (error
                   (setq symbol-status 'parse-error)
                   (setq error-thrown err))))
-    (let* ((status-code-callback
-            (cdr (assq (request-response-status-code response) status-code))))
-      (request-log 'debug "data = %s" data)
+    (request-log 'debug "data = %s" data)
 
-      (unless symbol-status
-        (setq symbol-status (if error-thrown 'error 'success)))
-      (request-log 'debug "symbol-status = %s" symbol-status)
+    ;; Determine `symbol-status'
+    (unless symbol-status
+      (setq symbol-status (if error-thrown 'error 'success)))
+    (request-log 'debug "symbol-status = %s" symbol-status)
 
-      (let* ((args (list :data data
-                         :symbol-status symbol-status
-                         :error-thrown error-thrown
-                         :response response))
-             (success-p (eq symbol-status 'success))
+    ;; Call callbacks
+    (let ((args (list :data data
+                      :symbol-status symbol-status
+                      :error-thrown error-thrown
+                      :response response)))
+      (let* ((success-p (eq symbol-status 'success))
              (cb (if success-p success error))
              (name (if success-p "success" "error")))
         (when cb
           (request-log 'debug "Executing %s callback." name)
-          (request--safe-apply cb args))
+          (request--safe-apply cb args)))
 
-        (when status-code-callback
+      (let ((cb (cdr (assq (request-response-status-code response)
+                           status-code))))
+        (when cb
           (request-log 'debug "Executing status-code callback.")
-          (request--safe-apply status-code-callback args))
+          (request--safe-apply cb args)))
 
-        (when complete
-          (request-log 'debug "Executing complete callback.")
-          (request--safe-apply complete args))))
+      (when complete
+        (request-log 'debug "Executing complete callback.")
+        (request--safe-apply complete args)))
 
     ;; Remove temporary files
     ;; FIXME: Make tempfile cleanup more reliable.  It is possible
