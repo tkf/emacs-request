@@ -85,11 +85,12 @@ def page_logout():
     return redirect('report/from-logout')
 
 
-@app.route('/cookies/<name>/<value>')
-def page_set_cookies(name, value):
+@app.route('/cookies/set')
+def page_set_cookies():
     # see: http://flask.pocoo.org/docs/quickstart/#cookies
     resp = redirect('report/from-cookies')
-    resp.set_cookie(name, value)
+    for (name, value) in request.args.items():
+        resp.set_cookie(name, value)
     return resp
 
 

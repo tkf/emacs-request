@@ -370,7 +370,8 @@ See also:
 (request-deftest request-simple-cookie ()
   :tempfiles (request--curl-cookie-jar)
   (request-testing-with-response-slots
-      (request-testing-sync "cookies/cookie-name/cookie-value"
+      (request-testing-sync "cookies/set"
+                            :params '((cookie-name . "cookie-value"))
                             :parser 'json-read)
     (should (equal status-code 200))
     (unless (and noninteractive (eq request-backend 'url-retrieve))
