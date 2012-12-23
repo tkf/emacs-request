@@ -575,6 +575,12 @@ RESPONSE-BODY"))
                    "http://egg"
                    "http://egg/b"))))
 
+(ert-deftest request--curl-absolutify-redirects/with-port ()
+  (should (equal (request--curl-absolutify-redirects
+                  "http://localhost:8000"
+                  '("/a" "/b"))
+                 '("http://localhost:8000/a" "http://localhost:8000/b"))))
+
 (ert-deftest request--netscape-cookie-parse ()
   (with-temp-buffer
     (erase-buffer)

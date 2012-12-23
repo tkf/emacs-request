@@ -908,6 +908,65 @@ START-URL is the URL requested."
       (request--netscape-filter-cookies (request--netscape-cookie-parse)
                                         host localpart secure))))
 
+
+;;; Monkey patches for url.el
+
+(defun request--url-default-expander (urlobj defobj)
+  "Adapted from lisp/url/url-expand.el.
+FSF holds the copyright of this function:
+  Copyright (C) 1999, 2004-2012  Free Software Foundation, Inc."
+  ;; The default expansion routine - urlobj is modified by side effect!
+  (if (url-type urlobj)
+      ;; Well, they told us the scheme, let's just go with it.
+      nil
+    (setf (url-type urlobj) (or (url-type urlobj) (url-type defobj)))
+    (setf (url-port urlobj) (or (url-portspec urlobj)
+                                (and (string= (url-type urlobj)
+                                              (url-type defobj))
+				     (url-port defobj))))
+    (if (not (string= "file" (url-type urlobj)))
+	(setf (url-host urlobj) (or (url-host urlobj) (url-host defobj))))
+    (if (string= "ftp"  (url-type urlobj))
+	(setf (url-user urlobj) (or (url-user urlobj) (url-user defobj))))
+    (if (string= (url-filename urlobj) "")
+	(setf (url-filename urlobj) "/"))
+    ;; If the object we're expanding from is full, then we are now
+    ;; full.
+    (unless (url-fullness urlobj)
+      (setf (url-fullness urlobj) (url-fullness defobj)))
+    (if (string-match "^/" (url-filename urlobj))
+	nil
+      (let ((query nil)
+	    (file nil)
+	    (sepchar nil))
+	(if (string-match "[?#]" (url-filename urlobj))
+	    (setq query (substring (url-filename urlobj) (match-end 0))
+		  file (substring (url-filename urlobj) 0 (match-beginning 0))
+		  sepchar (substring (url-filename urlobj) (match-beginning 0) (match-end 0)))
+	  (setq file (url-filename urlobj)))
+	;; We use concat rather than expand-file-name to combine
+	;; directory and file name, since urls do not follow the same
+	;; rules as local files on all platforms.
+	(setq file (url-expander-remove-relative-links
+		    (concat (url-file-directory (url-filename defobj)) file)))
+	(setf (url-filename urlobj)
+              (if query (concat file sepchar query) file))))))
+
+(defadvice url-default-expander
+  (around request-monkey-patch-url-default-expander (urlobj defobj))
+  "Monkey patch `url-default-expander' to fix bug #12374.
+Without this patch, port number is not treated when using
+`url-expand-file-name'.
+See: http://thread.gmane.org/gmane.emacs.devel/155698"
+  (setq ad-return-value (request--url-default-expander urlobj defobj)))
+
+(unless (equal (url-expand-file-name "/path" "http://127.0.0.1:8000")
+               "http://127.0.0.1:8000/path")
+  (ad-enable-advice 'url-default-expander
+                    'around
+                    'request-monkey-patch-url-default-expander)
+  (ad-activate 'url-default-expander))
+
 (provide 'request)
 
 ;;; request.el ends here
