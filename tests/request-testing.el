@@ -36,7 +36,13 @@
 (defvar request-testing-timeout 3000)
 
 (defmacro request-testing-with-response-slots (response &rest body)
-  "Destructure RESPONSE object and execute BODY."
+  "Destructure RESPONSE object and execute BODY.
+Following symbols are bound:
+
+  response / status-code / redirects / data / error-thrown /
+  symbol-status / url / done-p / settings / -buffer / -timer
+
+The symbols other than `response' is bound using `symbol-macrolet'."
   (declare (indent 1))
   `(let ((response ,response))
      (symbol-macrolet
