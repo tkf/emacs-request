@@ -421,26 +421,26 @@ and requests.request_ (Python).
   (apply (request--choose-backend 'request) url settings)
   response)
 
-(defun request--parse-data (parser error-thrown backend)
+(defun request--parse-data (buffer parser error-thrown backend)
   "Run PARSER in current buffer if ERROR-THROWN is nil,
 then kill the current buffer."
-  (let ((buffer (current-buffer)) ; NOTE: `parser' could change buffer...
-        noerror)
+  (let (noerror)
     (unwind-protect
         (prog1
-            (when (and parser (not error-thrown))
-              (goto-char (point-min))
-              ;; Should be no \r.
-              ;; See `url-http-clean-headers' and `request--curl-preprocess'.
-              (if (eq backend 'url-retrieve)
-                  ;; FIXME: make this workaround optional.
-                  ;; But it looks like sometimes `url-http-clean-headers'
-                  ;; fails to cleanup.  So, let's be bit permissive here...
-                  (re-search-forward "^\r?$")
-                (re-search-forward "^$"))
-              ;; `forward-char' will fail when there is no body.
-              (ignore-errors (forward-char))
-              (funcall parser))
+            (when (and (buffer-live-p buffer) parser (not error-thrown))
+              (with-current-buffer buffer
+                (goto-char (point-min))
+                ;; Should be no \r.
+                ;; See `url-http-clean-headers' and `request--curl-preprocess'.
+                (if (eq backend 'url-retrieve)
+                    ;; FIXME: make this workaround optional.
+                    ;; But it looks like sometimes `url-http-clean-headers'
+                    ;; fails to cleanup.  So, let's be bit permissive here...
+                    (re-search-forward "^\r?$")
+                  (re-search-forward "^$"))
+                ;; `forward-char' will fail when there is no body.
+                (ignore-errors (forward-char))
+                (funcall parser)))
           (setq noerror t))
       (unless noerror
         (request-log 'error "REQUEST--PARSE-DATA: error from parser %S"
@@ -466,7 +466,7 @@ then kill the current buffer."
           (cdr (assq (request-response-status-code response) status-code)))
          (error-thrown (request-response-error-thrown response))
          (data (condition-case err
-                   (request--parse-data parser error-thrown
+                   (request--parse-data buffer parser error-thrown
                                         (request-response--backend response))
                  (error
                   (setf (request-response-symbol-status response)
