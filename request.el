@@ -222,7 +222,10 @@ One of success/error/timeout/abort/parse-error.")
 ;; FIXME: can this be implemented in `url-retrieve' backend?
 
 (request--document-response request-response-settings
-  "Keyword arguments passed to `request' function.")
+  "Keyword arguments passed to `request' function.
+Some arguments such as HEADERS is changed to the one actually
+passed to the backend.  Also, it has additional keywords such
+as URL which is the requested URL.")
 
 
 ;;; Backend dispatcher
@@ -408,6 +411,7 @@ and requests.request_ (Python).
   (when params
     (setq url (concat url (if (string-match-p "\\?" url) "&" "?")
                       (request--urlencode-alist params))))
+  (setq settings (plist-put settings :url url))
   (setq settings (plist-put settings :response response))
   (setf (request-response-settings response) settings)
   (setf (request-response-url      response) url)
