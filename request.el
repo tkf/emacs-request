@@ -121,7 +121,15 @@
          (log-level (request--log-level-as-int request-log-level))
          (msg-level (request--log-level-as-int request-message-level)))
      (when (<= level (max log-level msg-level))
-       (let ((msg (format "[%s] %s" ,level (format ,fmt ,@args))))
+       (let ((msg (format "[%s] %s" ,level
+                          (condition-case err
+                              (format ,fmt ,@args)
+                            (error (format "
+!!! Logging error while executing:
+%S
+!!! Error:
+%S"
+                                           ',args err))))))
          (when (<= level log-level)
            (with-current-buffer (request--log-buffer)
              (setq buffer-read-only t)
