@@ -232,8 +232,10 @@ as URL which is the requested URL.")
 
 (defvar request--backend-alist
   '((url-retrieve . ((request     . request--url-retrieve)
+                     (kill-process-buffer . kill-buffer)
                      (get-cookies . request--url-retrieve-get-cookies)))
     (curl         . ((request     . request--curl)
+                     (kill-process-buffer . request--curl-kill-process-buffer)
                      (get-cookies . request--curl-get-cookies))))
   "Available request backends.")
 
@@ -540,7 +542,7 @@ Explicitly calling from timer.")
     (when (and (buffer-live-p buffer) (not symbol-status))
       (setq symbol-status 'abort)
       (setq done-p t)
-      (kill-buffer buffer))))
+      (funcall (request--choose-backend 'kill-process-buffer) buffer))))
 
 
 ;;; Backend: `url-retrieve'
@@ -845,8 +847,8 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
     (request-log 'debug "REQUEST--CURL-CALLBACK symbol-status = %S"
                  symbol-status)
     (cond
-     ((eq symbol-status 'abort))        ; ignore when aborted
-     ((string-match "exited abnormally" event)
+     ((or (string-match "exited abnormally" event)
+          (equal event "killed\n"))
       (setf (request-response-error-thrown response) (cons 'error event))
       (apply #'request--callback buffer settings))
      ((equal event "finished\n")
@@ -867,6 +869,9 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
         (setf (request-response-error-thrown response)
               (or error (when (>= code 400) `(error . (http ,code)))))
         (apply #'request--callback buffer settings))))))
+
+(defun request--curl-kill-process-buffer (buffer)
+  (kill-process (get-buffer-process buffer)))
 
 (defun request--curl-get-cookies (host localpart secure)
   (request--netscape-get-cookies (request--curl-cookie-jar)

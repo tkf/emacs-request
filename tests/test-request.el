@@ -311,14 +311,20 @@ See also:
                                :complete (lambda (&rest args)
                                            (push args called))
                                :parser 'json-read)
-      (should-not symbol-status)
-      (should-not done-p)
-      (should (buffer-live-p -buffer))
-      (request-abort response)
-      (should (equal symbol-status 'abort))
-      (should done-p)
-      (should (bufferp -buffer))
-      (should-not (buffer-live-p -buffer)))
+      (let ((process (get-buffer-process -buffer)))
+        (should-not symbol-status)
+        (should-not done-p)
+        (should (request-testing--process-live-p process))
+
+        (request-abort response)
+        (loop repeat 30
+              when called return nil
+              do (sleep-for 0.1)
+              finally (error "Timeout"))
+
+        (should (equal symbol-status 'abort))
+        (should done-p)
+        (should-not (request-testing--process-live-p process))))
 
     (should (= (length called) 1))
     (destructuring-bind (&key data symbol-status error-thrown response)
