@@ -560,6 +560,21 @@ RESPONSE-BODY"))
                            :redirects nil
                            :version "1.1" :code 200))))))
 
+(ert-deftest request--curl-absolutify-redirects/simple ()
+  (should (equal (request--curl-absolutify-redirects
+                  "http://localhost"
+                  '("/a" "/b"))
+                 '("http://localhost/a" "http://localhost/b"))))
+
+(ert-deftest request--curl-absolutify-redirects/complex ()
+  (should (equal (request--curl-absolutify-redirects
+                  "http://localhost"
+                  '("http://spam" "/a" "http://egg" "/b"))
+                 '("http://spam"
+                   "http://spam/a"
+                   "http://egg"
+                   "http://egg/b"))))
+
 (ert-deftest request--netscape-cookie-parse ()
   (with-temp-buffer
     (erase-buffer)

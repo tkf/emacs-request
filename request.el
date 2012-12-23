@@ -814,6 +814,15 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
                    :redirects redirects)
              (request--parse-response-at-point)))))
 
+(defun request--curl-absolutify-redirects (start-url redirects)
+  "Convert relative paths in REDIRECTS to absolute URLs.
+START-URL is the URL requested."
+  (loop for prev-url = start-url then url
+        for url in redirects
+        unless (string-match url-nonrelative-link url)
+        do (setq url (url-expand-file-name url prev-url))
+        collect url))
+
 (defun request--curl-callback (proc event)
   (let* ((buffer (process-buffer proc))
          (response (process-get proc :request-response))
