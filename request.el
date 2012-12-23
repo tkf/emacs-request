@@ -691,13 +691,13 @@ where FILES* is a converted FILES and TEMPFILES is a list of
 temporary file paths."
   (let (tempfiles noerror)
     (unwind-protect
-        (prog1 (list (request--curl-normalize-files-1
-                      files
-                      (lambda () (let ((tf (make-temp-file "emacs-request-")))
-                                   (push tf tempfiles)
-                                   tf)))
-                     tempfiles)
-          (setq noerror t))
+        (let* ((get-temp-file (lambda ()
+                                (let ((tf (make-temp-file "emacs-request-")))
+                                  (push tf tempfiles)
+                                  tf)))
+               (files* (request--curl-normalize-files-1 files get-temp-file)))
+          (setq noerror t)
+          (list files* tempfiles))
       (unless noerror
         ;; Remove temporary files only when an error occurs
         (request--safe-delete-files tempfiles)))))
