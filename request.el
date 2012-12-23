@@ -447,42 +447,31 @@ then kill the current buffer."
                      parser))
       (kill-buffer buffer))))
 
-(defun* request--callback (buffer &key
-                                  (headers nil)
-                                  (parser nil)
-                                  (success nil)
-                                  (error nil)
-                                  (complete nil)
-                                  (timeout nil)
-                                  (status-code nil)
-                                  response
+(defun* request--callback (buffer &key headers parser success error complete
+                                  timeout status-code response
                                   &allow-other-keys)
   (request-log 'debug "REQUEST--CALLBACK")
   (request-log 'debug "(buffer-string) =\n%s"
                (with-current-buffer buffer (buffer-string)))
 
   (request-response--cancel-timer response)
-  (let* ((status-code-callback
-          (cdr (assq (request-response-status-code response) status-code)))
-         (error-thrown (request-response-error-thrown response))
-         (data (condition-case err
+  (symbol-macrolet
+      ((error-thrown (request-response-error-thrown response))
+       (symbol-status (request-response-symbol-status response))
+       (data (request-response-data response)))
+    (setq data (condition-case err
                    (request--parse-data buffer parser error-thrown
                                         (request-response--backend response))
                  (error
-                  (setf (request-response-symbol-status response)
-                        'parse-error)
-                  (setq error-thrown err)))))
-    (request-log 'debug "data = %s" data)
-
-    (symbol-macrolet
-        ((symbol-status (request-response-symbol-status response)))
+                  (setq symbol-status 'parse-error)
+                  (setq error-thrown err))))
+    (let* ((status-code-callback
+            (cdr (assq (request-response-status-code response) status-code))))
+      (request-log 'debug "data = %s" data)
 
       (unless symbol-status
         (setq symbol-status (if error-thrown 'error 'success)))
       (request-log 'debug "symbol-status = %s" symbol-status)
-
-      (setf (request-response-data response) data)
-      (setf (request-response-error-thrown response) error-thrown)
 
       (let* ((args (list :data data
                          :symbol-status symbol-status
