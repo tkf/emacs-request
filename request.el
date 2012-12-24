@@ -250,9 +250,20 @@ as URL which is the requested URL.")
         (request-sync        . request--curl-sync)
         (terminate-process   . interrupt-process)
         (get-cookies         . request--curl-get-cookies))))
-  "Available request backends.")
+  "Map backend and method name to actual method (symbol).
+
+It's alist of alist, of the following form::
+
+    ((BACKEND . ((METHOD . FUNCTION) ...)) ...)
+
+It would be nicer if I can use EIEIO.  But as CEDET is included
+in Emacs by 23.2, using EIEIO means abandon older Emacs versions.
+It is probably necessary if I need to support more backends.  But
+let's stick to manual dispatch for now.")
+;; See: (view-emacs-news "23.2")
 
 (defun request--choose-backend (method)
+  "Return `fucall'able object for METHOD of current `request-backend'."
   (assoc-default
    method
    (or (assoc-default request-backend request--backend-alist)
