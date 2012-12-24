@@ -562,7 +562,7 @@ then kill the current buffer."
          (proc (and (buffer-live-p buffer) (get-buffer-process buffer))))
     (when proc
       ;; This will call `request--callback':
-      (delete-process proc))
+      (funcall (request--choose-backend 'terminate-process) proc))
 
     (symbol-macrolet ((done-p (request-response-done-p response)))
       (unless done-p
