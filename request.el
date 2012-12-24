@@ -312,6 +312,7 @@ ERROR    (function)   called on error
 COMPLETE (function)   called on both success and error
 TIMEOUT    (number)   timeout in second
 STATUS-CODE (alist)   map status code (int) to callback
+SYNC         (bool)   If `t', wait until request is done.  Default is `nil'.
 ==================== ========================================================
 
 
@@ -399,6 +400,16 @@ without header, pass::
 This is analogous to the `dataType' argument of jQuery.ajax_.
 Only this function can access to the process buffer, which
 is killed immediately after the execution of this function.
+
+* SYNC
+
+Synchronous request is functional, but *please* don't use it
+other than testing or debugging.  Emacs users have better things
+to do rather than waiting for HTTP request.
+
+If you can't avoid using it (e.g., you are inside of some hook
+which must return some value), make sure to set TIMEOUT to
+relatively small value.
 
 * Note
 
