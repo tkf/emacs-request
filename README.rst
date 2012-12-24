@@ -30,6 +30,10 @@ Emacs support linking with libcurl, it is possible to implement a
 backend using it.  Libraries using request.el automatically can
 use these backend without modifying their code.
 
+Request.el also patches url.el dynamically, to fix bugs in url.el.
+See `monkey patches for url.el`_ for the bugs fixed by request.el.
+Don't waste your time on url.el.  Use request.el.
+
 
 Examples
 ========
@@ -83,6 +87,22 @@ Supported backends:
  url.el     Included in Emacs.
  curl       Reliable.  Needed for multipart form POST.
 ========== ============================================
+
+
+Monkey patches for url.el
+=========================
+
+Patches for following bugs are applied when request.el is loaded.
+If the patches are not required for newer Emacs versions, it will
+not be applied.
+
+- `#12374 - 24.1.50;
+  Incorrect redirect in url-retrieve when URL contains port number -
+  GNU bug report logs
+  <http://debbugs.gnu.org/cgi/bugreport.cgi?bug=12374>`_
+
+  (patch: `PATCH Fix bug 12374 treat port number when expanding URL
+  <http://article.gmane.org/gmane.emacs.devel/155698>`_)
 
 
 License
