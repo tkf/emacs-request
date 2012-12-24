@@ -563,9 +563,8 @@ associated process is exited."
 
 ;;; Backend: `url-retrieve'
 
-(defun* request--url-retrieve (url &rest settings
-                                   &key type data headers files timeout response
-                                   &allow-other-keys)
+(defun* request--url-retrieve-preprocess-settings
+    (&rest settings &key type data files headers &allow-other-keys)
   (when files
     (error "`url-retrieve' backend does not support FILES."))
   (when (and (equal type "POST")
@@ -573,6 +572,14 @@ associated process is exited."
              (not (assoc-string headers "Content-Type" t)))
     (push '("Content-Type" . "application/x-www-form-urlencoded") headers)
     (setq settings (plist-put settings :headers headers)))
+  settings)
+
+(defun* request--url-retrieve (url &rest settings
+                                   &key type data timeout response
+                                   &allow-other-keys
+                                   &aux headers)
+  (setq settings (apply #'request--url-retrieve-preprocess-settings settings))
+  (setq headers (plist-get settings :headers))
   (let* ((url-request-extra-headers headers)
          (url-request-method type)
          (url-request-data data)
@@ -616,9 +623,32 @@ associated process is exited."
   (apply #'request--callback (current-buffer) settings))
 
 (defun* request--url-retrieve-sync (url &rest settings
-                                        &key type data files headers timeout
-                                        response &allow-other-keys)
-  (error "Not implemented!")) ; FIXME: implement `request--url-retrieve-sync'
+                                        &key type data timeout response
+                                        &allow-other-keys
+                                        &aux headers)
+  (setq settings (apply #'request--url-retrieve-preprocess-settings settings))
+  (setq headers (plist-get settings :headers))
+  (let* ((url-request-extra-headers headers)
+         (url-request-method type)
+         (url-request-data data)
+         (buffer (if timeout
+                     (with-timeout
+                         (timeout
+                          (setf (request-response-symbol-status response)
+                                'timeout)
+                          nil)
+                       (url-retrieve-synchronously url))
+                   (url-retrieve-synchronously url))))
+    (setf (request-response--buffer response) buffer)
+    ;; It seems there is no way to get redirects and URL here...
+    (when buffer
+      (with-current-buffer buffer
+        (goto-char (point-min))
+        (destructuring-bind (&key version code)
+            (request--parse-response-at-point)
+          (setf (request-response-status-code response) code)))
+      (apply #'request--callback buffer settings)))
+  response)
 
 (defun request--url-retrieve-get-cookies (host localpart secure)
   (mapcar
