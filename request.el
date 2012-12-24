@@ -902,10 +902,16 @@ START-URL is the URL requested."
 (defun request--curl-kill-process-buffer (buffer)
   (interrupt-process (get-buffer-process buffer)))
 
-(defun* request--curl-sync (url &rest settings
-                                &key type data files headers timeout response
-                                &allow-other-keys)
-  (error "Not implemented!")) ; FIXME: implement `request--curl-sync'
+(defun* request--curl-sync (url &rest settings &key response &allow-other-keys)
+  ;; To make timeout work, use polling approach rather than using
+  ;; `call-process'.
+  (lexical-let (finished)
+    (prog1 (apply #'request--curl url
+                  :complete (lambda (&rest _) (setq finished t))
+                  settings)
+      (let ((proc (get-buffer-process (request-response--buffer response))))
+        (while (and (not finished) (process-live-p proc))
+          (accept-process-output proc))))))
 
 (defun request--curl-get-cookies (host localpart secure)
   (request--netscape-get-cookies (request--curl-cookie-jar)
