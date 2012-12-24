@@ -142,6 +142,15 @@ See also:
              (should (equal error-thrown `(error . (http ,code))))
              (should (equal status-code code)))))
 
+(request-deftest request-get-sync ()
+  (request-testing-with-response-slots
+      (request (request-testing-url "report/some-path")
+               :sync t :parser 'json-read)
+    (should done-p)
+    (should (equal status-code 200))
+    (should (equal (assoc-default 'path data) "some-path"))
+    (should (equal (assoc-default 'method data) "GET"))))
+
 
 ;;; POST
 
@@ -327,13 +336,13 @@ See also:
                                :parser 'json-read)
       (let ((process (get-buffer-process -buffer)))
         (loop repeat 30
-              when (request-testing-process-live-p process) return nil
+              when (request--process-live-p process) return nil
               do (sleep-for 0.1)
               finally (error "Timeout: failed to check process is started."))
 
         (should-not symbol-status)
         (should-not done-p)
-        (should (request-testing-process-live-p process))
+        (should (request--process-live-p process))
 
         (request-abort response)
         (loop repeat 30
@@ -343,7 +352,7 @@ See also:
 
         (should (equal symbol-status 'abort))
         (should done-p)
-        (should-not (request-testing-process-live-p process))))
+        (should-not (request--process-live-p process))))
 
     (should (= (length called) 1))
     (destructuring-bind (&key data symbol-status error-thrown response)

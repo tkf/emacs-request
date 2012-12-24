@@ -1,7 +1,8 @@
 ;;; request.el --- Compatible layer for URL request in Emacs
 
 ;; Copyright (C) 2012 Takafumi Arakaki
-;; Copyright (C) 1999, 2004-2012  Free Software Foundation, Inc.
+;; Copyright (C) 1985-1986, 1992, 1994-1995, 1999-2012
+;;   Free Software Foundation, Inc.
 
 ;; Author: Takafumi Arakaki <aka.tkf at gmail.com>
 ;; Version: 0.1.0alpha0
@@ -26,6 +27,7 @@
 
 ;; Following functions are adapted from GNU Emacs source code.
 ;; Free Software Foundation holds the copyright of them.
+;; * `request--process-live-p'
 ;; * `request--url-default-expander'
 
 ;;; Code:
@@ -94,6 +96,14 @@
   (declare (indent defun)
            (doc-string 2))
   `(put ',function 'function-documentation ,docstring))
+
+(defun request--process-live-p (process)
+  "Copied from `process-live-p' for backward compatibility (Emacs < 24).
+Adapted from lisp/subr.el.
+FSF holds the copyright of this function:
+  Copyright (C) 1985-1986, 1992, 1994-1995, 1999-2012
+    Free Software Foundation, Inc."
+  (memq (process-status process) '(run open listen connect stop)))
 
 
 ;;; Logging
@@ -232,10 +242,12 @@ as URL which is the requested URL.")
 (defvar request--backend-alist
   '((url-retrieve
      . ((request             . request--url-retrieve)
+        (request-sync        . request--url-retrieve-sync)
         (kill-process-buffer . kill-buffer)
         (get-cookies         . request--url-retrieve-get-cookies)))
     (curl
      . ((request             . request--curl)
+        (request-sync        . request--curl-sync)
         (kill-process-buffer . request--curl-kill-process-buffer)
         (get-cookies         . request--curl-get-cookies))))
   "Available request backends.")
@@ -290,6 +302,7 @@ Example::
                      (complete nil)
                      (timeout request-timeout)
                      (status-code nil)
+                     (sync nil)
                      (response (make-request-response)))
   "Send request to URL.
 
@@ -309,6 +322,7 @@ ERROR    (function)   called on error
 COMPLETE (function)   called on both success and error
 TIMEOUT    (number)   timeout in second
 STATUS-CODE (alist)   map status code (int) to callback
+SYNC         (bool)   If `t', wait until request is done.  Default is `nil'.
 ==================== ========================================================
 
 
@@ -397,6 +411,21 @@ This is analogous to the `dataType' argument of jQuery.ajax_.
 Only this function can access to the process buffer, which
 is killed immediately after the execution of this function.
 
+* SYNC
+
+Synchronous request is functional, but *please* don't use it
+other than testing or debugging.  Emacs users have better things
+to do rather than waiting for HTTP request.
+
+If you can't avoid using it (e.g., you are inside of some hook
+which must return some value), make sure to set TIMEOUT to
+relatively small value.
+
+Due to limitation of `url-retrieve-synchronously', response slots
+`request-response-redirects' and `request-response-url' are
+unknown (always `nil') when using synchronous request with
+`url-retrieve' backend.
+
 * Note
 
 API of `request' is somewhat mixture of jQuery.ajax_ (Javascript)
@@ -425,8 +454,11 @@ and requests.request_ (Python).
   (setf (request-response-settings response) settings)
   (setf (request-response-url      response) url)
   (setf (request-response--backend response) request-backend)
-  ;; Call `request--url-retrieve' or `request--curl'.
-  (apply (request--choose-backend 'request) url settings)
+  ;; Call `request--url-retrieve'(`-sync') or `request--curl'(`-sync').
+  (apply (if sync
+             (request--choose-backend 'request-sync)
+           (request--choose-backend 'request))
+         url settings)
   response)
 
 (defun request--parse-data (buffer parser error-thrown backend)
@@ -557,9 +589,8 @@ associated process is exited."
 
 ;;; Backend: `url-retrieve'
 
-(defun* request--url-retrieve (url &rest settings
-                                   &key type data headers files timeout response
-                                   &allow-other-keys)
+(defun* request--url-retrieve-preprocess-settings
+    (&rest settings &key type data files headers &allow-other-keys)
   (when files
     (error "`url-retrieve' backend does not support FILES."))
   (when (and (equal type "POST")
@@ -567,6 +598,14 @@ associated process is exited."
              (not (assoc-string headers "Content-Type" t)))
     (push '("Content-Type" . "application/x-www-form-urlencoded") headers)
     (setq settings (plist-put settings :headers headers)))
+  settings)
+
+(defun* request--url-retrieve (url &rest settings
+                                   &key type data timeout response
+                                   &allow-other-keys
+                                   &aux headers)
+  (setq settings (apply #'request--url-retrieve-preprocess-settings settings))
+  (setq headers (plist-get settings :headers))
   (let* ((url-request-extra-headers headers)
          (url-request-method type)
          (url-request-data data)
@@ -608,6 +647,37 @@ associated process is exited."
   (setf (request-response-error-thrown response) (plist-get status :error))
 
   (apply #'request--callback (current-buffer) settings))
+
+(defun* request--url-retrieve-sync (url &rest settings
+                                        &key type data timeout response
+                                        &allow-other-keys
+                                        &aux headers)
+  (setq settings (apply #'request--url-retrieve-preprocess-settings settings))
+  (setq headers (plist-get settings :headers))
+  (let* ((url-request-extra-headers headers)
+         (url-request-method type)
+         (url-request-data data)
+         (buffer (if timeout
+                     (with-timeout
+                         (timeout
+                          (setf (request-response-symbol-status response)
+                                'timeout)
+                          (setf (request-response-done-p response) t)
+                          nil)
+                       (url-retrieve-synchronously url))
+                   (url-retrieve-synchronously url))))
+    (setf (request-response--buffer response) buffer)
+    ;; It seems there is no way to get redirects and URL here...
+    (when buffer
+      ;; Fetch HTTP response code
+      (with-current-buffer buffer
+        (goto-char (point-min))
+        (destructuring-bind (&key version code)
+            (request--parse-response-at-point)
+          (setf (request-response-status-code response) code)))
+      ;; Parse response body, etc.
+      (apply #'request--callback buffer settings)))
+  response)
 
 (defun request--url-retrieve-get-cookies (host localpart secure)
   (mapcar
@@ -655,6 +725,7 @@ Currently it is used only for testing.")
                            "")))
    (when data (list "--data-binary" "@-"))
    (when type (list "--request" type))
+   ;; FIXME: implement timeout using Emacs timer
    (when timeout (list "--max-time" (format "%s" timeout)))
    (loop for (k . v) in headers
          collect "--header"
@@ -860,6 +931,17 @@ START-URL is the URL requested."
 
 (defun request--curl-kill-process-buffer (buffer)
   (interrupt-process (get-buffer-process buffer)))
+
+(defun* request--curl-sync (url &rest settings &key response &allow-other-keys)
+  ;; To make timeout work, use polling approach rather than using
+  ;; `call-process'.
+  (lexical-let (finished)
+    (prog1 (apply #'request--curl url
+                  :complete (lambda (&rest _) (setq finished t))
+                  settings)
+      (let ((proc (get-buffer-process (request-response--buffer response))))
+        (while (and (not finished) (request--process-live-p proc))
+          (accept-process-output proc))))))
 
 (defun request--curl-get-cookies (host localpart secure)
   (request--netscape-get-cookies (request--curl-cookie-jar)
