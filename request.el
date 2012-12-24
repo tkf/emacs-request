@@ -1,6 +1,7 @@
 ;;; request.el --- Compatible layer for URL request in Emacs
 
 ;; Copyright (C) 2012 Takafumi Arakaki
+;; Copyright (C) 1999, 2004-2012  Free Software Foundation, Inc.
 
 ;; Author: Takafumi Arakaki <aka.tkf at gmail.com>
 ;; Version: 0.1.0alpha0
@@ -23,7 +24,9 @@
 
 ;;; Commentary:
 
-;;
+;; Following functions are adapted from GNU Emacs source code.
+;; Free Software Foundation holds the copyright of them.
+;; * `request--url-default-expander'
 
 ;;; Code:
 
