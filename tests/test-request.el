@@ -142,6 +142,15 @@ See also:
              (should (equal error-thrown `(error . (http ,code))))
              (should (equal status-code code)))))
 
+(request-deftest request-get-timeout ()
+  (request-testing-with-response-slots
+      (request-testing-sync "sleep/1.0"
+                            :timeout 0.1
+                            :parser 'json-read)
+    (should (equal symbol-status 'timeout))
+    (should error-thrown)
+    (should done-p)))
+
 (request-deftest request-get-sync ()
   (request-testing-with-response-slots
       (request (request-testing-url "report/some-path")

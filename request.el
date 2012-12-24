@@ -464,6 +464,10 @@ and requests.request_ (Python).
 (defun request--parse-data (buffer parser error-thrown backend)
   "Run PARSER in current buffer if ERROR-THROWN is nil,
 then kill the current buffer."
+  (request-log 'debug "-PARSE-DATA")
+  (request-log 'debug "parser = %s" parser)
+  (request-log 'debug "error-thrown = %S" error-thrown)
+  (request-log 'debug "backend = %S" backend)
   (let (noerror)
     (unwind-protect
         (prog1
@@ -546,8 +550,9 @@ then kill the current buffer."
     (request--safe-delete-files (request-response--tempfiles response))))
 
 (defun* request-response--timeout-callback (response)
-  (request-log 'debug "request-response--timeout-callback")
+  (request-log 'debug "-TIMEOUT-CALLBACK")
   (setf (request-response-symbol-status response) 'timeout)
+  (setf (request-response-error-thrown response)  '(error . ("Timeout")))
   (let* ((buffer (request-response--buffer response))
          (proc (and (buffer-live-p buffer) (get-buffer-process buffer))))
     (when proc
@@ -616,7 +621,7 @@ associated process is exited."
     (process-put proc :request-response response)
     (request-log 'debug "Start querying: %s" url)
     (when timeout
-      (request-log 'debug "Start timer: timeout=%s ms" timeout)
+      (request-log 'debug "Start timer: timeout=%s sec" timeout)
       (with-current-buffer buffer
         (setf (request-response--timer response)
               (run-at-time timeout nil
@@ -629,7 +634,7 @@ associated process is exited."
                                                &allow-other-keys)
   (declare (special url-http-method
                     url-http-response-status))
-  (request-log 'debug "REQUEST--URL-RETRIEVE-CALLBACK")
+  (request-log 'debug "-URL-RETRIEVE-CALLBACK")
   (request-log 'debug "status = %S" status)
   (request-log 'debug "url-http-method = %s" url-http-method)
   (request-log 'debug "url-http-response-status = %s" url-http-response-status)
@@ -644,7 +649,15 @@ associated process is exited."
                   when (eq k :redirect)
                   do (push v l)
                   finally return l))))
-  (setf (request-response-error-thrown response) (plist-get status :error))
+
+  (symbol-macrolet ((error-thrown (request-response-error-thrown response))
+                    (status-error (plist-get status :error)))
+    (when (and error-thrown status-error)
+      (request-log 'warn
+        "Error %S thrown already but got another error %S from \
+`url-retrieve'.  Ignoring it..." error-thrown status-error))
+    (unless error-thrown
+      (setq error-thrown status-error)))
 
   (apply #'request--callback (current-buffer) settings))
 
