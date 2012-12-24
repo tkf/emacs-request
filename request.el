@@ -459,6 +459,11 @@ and requests.request_ (Python).
              (request--choose-backend 'request-sync)
            (request--choose-backend 'request))
          url settings)
+  (when timeout
+    (request-log 'debug "Start timer: timeout=%s sec" timeout)
+    (setf (request-response--timer response)
+          (run-at-time timeout nil
+                       #'request-response--timeout-callback response)))
   response)
 
 (defun request--parse-data (buffer parser error-thrown backend)
@@ -620,13 +625,6 @@ associated process is exited."
     (setf (request-response--buffer response) buffer)
     (process-put proc :request-response response)
     (request-log 'debug "Start querying: %s" url)
-    (when timeout
-      (request-log 'debug "Start timer: timeout=%s sec" timeout)
-      (with-current-buffer buffer
-        (setf (request-response--timer response)
-              (run-at-time timeout nil
-                           #'request-response--timeout-callback
-                           response))))
     (set-process-query-on-exit-flag proc nil)))
 
 (defun* request--url-retrieve-callback (status &rest settings
@@ -738,8 +736,6 @@ Currently it is used only for testing.")
                            "")))
    (when data (list "--data-binary" "@-"))
    (when type (list "--request" type))
-   ;; FIXME: implement timeout using Emacs timer
-   (when timeout (list "--max-time" (format "%s" timeout)))
    (loop for (k . v) in headers
          collect "--header"
          collect (format "%s: %s" k v))
