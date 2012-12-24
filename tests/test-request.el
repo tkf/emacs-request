@@ -142,6 +142,15 @@ See also:
              (should (equal error-thrown `(error . (http ,code))))
              (should (equal status-code code)))))
 
+(request-deftest request-get-sync ()
+  (request-testing-with-response-slots
+      (request (request-testing-url "report/some-path")
+               :sync t :parser 'json-read)
+    (should done-p)
+    (should (equal status-code 200))
+    (should (equal (assoc-default 'path data) "some-path"))
+    (should (equal (assoc-default 'method data) "GET"))))
+
 
 ;;; POST
 
