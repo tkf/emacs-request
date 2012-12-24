@@ -940,7 +940,7 @@ START-URL is the URL requested."
                   :complete (lambda (&rest _) (setq finished t))
                   settings)
       (let ((proc (get-buffer-process (request-response--buffer response))))
-        (while (and (not finished) (process-live-p proc))
+        (while (and (not finished) (request--process-live-p proc))
           (accept-process-output proc))))))
 
 (defun request--curl-get-cookies (host localpart secure)
