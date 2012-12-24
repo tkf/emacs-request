@@ -2,16 +2,15 @@
  Request.el -- Easy HTTP request for Emacs Lisp
 ================================================
 
-* `Documentation (at GitHub Pages) <http://tkf.github.com/emacs-request/>`_
-* `Repository (at GitHub) <https://github.com/tkf/emacs-request>`_
-* `Issue tracker (at GitHub) <https://github.com/tkf/emacs-request/issues>`_
-* `Travis CI <https://travis-ci.org/#!/tkf/emacs-request>`_ |build-status|
+.. sidebar:: Links
 
-.. |build-status|
-   image:: https://secure.travis-ci.org/tkf/emacs-request.png
-           ?branch=master
-   :target: http://travis-ci.org/tkf/emacs-request
-   :alt: Build Status
+   * `Documentation <http://tkf.github.com/emacs-request/>`_ (at GitHub Pages)
+
+     * `Manual <http://tkf.github.com/emacs-request/manual.html>`_
+
+   * `Repository <https://github.com/tkf/emacs-request>`_ (at GitHub)
+   * `Issue tracker <https://github.com/tkf/emacs-request/issues>`_ (at GitHub)
+   * `Travis CI <https://travis-ci.org/#!/tkf/emacs-request>`_ |build-status|
 
 
 What is it?
@@ -110,3 +109,10 @@ License
 
 Request.el is free software under GPL v3.
 See COPYING file for details.
+
+
+.. |build-status|
+   image:: https://secure.travis-ci.org/tkf/emacs-request.png
+           ?branch=master
+   :target: http://travis-ci.org/tkf/emacs-request
+   :alt: Build Status
