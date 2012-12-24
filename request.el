@@ -243,12 +243,12 @@ as URL which is the requested URL.")
   '((url-retrieve
      . ((request             . request--url-retrieve)
         (request-sync        . request--url-retrieve-sync)
-        (kill-process-buffer . kill-buffer)
+        (terminate-process   . delete-process)
         (get-cookies         . request--url-retrieve-get-cookies)))
     (curl
      . ((request             . request--curl)
         (request-sync        . request--curl-sync)
-        (kill-process-buffer . request--curl-kill-process-buffer)
+        (terminate-process   . interrupt-process)
         (get-cookies         . request--curl-get-cookies))))
   "Available request backends.")
 
@@ -591,10 +591,11 @@ associated process is exited."
   (symbol-macrolet ((buffer (request-response--buffer response))
                     (symbol-status (request-response-symbol-status response))
                     (done-p (request-response-done-p response)))
-    (when (and (buffer-live-p buffer) (not symbol-status))
-      (setq symbol-status 'abort)
-      (setq done-p t)
-      (funcall (request--choose-backend 'kill-process-buffer) buffer))))
+    (let ((process (get-buffer-process buffer)))
+      (when (and (request--process-live-p process) (not symbol-status))
+        (setq symbol-status 'abort)
+        (setq done-p t)
+        (funcall (request--choose-backend 'terminate-process) process)))))
 
 
 ;;; Backend: `url-retrieve'
@@ -937,9 +938,6 @@ START-URL is the URL requested."
         (setf (request-response-error-thrown response)
               (or error (when (>= code 400) `(error . (http ,code)))))
         (apply #'request--callback buffer settings))))))
-
-(defun request--curl-kill-process-buffer (buffer)
-  (interrupt-process (get-buffer-process buffer)))
 
 (defun* request--curl-sync (url &rest settings &key response &allow-other-keys)
   ;; To make timeout work, use polling approach rather than using
