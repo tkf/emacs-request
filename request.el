@@ -411,6 +411,11 @@ If you can't avoid using it (e.g., you are inside of some hook
 which must return some value), make sure to set TIMEOUT to
 relatively small value.
 
+Due to limitation of `url-retrieve-synchronously', response slots
+`request-response-redirects' and `request-response-url' are
+unknown (always `nil') when using synchronous request with
+`url-retrieve' backend.
+
 * Note
 
 API of `request' is somewhat mixture of jQuery.ajax_ (Javascript)
@@ -647,17 +652,20 @@ associated process is exited."
                          (timeout
                           (setf (request-response-symbol-status response)
                                 'timeout)
+                          (setf (request-response-done-p response) t)
                           nil)
                        (url-retrieve-synchronously url))
                    (url-retrieve-synchronously url))))
     (setf (request-response--buffer response) buffer)
     ;; It seems there is no way to get redirects and URL here...
     (when buffer
+      ;; Fetch HTTP response code
       (with-current-buffer buffer
         (goto-char (point-min))
         (destructuring-bind (&key version code)
             (request--parse-response-at-point)
           (setf (request-response-status-code response) code)))
+      ;; Parse response body, etc.
       (apply #'request--callback buffer settings)))
   response)
 
@@ -707,6 +715,7 @@ Currently it is used only for testing.")
                            "")))
    (when data (list "--data-binary" "@-"))
    (when type (list "--request" type))
+   ;; FIXME: implement timeout using Emacs timer
    (when timeout (list "--max-time" (format "%s" timeout)))
    (loop for (k . v) in headers
          collect "--header"
