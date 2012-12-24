@@ -1,7 +1,8 @@
 ;;; request.el --- Compatible layer for URL request in Emacs
 
 ;; Copyright (C) 2012 Takafumi Arakaki
-;; Copyright (C) 1999, 2004-2012  Free Software Foundation, Inc.
+;; Copyright (C) 1985-1986, 1992, 1994-1995, 1999-2012
+;;   Free Software Foundation, Inc.
 
 ;; Author: Takafumi Arakaki <aka.tkf at gmail.com>
 ;; Version: 0.1.0alpha0
@@ -26,6 +27,7 @@
 
 ;; Following functions are adapted from GNU Emacs source code.
 ;; Free Software Foundation holds the copyright of them.
+;; * `request--process-live-p'
 ;; * `request--url-default-expander'
 
 ;;; Code:
@@ -94,6 +96,14 @@
   (declare (indent defun)
            (doc-string 2))
   `(put ',function 'function-documentation ,docstring))
+
+(defun request--process-live-p (process)
+  "Copied from `process-live-p' for backward compatibility (Emacs < 24).
+Adapted from lisp/subr.el.
+FSF holds the copyright of this function:
+  Copyright (C) 1985-1986, 1992, 1994-1995, 1999-2012
+    Free Software Foundation, Inc."
+  (memq (process-status process) '(run open listen connect stop)))
 
 
 ;;; Logging
