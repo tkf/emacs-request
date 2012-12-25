@@ -112,7 +112,7 @@ FSF holds the copyright of this function:
 
 ;;; Logging
 
-(defvar request--log-level-def
+(defconst request--log-level-def
   '(;; debugging
     (blather . 60) (trace . 50) (debug . 40)
     ;; information
@@ -243,7 +243,7 @@ as URL which is the requested URL.")
 
 ;;; Backend dispatcher
 
-(defvar request--backend-alist
+(defconst request--backend-alist
   '((url-retrieve
      . ((request             . request--url-retrieve)
         (request-sync        . request--url-retrieve-sync)
@@ -724,7 +724,7 @@ Currently it is used only for testing.")
   (or request--curl-cookie-jar
       (expand-file-name "curl-cookie-jar" request-storage-directory)))
 
-(defvar request--curl-write-out-template
+(defconst request--curl-write-out-template
   "\\n(:num-redirects %{num_redirects} :url-effective \"%{url_effective}\")")
 ;; FIXME: should % be escaped for Windows?
 
@@ -862,7 +862,7 @@ See also `request--curl-write-out-template'."
           (read (current-buffer))
         (delete-region beg (point-max))))))
 
-(defvar request--cookie-reserved-re
+(defconst request--cookie-reserved-re
   (mapconcat
    (lambda (x) (concat "\\(^" x "\\'\\)"))
    '("comment" "commenturl" "discard" "domain" "max-age" "path" "port"
