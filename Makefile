@@ -72,12 +72,16 @@ travis-ci: print-deps test
 # Use ${EL4T_MET_MAKEFLAGS} to do the tests in parallel.
 #
 #    EL4T_MET_MAKEFLAGS=-j4
+#
+# Use ${EL4T_MET_PRE_TARGETS} to set additional jobs to do before tests.
+#
+#    EL4T_MET_PRE_TARGETS=compile
 
 JOBS := $(addprefix job-,${EL4T_EMACS_LIST})
 .PHONY: ${JOBS}
 
 ${JOBS}: job-%:
-	${MAKE} EMACS=$* clean elpa
+	${MAKE} EMACS=$* clean elpa ${EL4T_MET_PRE_TARGETS}
 	${MAKE} EMACS=$* ${EL4T_MET_MAKEFLAGS} test
 
 test-all: ${JOBS}
