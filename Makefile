@@ -36,7 +36,10 @@ test-1:
 		-L . -L tests -l tests/test-request.el \
 		-f ert-run-tests-batch-and-exit
 
-elpa:
+${EL4T_SCRIPT}:
+	git submodule update --init
+
+elpa: ${EL4T_SCRIPT}
 	mkdir elpa
 	${EL4T_CARTON} install 2> elpa/install.log
 
