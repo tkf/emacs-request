@@ -157,8 +157,8 @@ Monkey patches for url.el
 =========================
 
 Patches for following bugs are applied when request.el is loaded.
-If the patches are not required for newer Emacs versions, it will
-not be applied.
+If the patch is not required for the Emacs version you are using, it
+will not be applied.
 
 - `#12374 - 24.1.50;
   Incorrect redirect in url-retrieve when URL contains port number -
