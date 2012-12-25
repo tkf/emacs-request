@@ -10,7 +10,8 @@ TEST_1 = ${MAKE} EMACS=${EMACS} CARTON=${CARTON} test-1
 .PHONY : test test-all test-1 compile clean clean-elpa clean-elc \
 	print-deps travis-ci
 
-test: elpa test-3
+test: elpa
+	${MAKE} test-3
 
 test-3: test-3-tornado test-3-flask
 
