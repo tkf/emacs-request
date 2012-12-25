@@ -426,7 +426,8 @@ is killed immediately after the execution of this function.
 
 Synchronous request is functional, but *please* don't use it
 other than testing or debugging.  Emacs users have better things
-to do rather than waiting for HTTP request.
+to do rather than waiting for HTTP request.  If you want a better
+way to write callback chains, use `request-deferred'.
 
 If you can't avoid using it (e.g., you are inside of some hook
 which must return some value), make sure to set TIMEOUT to
