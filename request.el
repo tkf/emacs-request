@@ -33,7 +33,7 @@
 ;;; Code:
 
 (eval-when-compile (require 'cl))
-(require 'url nil t)
+(require 'url)
 (require 'mail-utils)
 
 (defgroup request nil
@@ -58,20 +58,24 @@
 (defcustom request-backend (if (executable-find request-curl)
                                'curl
                              'url-retrieve)
-  "Backend to be used for HTTP request."
+  "Backend to be used for HTTP request.
+Automatically set to `curl' if curl command is found."
   :group 'request)
 
-(defcustom request-timeout 60
+(defcustom request-timeout nil
   "Default request timeout in second.
 `nil' means no timeout."
   :group 'request)
 
 (defcustom request-log-level -1
-  "Logging level for request."
+  "Logging level for request.
+One of `error'/`warn'/`info'/`verbose'/`debug'.
+-1 means no logging."
   :group 'request)
 
 (defcustom request-message-level 'warn
-  "Logging level for request."
+  "Logging level for request.
+See `request-log-level'."
   :group 'request)
 
 
@@ -434,9 +438,9 @@ which must return some value), make sure to set TIMEOUT to
 relatively small value.
 
 Due to limitation of `url-retrieve-synchronously', response slots
-`request-response-redirects' and `request-response-url' are
-unknown (always `nil') when using synchronous request with
-`url-retrieve' backend.
+`request-response-error-thrown', `request-response-redirects' and
+`request-response-url' are unknown (always `nil') when using
+synchronous request with `url-retrieve' backend.
 
 * Note
 
