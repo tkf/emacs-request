@@ -456,6 +456,24 @@ See also:
   (request-testing-assert-username-is nil))
 
 
+;;; Testing framework
+
+(defvar request-testing-server-name
+  (let ((server (getenv "EL_REQUEST_TEST_SERVER")))
+    (if (member server '(nil "" "flask"))
+        "werkzeug"
+      server)))
+
+(message "Using test server: %s" request-testing-server-name)
+
+(request-deftest request-tfw-server ()
+  (request-testing-with-response-slots
+        (request-testing-sync
+         "report/some-path"
+         :parser (lambda () (downcase (mail-fetch-field "server"))))
+      (should (string-prefix-p request-testing-server-name data))))
+
+
 ;;; `request-backend'-independent tests
 
 ;; Following tests does not depend on the value of `request-backend'.
