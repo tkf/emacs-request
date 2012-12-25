@@ -132,7 +132,7 @@ def run(port, server, **kwds):
 def main(args=None):
     import argparse
     default_port = int(os.environ.get('EL_REQUEST_TEST_PORT', '0'))
-    default_server = os.environ.get('EL_REQUEST_TEST_SERVER', 'flask')
+    default_server = os.environ.get('EL_REQUEST_TEST_SERVER') or 'flask'
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--port', default=default_port, type=int)
     parser.add_argument('--use-reloader', default=False, action='store_true')
