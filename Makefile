@@ -68,11 +68,16 @@ travis-ci: print-deps test
 #     make EL4T_EMACS_LIST="emacs emacs-snapshot emacs23" test-all
 #
 # See: http://stackoverflow.com/a/12110773/727827
+#
+# Use ${EL4T_MET_MAKEFLAGS} to do the tests in parallel.
+#
+#    EL4T_MET_MAKEFLAGS=-j4
 
 JOBS := $(addprefix job-,${EL4T_EMACS_LIST})
 .PHONY: ${JOBS}
 
 ${JOBS}: job-%:
-	${MAKE} EMACS=$* clean test
+	${MAKE} EMACS=$* clean elpa
+	${MAKE} EMACS=$* ${EL4T_MET_MAKEFLAGS} test
 
 test-all: ${JOBS}
