@@ -1102,7 +1102,8 @@ Without this patch, PUT method fails every two times.
 See: http://thread.gmane.org/gmane.emacs.devel/155697"
   (setq ad-return-value (request--url-http-end-of-document-sentinel proc why)))
 
-(when (version< emacs-version "100")
+(when (and (version< "24" emacs-version)
+           (version< emacs-version "100"))
   ;; FIXME: change the version number after my patch is applied.
   (ad-enable-advice 'url-http-end-of-document-sentinel
                     'around
