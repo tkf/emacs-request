@@ -1072,6 +1072,17 @@ See: http://thread.gmane.org/gmane.emacs.devel/155698"
   (ad-activate 'url-default-expander))
 
 
+(eval-when-compile (require 'url-http)
+                   (defvar url-http-no-retry)
+                   (defvar url-http-extra-headers)
+                   (defvar url-http-data)
+                   (defvar url-callback-function)
+                   (defvar url-callback-arguments))
+(declare-function url-http-idle-sentinel "url-http")
+(declare-function url-http-activate-callback "url-http")
+(declare-function url-http "url-http")
+(declare-function url-http-parse-headers "url-http")
+
 (defun request--url-http-end-of-document-sentinel (proc why)
   "Adapted from lisp/url/url-http.el.
 FSF holds the copyright of this function:
