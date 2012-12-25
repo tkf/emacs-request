@@ -158,7 +158,7 @@ The symbols other than `response' is bound using `symbol-macrolet'."
 (defun request-deftest--backends (backends name body)
   "[Macro helper] Execute BODY only when `request-backend' is in BACKENDS."
   `((if (and ',backends (not (memq request-backend ',backends)))
-        (message "REQUEST: Test %s for backend %s is not supported."
+        (message "REQUEST: Skip %s for backend %s."
                  ',name request-backend)
       ,@body)))
 
