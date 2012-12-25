@@ -11,6 +11,11 @@ TEST_1 = make EMACS=${EMACS} CARTON=${CARTON} test-1
 	print-deps travis-ci
 
 test: elpa
+	EL_REQUEST_TEST_SERVER=tornado make test-2
+	EL_REQUEST_TEST_SERVER=flask   make test-2
+
+# Run test for different backends, for one server.
+test-2:
 	EL_REQUEST_BACKEND=url-retrieve ${TEST_1}
 	EL_REQUEST_BACKEND=curl ${TEST_1}
 
