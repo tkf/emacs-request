@@ -5,7 +5,7 @@ EL4T_SCRIPT = tools/el4t/emacs.sh
 EL4T_CARTON = EL4T_EMACS=${EMACS} EMACS=${EL4T_SCRIPT} ${CARTON}
 EL4T_CARTON_EMACS = ${EL4T_CARTON} exec ${EL4T_SCRIPT}
 
-TEST_1 = make EMACS=${EMACS} CARTON=${CARTON} test-1
+TEST_1 = ${MAKE} EMACS=${EMACS} CARTON=${CARTON} test-1
 
 .PHONY : test test-all test-1 compile clean clean-elpa clean-elc \
 	print-deps travis-ci
@@ -15,10 +15,10 @@ test: elpa test-3
 test-3: test-3-tornado test-3-flask
 
 test-3-tornado:
-	EL_REQUEST_TEST_SERVER=tornado make -j2 test-2
+	EL_REQUEST_TEST_SERVER=tornado ${MAKE} test-2
 
 test-3-flask:
-	EL_REQUEST_TEST_SERVER=flask make -j2 test-2
+	EL_REQUEST_TEST_SERVER=flask ${MAKE} test-2
 
 # Run test for different backends, for one server.
 test-2: test-2-url-retrieve test-2-curl
@@ -73,6 +73,6 @@ JOBS := $(addprefix job-,${EL4T_EMACS_LIST})
 .PHONY: ${JOBS}
 
 ${JOBS}: job-%:
-	make EMACS=$* clean test
+	${MAKE} EMACS=$* clean test
 
 test-all: ${JOBS}
