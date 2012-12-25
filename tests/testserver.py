@@ -125,6 +125,7 @@ def run(port, server, **kwds):
         from tornado.ioloop import IOLoop
         http_server = HTTPServer(WSGIContainer(app))
         http_server.listen(port)
+        print " * Running on", port
         IOLoop.instance().start()
 
 
