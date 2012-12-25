@@ -298,7 +298,7 @@ See also:
 
 ;;; PUT
 
-(request-deftest request-simple-put ()
+(defun request-testing-put-simple-1 ()
   (request-testing-with-response-slots
       (request-testing-sync "report/some-path"
                             :type "PUT" :data "dummy-data"
@@ -308,6 +308,19 @@ See also:
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "PUT"))
     (should (equal (assoc-default 'data data) "dummy-data"))))
+
+(request-deftest request-put-simple ()
+  (request-testing-put-simple-1))
+
+(request-deftest request-put-twice ()
+  "Check that GNU bug report #11469 is fixed.
+See: http://debbugs.gnu.org/cgi/bugreport.cgi?bug=11469
+
+It seems that this bug occurs only when using HTTP/1.1 protocol.
+To check that, run test with:
+   export EL_REQUEST_TEST_SERVER=tornado"
+  (request-testing-put-simple-1)
+  (request-testing-put-simple-1))
 
 (request-deftest request-simple-put-json ()
   (request-testing-with-response-slots
@@ -454,6 +467,24 @@ See also:
     (should (equal (assoc-default 'method data) "GET")))
   ;; check login state
   (request-testing-assert-username-is nil))
+
+
+;;; Testing framework
+
+(defvar request-testing-server-name
+  (let ((server (getenv "EL_REQUEST_TEST_SERVER")))
+    (if (member server '(nil "" "flask"))
+        "werkzeug"
+      server)))
+
+(message "Using test server: %s" request-testing-server-name)
+
+(request-deftest request-tfw-server ()
+  (request-testing-with-response-slots
+        (request-testing-sync
+         "report/some-path"
+         :parser (lambda () (downcase (mail-fetch-field "server"))))
+      (should (string-prefix-p request-testing-server-name data))))
 
 
 ;;; `request-backend'-independent tests

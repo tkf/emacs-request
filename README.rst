@@ -168,6 +168,13 @@ not be applied.
   (patch: `PATCH Fix bug 12374 treat port number when expanding URL
   <http://article.gmane.org/gmane.emacs.devel/155698>`_)
 
+- `#11469 - 24.1.50; url-retrieve with PUT method fails every two
+  times - GNU bug report logs
+  <http://debbugs.gnu.org/cgi/bugreport.cgi?bug=11469>`_
+
+  (patch: `PATCH Fix bug 11469 propagate url request vars properly
+  <http://article.gmane.org/gmane.emacs.devel/155697>`_)
+
 
 License
 =======

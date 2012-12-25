@@ -7,7 +7,7 @@ env:
   global:
     - CARTON=$HOME/.carton/bin/carton
 before_install:
-  - pip install -q flask
+  - pip install -q flask tornado
   - curl -fsSkL
         --max-time 10
         --retry 10

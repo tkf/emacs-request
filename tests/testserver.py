@@ -107,7 +107,7 @@ def get_open_port():
     return port
 
 
-def run(port, **kwds):
+def run(port, server, **kwds):
     import sys
     port = port or get_open_port()
     # Pass port number to child process via envvar.  This is required
@@ -115,15 +115,29 @@ def run(port, **kwds):
     os.environ['EL_REQUEST_TEST_PORT'] = str(port)
     print port
     sys.stdout.flush()
-    app.run(port=port, **kwds)
+
+    if server == 'flask':
+        app.run(port=port, **kwds)
+    else:
+        app.debug = True
+        from tornado.wsgi import WSGIContainer
+        from tornado.httpserver import HTTPServer
+        from tornado.ioloop import IOLoop
+        http_server = HTTPServer(WSGIContainer(app))
+        http_server.listen(port)
+        print " * Running on", port
+        IOLoop.instance().start()
 
 
 def main(args=None):
     import argparse
     default_port = int(os.environ.get('EL_REQUEST_TEST_PORT', '0'))
+    default_server = os.environ.get('EL_REQUEST_TEST_SERVER') or 'flask'
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--port', default=default_port, type=int)
     parser.add_argument('--use-reloader', default=False, action='store_true')
+    parser.add_argument('--server', default=default_server,
+                        choices=['flask', 'tornado'])
     ns = parser.parse_args(args)
     run(**vars(ns))
 

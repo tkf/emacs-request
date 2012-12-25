@@ -1070,6 +1070,47 @@ See: http://thread.gmane.org/gmane.emacs.devel/155698"
                     'request-monkey-patch-url-default-expander)
   (ad-activate 'url-default-expander))
 
+
+(defun request--url-http-end-of-document-sentinel (proc why)
+  "Adapted from lisp/url/url-http.el.
+FSF holds the copyright of this function:
+  Copyright (C) 1999, 2001, 2004-2012  Free Software Foundation, Inc."
+  (url-http-debug "url-http-end-of-document-sentinel in buffer (%s)"
+		  (process-buffer proc))
+  (url-http-idle-sentinel proc why)
+  (when (buffer-name (process-buffer proc))
+    (with-current-buffer (process-buffer proc)
+      (goto-char (point-min))
+      (cond ((not (looking-at "HTTP/"))
+	     (if url-http-no-retry
+		 ;; HTTP/0.9 just gets passed back no matter what
+		 (url-http-activate-callback)
+	       ;; Call `url-http' again if our connection expired.
+	       (erase-buffer)
+               (let ((url-request-method url-http-method)
+                     (url-request-extra-headers url-http-extra-headers)
+                     (url-request-data url-http-data))
+                 (url-http url-current-object url-callback-function
+                           url-callback-arguments (current-buffer)))))
+	    ((url-http-parse-headers)
+	     (url-http-activate-callback))))))
+
+(defadvice url-http-end-of-document-sentinel
+  (around request-monkey-patch-url-http-end-of-document-sentinel (proc why))
+  "Monkey patch `url-http-end-of-document-sentinel' to fix bug #11469.
+Without this patch, PUT method fails every two times.
+See: http://thread.gmane.org/gmane.emacs.devel/155697"
+  (setq ad-return-value (request--url-http-end-of-document-sentinel proc why)))
+
+(when (and (version< "24" emacs-version)
+           (version< emacs-version "100"))
+  ;; FIXME: change the version number after my patch is applied.
+  (ad-enable-advice 'url-http-end-of-document-sentinel
+                    'around
+                    'request-monkey-patch-url-http-end-of-document-sentinel)
+  (ad-activate 'url-http-end-of-document-sentinel))
+
+
 (provide 'request)
 
 ;;; request.el ends here
