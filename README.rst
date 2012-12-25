@@ -176,6 +176,20 @@ will not be applied.
   <http://article.gmane.org/gmane.emacs.devel/155697>`_)
 
 
+Related projects
+================
+
+`leathekd/grapnel · GitHub <https://github.com/leathekd/grapnel>`_:
+  "HTTP request for Emacs lib built on curl with flexible callback dispatch"
+
+`cinsk/emacs-curl · GitHub <https://github.com/cinsk/emacs-curl>`_:
+  "CURL wrapper for Emacs"
+
+`furl-el - Google Project Hosting <http://code.google.com/p/furl-el/>`_:
+  "A wrapper for url.el that adds a nicer API and the ability to make
+  multipart POST requests."
+
+
 License
 =======
 
