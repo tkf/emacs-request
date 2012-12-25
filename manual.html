@@ -1,0 +1,398 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Request.el manual &mdash; Request.el 0.1.0alpha0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1.0alpha0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Request.el 0.1.0alpha0 documentation" href="index.html" />
+    <link rel="prev" title="Request.el – Easy HTTP request for Emacs Lisp" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="index.html" title="Request.el – Easy HTTP request for Emacs Lisp"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Request.el 0.1.0alpha0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="request-el-manual">
+<h1>Request.el manual<a class="headerlink" href="#request-el-manual" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="api">
+<h2>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="request">
+<em class="property">function </em><big>(</big><tt class="descname">request </tt><em>url</em> <em>&amp;rest</em> <em>settings</em><big>)</big><a class="headerlink" href="#request" title="Permalink to this definition">¶</a></dt>
+<dd><p>Send request to URL.</p>
+<p>Request.el has a single entry point.  It is <a class="reference internal" href="#request" title="request"><tt class="xref el el-symbol docutils literal"><span class="pre">request</span></tt></a>.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="19%" />
+<col width="81%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Keyword argument</th>
+<th class="head">Explanation</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>TYPE       (string)</td>
+<td>type of request to make: POST/GET/PUT/DELETE</td>
+</tr>
+<tr class="row-odd"><td>PARAMS      (alist)</td>
+<td>set &#8221;?key=val&#8221; part in URL</td>
+</tr>
+<tr class="row-even"><td>DATA (string/alist)</td>
+<td>data to be sent to the server</td>
+</tr>
+<tr class="row-odd"><td>FILES       (alist)</td>
+<td>files to be sent to the server (see below)</td>
+</tr>
+<tr class="row-even"><td>PARSER     (symbol)</td>
+<td>a function that reads current buffer and return data</td>
+</tr>
+<tr class="row-odd"><td>HEADERS     (alist)</td>
+<td>additional headers to send with the request</td>
+</tr>
+<tr class="row-even"><td>SUCCESS  (function)</td>
+<td>called on success</td>
+</tr>
+<tr class="row-odd"><td>ERROR    (function)</td>
+<td>called on error</td>
+</tr>
+<tr class="row-even"><td>COMPLETE (function)</td>
+<td>called on both success and error</td>
+</tr>
+<tr class="row-odd"><td>TIMEOUT    (number)</td>
+<td>timeout in second</td>
+</tr>
+<tr class="row-even"><td>STATUS-CODE (alist)</td>
+<td>map status code (int) to callback</td>
+</tr>
+<tr class="row-odd"><td>SYNC         (bool)</td>
+<td>If <tt class="xref el el-symbol docutils literal"><span class="pre">t</span></tt>, wait until request is done.  Default is <tt class="xref el el-symbol docutils literal"><span class="pre">nil</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li>Callback functions</li>
+</ul>
+<p>Callback functions STATUS, ERROR, COMPLETE and <tt class="xref el el-symbol docutils literal"><span class="pre">cdr</span></tt>s in element of
+the alist STATUS-CODE take same keyword arguments listed below.  For
+forward compatibility, these functions must ignore unused keyword
+arguments (i.e., it&#8217;s better to use <tt class="xref el el-symbol docutils literal"><span class="pre">&amp;allow-other-keys</span></tt>).:</p>
+<div class="highlight-cl"><div class="highlight"><pre><span class="p">(</span><span class="nv">CALLBACK</span>                      <span class="c1">; SUCCESS/ERROR/COMPLETE/STATUS-CODE</span>
+ <span class="ss">:data</span>          <span class="nv">data</span>           <span class="c1">; whatever PARSER function returns, or nil</span>
+ <span class="ss">:error-thrown</span>  <span class="nv">error-thrown</span>   <span class="c1">; (ERROR-SYMBOL . DATA), or nil</span>
+ <span class="ss">:symbol-status</span> <span class="nv">symbol-status</span>  <span class="c1">; success/error/timeout/abort/parse-error</span>
+ <span class="ss">:response</span>      <span class="nv">response</span>       <span class="c1">; request-response object</span>
+ <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Arguments data, error-thrown, symbol-status can be accessed by
+<a class="reference internal" href="#request-response-data" title="request-response-data"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-data</span></tt></a>, <a class="reference internal" href="#request-response-error-thrown" title="request-response-error-thrown"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-error-thrown</span></tt></a>,
+<a class="reference internal" href="#request-response-symbol-status" title="request-response-symbol-status"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-symbol-status</span></tt></a> accessors, i.e.:</p>
+<div class="highlight-cl"><div class="highlight"><pre><span class="p">(</span><span class="nv">request-response-data</span> <span class="nv">RESPONSE</span><span class="p">)</span>  <span class="c1">; same as data</span>
+</pre></div>
+</div>
+<p>Response object holds other information which can be accessed by
+the following accessors:
+<a class="reference internal" href="#request-response-status-code" title="request-response-status-code"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-status-code</span></tt></a>,
+<a class="reference internal" href="#request-response-redirects" title="request-response-redirects"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-redirects</span></tt></a>,
+<a class="reference internal" href="#request-response-url" title="request-response-url"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-url</span></tt></a> and
+<a class="reference internal" href="#request-response-settings" title="request-response-settings"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-settings</span></tt></a></p>
+<ul class="simple">
+<li>STATUS-CODE callback</li>
+</ul>
+<p>STATUS-CODE is an alist of the following format:</p>
+<div class="highlight-cl"><div class="highlight"><pre><span class="p">((</span><span class="nv">N-1</span> <span class="o">.</span> <span class="nv">CALLBACK-1</span><span class="p">)</span>
+ <span class="p">(</span><span class="nv">N-2</span> <span class="o">.</span> <span class="nv">CALLBACK-2</span><span class="p">)</span>
+ <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here, N-1, N-2,... are integer status codes such as 200.</p>
+<ul class="simple">
+<li>FILES</li>
+</ul>
+<p>FILES is an alist of the following format:</p>
+<div class="highlight-cl"><div class="highlight"><pre><span class="p">((</span><span class="nv">NAME-1</span> <span class="o">.</span> <span class="nv">FILE-1</span><span class="p">)</span>
+ <span class="p">(</span><span class="nv">NAME-2</span> <span class="o">.</span> <span class="nv">FILE-2</span><span class="p">)</span>
+ <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>where FILE-N is a list of the form:</p>
+<div class="highlight-cl"><div class="highlight"><pre><span class="p">(</span><span class="nv">FILENAME</span> <span class="k">&amp;key</span> <span class="nv">PATH</span> <span class="nv">BUFFER</span> <span class="nv">STRING</span> <span class="nv">MIME-TYPE</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>FILE-N can also be a string (path to the file) or a buffer object.
+In that case, FILENAME is set to the file name or buffer name.</p>
+<p>Example FILES argument:</p>
+<div class="highlight-cl"><div class="highlight"><pre><span class="o">`</span><span class="p">((</span><span class="s">&quot;passwd&quot;</span>   <span class="o">.</span> <span class="s">&quot;/etc/passwd&quot;</span><span class="p">)</span>                <span class="c1">; filename = passwd</span>
+  <span class="p">(</span><span class="s">&quot;scratch&quot;</span>  <span class="o">.</span> <span class="o">,</span><span class="p">(</span><span class="nv">get-buffer</span> <span class="s">&quot;*scratch*&quot;</span><span class="p">))</span>    <span class="c1">; filename = *scratch*</span>
+  <span class="p">(</span><span class="s">&quot;passwd2&quot;</span>  <span class="o">.</span> <span class="p">(</span><span class="s">&quot;password.txt&quot;</span> <span class="ss">:file</span> <span class="s">&quot;/etc/passwd&quot;</span><span class="p">))</span>
+  <span class="p">(</span><span class="s">&quot;scratch2&quot;</span> <span class="o">.</span> <span class="p">(</span><span class="s">&quot;scratch.txt&quot;</span>  <span class="ss">:buffer</span> <span class="o">,</span><span class="p">(</span><span class="nv">get-buffer</span> <span class="s">&quot;*scratch*&quot;</span><span class="p">)))</span>
+  <span class="p">(</span><span class="s">&quot;data&quot;</span>     <span class="o">.</span> <span class="p">(</span><span class="s">&quot;data.csv&quot;</span>     <span class="ss">:data</span> <span class="s">&quot;1,2,3\n4,5,6\n&quot;</span><span class="p">)))</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">FILES is implemented only for curl backend for now.
+As <a class="reference external" href="http://code.google.com/p/furl-el/">furl.el</a> supports multipart POST, it should be possible to
+support FILES in pure elisp by making <a class="reference external" href="http://code.google.com/p/furl-el/">furl.el</a> another backend.
+Contributions are welcome.</p>
+</div>
+<ul class="simple">
+<li>PARSER function</li>
+</ul>
+<p>PARSER function takes no argument and it is executed in the
+buffer with HTTP response.  The current position in the
+HTTP response buffer is at the beginning of the response
+body.  So, for example, you can pass <tt class="xref el el-symbol docutils literal"><span class="pre">json-read</span></tt> to parse
+JSON object in the buffer.  To fetch whole buffer as a string,
+pass <tt class="xref el el-symbol docutils literal"><span class="pre">buffer-string</span></tt>.  If you want just the response part
+without header, pass:</p>
+<div class="highlight-cl"><div class="highlight"><pre><span class="p">(</span><span class="k">lambda</span> <span class="p">()</span> <span class="p">(</span><span class="nv">buffer-substring</span> <span class="p">(</span><span class="nv">point</span><span class="p">)</span> <span class="p">(</span><span class="nv">point-max</span><span class="p">)))</span>
+</pre></div>
+</div>
+<p>This is analogous to the <tt class="xref el el-symbol docutils literal"><span class="pre">dataType</span></tt> argument of <a class="reference external" href="http://api.jquery.com/jQuery.ajax/">jQuery.ajax</a>.
+Only this function can access to the process buffer, which
+is killed immediately after the execution of this function.</p>
+<ul class="simple">
+<li>SYNC</li>
+</ul>
+<p>Synchronous request is functional, but <em>please</em> don&#8217;t use it
+other than testing or debugging.  Emacs users have better things
+to do rather than waiting for HTTP request.  If you want a better
+way to write callback chains, use <a class="reference internal" href="#request-deferred" title="request-deferred"><tt class="xref el el-symbol docutils literal"><span class="pre">request-deferred</span></tt></a>.</p>
+<p>If you can&#8217;t avoid using it (e.g., you are inside of some hook
+which must return some value), make sure to set TIMEOUT to
+relatively small value.</p>
+<p>Due to limitation of <tt class="xref el el-symbol docutils literal"><span class="pre">url-retrieve-synchronously</span></tt>, response slots
+<a class="reference internal" href="#request-response-error-thrown" title="request-response-error-thrown"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-error-thrown</span></tt></a>, <a class="reference internal" href="#request-response-redirects" title="request-response-redirects"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-redirects</span></tt></a> and
+<a class="reference internal" href="#request-response-url" title="request-response-url"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-url</span></tt></a> are unknown (always <tt class="xref el el-symbol docutils literal"><span class="pre">nil</span></tt>) when using
+synchronous request with <tt class="xref el el-symbol docutils literal"><span class="pre">url-retrieve</span></tt> backend.</p>
+<ul class="simple">
+<li>Note</li>
+</ul>
+<p>API of <a class="reference internal" href="#request" title="request"><tt class="xref el el-symbol docutils literal"><span class="pre">request</span></tt></a> is somewhat mixture of <a class="reference external" href="http://api.jquery.com/jQuery.ajax/">jQuery.ajax</a> (Javascript)
+and <a class="reference external" href="http://docs.python-requests.org">requests.request</a> (Python).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="request-abort">
+<em class="property">function </em><big>(</big><tt class="descname">request-abort </tt><em>response</em><big>)</big><a class="headerlink" href="#request-abort" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abort request for RESPONSE (the object returned by <a class="reference internal" href="#request" title="request"><tt class="xref el el-symbol docutils literal"><span class="pre">request</span></tt></a>).
+Note that this function invoke ERROR and COMPLETE callbacks.
+Callbacks may not be called immediately but called later when
+associated process is exited.</p>
+</dd></dl>
+
+<div class="section" id="response-object">
+<h3>Response object<a class="headerlink" href="#response-object" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt id="request-response-status-code">
+<em class="property">function </em><big>(</big><tt class="descname">request-response-status-code </tt><em>cl-x</em><big>)</big><a class="headerlink" href="#request-response-status-code" title="Permalink to this definition">¶</a></dt>
+<dd><p>Integer HTTP response code (e.g., 200).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="request-response-redirects">
+<em class="property">function </em><big>(</big><tt class="descname">request-response-redirects </tt><em>cl-x</em><big>)</big><a class="headerlink" href="#request-response-redirects" title="Permalink to this definition">¶</a></dt>
+<dd><p>Redirection history (a list of URLs).
+The first element is the oldest redirection.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="request-response-data">
+<em class="property">function </em><big>(</big><tt class="descname">request-response-data </tt><em>cl-x</em><big>)</big><a class="headerlink" href="#request-response-data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Response parsed by the given parser.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="request-response-error-thrown">
+<em class="property">function </em><big>(</big><tt class="descname">request-response-error-thrown </tt><em>cl-x</em><big>)</big><a class="headerlink" href="#request-response-error-thrown" title="Permalink to this definition">¶</a></dt>
+<dd><p>Error thrown during request.
+It takes the form of <tt class="docutils literal"><span class="pre">(ERROR-SYMBOL</span> <span class="pre">.</span> <span class="pre">DATA)</span></tt>, which can be
+re-raised (<tt class="xref el el-symbol docutils literal"><span class="pre">signal</span></tt>ed) by <tt class="docutils literal"><span class="pre">(signal</span> <span class="pre">ERROR-SYMBOL</span> <span class="pre">DATA)</span></tt>.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="request-response-symbol-status">
+<em class="property">function </em><big>(</big><tt class="descname">request-response-symbol-status </tt><em>cl-x</em><big>)</big><a class="headerlink" href="#request-response-symbol-status" title="Permalink to this definition">¶</a></dt>
+<dd><p>A symbol representing the status of request (not HTTP response code).
+One of success/error/timeout/abort/parse-error.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="request-response-url">
+<em class="property">function </em><big>(</big><tt class="descname">request-response-url </tt><em>cl-x</em><big>)</big><a class="headerlink" href="#request-response-url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Final URL location of response.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="request-response-done-p">
+<em class="property">function </em><big>(</big><tt class="descname">request-response-done-p </tt><em>cl-x</em><big>)</big><a class="headerlink" href="#request-response-done-p" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return t when the request is finished or aborted.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="request-response-settings">
+<em class="property">function </em><big>(</big><tt class="descname">request-response-settings </tt><em>cl-x</em><big>)</big><a class="headerlink" href="#request-response-settings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Keyword arguments passed to <a class="reference internal" href="#request" title="request"><tt class="xref el el-symbol docutils literal"><span class="pre">request</span></tt></a> function.
+Some arguments such as HEADERS is changed to the one actually
+passed to the backend.  Also, it has additional keywords such
+as URL which is the requested URL.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="cookie">
+<h3>Cookie<a class="headerlink" href="#cookie" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt id="request-cookie-string">
+<em class="property">function </em><big>(</big><tt class="descname">request-cookie-string </tt><em>host</em> <em>&amp;optional</em> <em>localpart</em> <em>secure</em><big>)</big><a class="headerlink" href="#request-cookie-string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return cookie string (like <tt class="xref el el-symbol docutils literal"><span class="pre">document.cookie</span></tt>).</p>
+<p>Example:</p>
+<div class="highlight-cl"><div class="highlight"><pre><span class="p">(</span><span class="nv">request-cookie-string</span> <span class="s">&quot;127.0.0.1&quot;</span> <span class="s">&quot;/&quot;</span><span class="p">)</span>  <span class="c1">; =&gt; &quot;key=value; key2=value2&quot;</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="request-cookie-alist">
+<em class="property">function </em><big>(</big><tt class="descname">request-cookie-alist </tt><em>host</em> <em>&amp;optional</em> <em>localpart</em> <em>secure</em><big>)</big><a class="headerlink" href="#request-cookie-alist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return cookies as an alist.</p>
+<p>Example:</p>
+<div class="highlight-cl"><div class="highlight"><pre><span class="p">(</span><span class="nv">request-cookie-alist</span> <span class="s">&quot;127.0.0.1&quot;</span> <span class="s">&quot;/&quot;</span><span class="p">)</span>  <span class="c1">; =&gt; ((&quot;key&quot; . &quot;value&quot;) ...)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="deferred">
+<h3>Deferred<a class="headerlink" href="#deferred" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference external" href="https://github.com/kiwanami/emacs-deferred">deferred.el</a> is a concise way to write callback chain.
+You can use <tt class="xref el el-symbol docutils literal"><span class="pre">require-deferred</span></tt> to do requests
+with <a class="reference external" href="https://github.com/kiwanami/emacs-deferred">deferred.el</a>.</p>
+<dl class="function">
+<dt id="request-deferred">
+<em class="property">function </em><big>(</big><tt class="descname">request-deferred </tt><em>url</em> <em>&amp;rest</em> <em>args</em><big>)</big><a class="headerlink" href="#request-deferred" title="Permalink to this definition">¶</a></dt>
+<dd><p>Send a request and return deferred object associated with it.</p>
+<p>Following deferred callback takes a response object regardless of
+the response result.  To make sure no error occurs during the
+request, check <a class="reference internal" href="#request-response-error-thrown" title="request-response-error-thrown"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-error-thrown</span></tt></a>.</p>
+<p>Arguments are the same as <a class="reference internal" href="#request" title="request"><tt class="xref el el-symbol docutils literal"><span class="pre">request</span></tt></a>, but COMPLETE callback cannot
+be used as it is used for starting deferred callback chain.</p>
+<p>Example:</p>
+<div class="highlight-cl"><div class="highlight"><pre><span class="p">(</span><span class="nb">require</span> <span class="ss">&#39;request-deferred</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nv">deferred:$</span>
+  <span class="p">(</span><span class="nv">request-deferred</span> <span class="s">&quot;http://httpbin.org/get&quot;</span> <span class="ss">:parser</span> <span class="ss">&#39;json-read</span><span class="p">)</span>
+  <span class="p">(</span><span class="nv">deferred:nextc</span> <span class="nv">it</span>
+    <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="nv">response</span><span class="p">)</span>
+      <span class="p">(</span><span class="nv">message</span> <span class="s">&quot;Got: %S&quot;</span> <span class="p">(</span><span class="nv">request-response-data</span> <span class="nv">response</span><span class="p">)))))</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h2>
+<p>Configuration variables are for users.
+Libraries using request.el must not modify these variables.</p>
+<dl class="variable">
+<dt id="request-storage-directory">
+<em class="property">variable </em><big>(</big><tt class="descname">request-storage-directory </tt><em>&quot;~/.emacs.d/request&quot;</em><big>)</big><a class="headerlink" href="#request-storage-directory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Directory to store data related to request.el.</p>
+</dd></dl>
+
+<dl class="variable">
+<dt id="request-curl">
+<em class="property">variable </em><big>(</big><tt class="descname">request-curl </tt><em>&quot;curl&quot;</em><big>)</big><a class="headerlink" href="#request-curl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executable for curl command.</p>
+</dd></dl>
+
+<dl class="variable">
+<dt id="request-backend">
+<em class="property">variable </em><big>(</big><tt class="descname">request-backend </tt><em>curl</em><big>)</big><a class="headerlink" href="#request-backend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Backend to be used for HTTP request.
+Automatically set to <tt class="xref el el-symbol docutils literal"><span class="pre">curl</span></tt> if curl command is found.</p>
+</dd></dl>
+
+<dl class="variable">
+<dt id="request-timeout">
+<em class="property">variable </em><big>(</big><tt class="descname">request-timeout </tt><em>nil</em><big>)</big><a class="headerlink" href="#request-timeout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default request timeout in second.
+<tt class="xref el el-symbol docutils literal"><span class="pre">nil</span></tt> means no timeout.</p>
+</dd></dl>
+
+<dl class="variable">
+<dt id="request-log-level">
+<em class="property">variable </em><big>(</big><tt class="descname">request-log-level </tt><em>-1</em><big>)</big><a class="headerlink" href="#request-log-level" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logging level for request.
+One of <tt class="xref el el-symbol docutils literal"><span class="pre">error</span></tt>/<tt class="xref el el-symbol docutils literal"><span class="pre">warn</span></tt>/<tt class="xref el el-symbol docutils literal"><span class="pre">info</span></tt>/<tt class="xref el el-symbol docutils literal"><span class="pre">verbose</span></tt>/<tt class="xref el el-symbol docutils literal"><span class="pre">debug</span></tt>.
+-1 means no logging.</p>
+</dd></dl>
+
+<dl class="variable">
+<dt id="request-message-level">
+<em class="property">variable </em><big>(</big><tt class="descname">request-message-level </tt><em>warn</em><big>)</big><a class="headerlink" href="#request-message-level" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logging level for request.
+See <a class="reference internal" href="#request-log-level" title="request-log-level"><tt class="xref el el-symbol docutils literal"><span class="pre">request-log-level</span></tt></a>.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="index.html" title="Request.el – Easy HTTP request for Emacs Lisp"
+             >previous</a> |</li>
+        <li><a href="index.html">Request.el 0.1.0alpha0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Takafumi Arakaki.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
