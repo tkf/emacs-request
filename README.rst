@@ -138,6 +138,8 @@ Supported Emacs versions:
 ====================== ========================== =================
  GNU Emacs 24.3-devel   yes (as of this writing)   yes
  GNU Emacs 24.2         yes                        yes
+ GNU Emacs 24.1         yes                        no
+ GNU Emacs 23.4         yes                        no
  GNU Emacs 23.1         yes                        yes
  GNU Emacs < 23         ?                          no
 ====================== ========================== =================
