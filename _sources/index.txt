@@ -132,16 +132,17 @@ Compatibility / backends
 
 Supported Emacs versions:
 
-====================== ========================== =================
- Emacs version          Does request.el work?      Continues build
-====================== ========================== =================
+====================== ========================== =====================
+ Emacs version          Does request.el work?      Tested on Travis CI
+                                                   |build-status|
+====================== ========================== =====================
  GNU Emacs 24.3-devel   yes (as of this writing)   yes
  GNU Emacs 24.2         yes                        yes
  GNU Emacs 24.1         yes                        no
  GNU Emacs 23.4         yes                        no
  GNU Emacs 23.1         yes                        yes
  GNU Emacs < 23         ?                          no
-====================== ========================== =================
+====================== ========================== =====================
 
 
 Supported backends:
