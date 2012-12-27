@@ -1070,6 +1070,8 @@ FSF holds the copyright of this function:
 (defadvice url-default-expander
   (around request-monkey-patch-url-default-expander (urlobj defobj))
   "Monkey patch `url-default-expander' to fix bug #12374.
+This patch is applied to Emacs trunk at revno 111291:
+  http://bzr.savannah.gnu.org/lh/emacs/trunk/revision/111291.
 Without this patch, port number is not treated when using
 `url-expand-file-name'.
 See: http://thread.gmane.org/gmane.emacs.devel/155698"
@@ -1121,13 +1123,14 @@ FSF holds the copyright of this function:
 (defadvice url-http-end-of-document-sentinel
   (around request-monkey-patch-url-http-end-of-document-sentinel (proc why))
   "Monkey patch `url-http-end-of-document-sentinel' to fix bug #11469.
+This patch is applied to Emacs trunk at revno 111291:
+  http://bzr.savannah.gnu.org/lh/emacs/trunk/revision/111291.
 Without this patch, PUT method fails every two times.
 See: http://thread.gmane.org/gmane.emacs.devel/155697"
   (setq ad-return-value (request--url-http-end-of-document-sentinel proc why)))
 
 (when (and (version< "24" emacs-version)
-           (version< emacs-version "100"))
-  ;; FIXME: change the version number after my patch is applied.
+           (version< emacs-version "24.3.50.1"))
   (ad-enable-advice 'url-http-end-of-document-sentinel
                     'around
                     'request-monkey-patch-url-http-end-of-document-sentinel)
