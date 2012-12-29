@@ -840,6 +840,8 @@ removed from the buffer before it is shown to the parser function.
   (request--curl-mkdir-for-cookie-jar)
   (let* (;; Use pipe instead of pty.  Otherwise, curl process hangs.
          (process-connection-type nil)
+         ;; Avoid starting program in non-existing directory.
+         (default-directory (expand-file-name "~/"))
          (buffer (generate-new-buffer " *request curl*"))
          (command (destructuring-bind
                       (files* tempfiles)
