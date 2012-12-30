@@ -469,6 +469,19 @@ To check that, run test with:
   (request-testing-assert-username-is nil))
 
 
+;;; Misc
+
+(request-deftest request-invoke-in-non-existing-directory ()
+  "Running request in non-existing directory should work.
+Calling `start-process' in non-existing directory fails.  Command
+based backends (e.g., `curl') should avoid this problem."
+  (let* ((prefix (expand-file-name "non-existing-" temporary-file-directory))
+         (default-directory (file-name-as-directory (make-temp-name prefix))))
+    (should-not (file-exists-p default-directory))
+    ;; Should not faile:
+    (request-testing-sync "report/some-path" :parser 'json-read)))
+
+
 ;;; Testing framework
 
 (defvar request-testing-server-name
