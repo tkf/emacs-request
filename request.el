@@ -489,14 +489,17 @@ and requests.request_ (Python).
                        #'request-response--timeout-callback response)))
   response)
 
-(defun request--parse-data (buffer parser error-thrown backend)
+(defun request--parse-data (response parser)
   "Run PARSER in current buffer if ERROR-THROWN is nil,
 then kill the current buffer."
   (request-log 'debug "-PARSE-DATA")
+  (let ((buffer       (request-response--buffer      response))
+        (backend      (request-response--backend     response))
+        (error-thrown (request-response-error-thrown response))
+        noerror)
   (request-log 'debug "parser = %s" parser)
   (request-log 'debug "error-thrown = %S" error-thrown)
   (request-log 'debug "backend = %S" backend)
-  (let (noerror)
     (unwind-protect
         (prog1
             (when (and (buffer-live-p buffer) parser (not error-thrown))
@@ -512,7 +515,7 @@ then kill the current buffer."
                   (re-search-forward "^$"))
                 ;; `forward-char' will fail when there is no body.
                 (ignore-errors (forward-char))
-                (funcall parser)))
+                (setf (request-response-data response) (funcall parser))))
           (setq noerror t))
       (unless noerror
         (request-log 'error "REQUEST--PARSE-DATA: error from parser %S"
@@ -535,12 +538,11 @@ then kill the current buffer."
        (done-p (request-response-done-p response)))
 
     ;; Parse response body
-    (setq data (condition-case err
-                   (request--parse-data buffer parser error-thrown
-                                        (request-response--backend response))
-                 (error
-                  (setq symbol-status 'parse-error)
-                  (setq error-thrown err))))
+    (condition-case err
+        (request--parse-data response parser)
+      (error
+       (setq symbol-status 'parse-error)
+       (setq error-thrown err)))
     (request-log 'debug "data = %s" data)
 
     ;; Determine `symbol-status'
