@@ -530,6 +530,10 @@ then kill the current buffer."
                (when (buffer-live-p buffer)
                  (with-current-buffer buffer (buffer-string))))
 
+  ;; Sometimes BUFFER given as the argument is different from the
+  ;; buffer already set in RESPONSE.  That's why it is reset here.
+  ;; FIXME: Refactor how BUFFER is passed around.
+  (setf (request-response--buffer response) buffer)
   (request-response--cancel-timer response)
   (symbol-macrolet
       ((error-thrown (request-response-error-thrown response))
