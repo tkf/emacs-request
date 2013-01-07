@@ -495,32 +495,24 @@ then kill the current buffer."
   (request-log 'debug "-PARSE-DATA")
   (let ((buffer       (request-response--buffer      response))
         (backend      (request-response--backend     response))
-        (error-thrown (request-response-error-thrown response))
-        noerror)
-  (request-log 'debug "parser = %s" parser)
-  (request-log 'debug "error-thrown = %S" error-thrown)
-  (request-log 'debug "backend = %S" backend)
-    (unwind-protect
-        (prog1
-            (when (and (buffer-live-p buffer) parser (not error-thrown))
-              (with-current-buffer buffer
-                (goto-char (point-min))
-                ;; Should be no \r.
-                ;; See `url-http-clean-headers' and `request--curl-preprocess'.
-                (if (eq backend 'url-retrieve)
-                    ;; FIXME: make this workaround optional.
-                    ;; But it looks like sometimes `url-http-clean-headers'
-                    ;; fails to cleanup.  So, let's be bit permissive here...
-                    (re-search-forward "^\r?$")
-                  (re-search-forward "^$"))
-                ;; `forward-char' will fail when there is no body.
-                (ignore-errors (forward-char))
-                (setf (request-response-data response) (funcall parser))))
-          (setq noerror t))
-      (unless noerror
-        (request-log 'error "REQUEST--PARSE-DATA: error from parser %S"
-                     parser))
-      (kill-buffer buffer))))
+        (error-thrown (request-response-error-thrown response)))
+    (request-log 'debug "parser = %s" parser)
+    (request-log 'debug "error-thrown = %S" error-thrown)
+    (request-log 'debug "backend = %S" backend)
+    (when (and (buffer-live-p buffer) parser (not error-thrown))
+      (with-current-buffer buffer
+        (goto-char (point-min))
+        ;; Should be no \r.
+        ;; See `url-http-clean-headers' and `request--curl-preprocess'.
+        (if (eq backend 'url-retrieve)
+            ;; FIXME: make this workaround optional.
+            ;; But it looks like sometimes `url-http-clean-headers'
+            ;; fails to cleanup.  So, let's be bit permissive here...
+            (re-search-forward "^\r?$")
+          (re-search-forward "^$"))
+        ;; `forward-char' will fail when there is no body.
+        (ignore-errors (forward-char))
+        (setf (request-response-data response) (funcall parser))))))
 
 (defun* request--callback (buffer &key parser success error complete
                                   timeout status-code response
@@ -546,7 +538,9 @@ then kill the current buffer."
         (request--parse-data response parser)
       (error
        (setq symbol-status 'parse-error)
-       (setq error-thrown err)))
+       (setq error-thrown err)
+       (request-log 'error "Error from parser %S: %S" parser err)))
+    (kill-buffer buffer)
     (request-log 'debug "data = %s" data)
 
     ;; Determine `symbol-status'
