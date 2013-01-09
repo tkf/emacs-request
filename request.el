@@ -521,9 +521,7 @@ raw-header slot."
       (re-search-forward "^$")
       (setf (request-response--raw-header response)
             (buffer-substring (point-min) (point)))
-      (delete-region (point-min) (point))
-      ;; `forward-char' will fail when there is no body.
-      (ignore-errors (forward-char)))))
+      (delete-region (point-min) (1+ (point))))))
 
 (defun request--parse-data (response parser)
   "Run PARSER in current buffer if ERROR-THROWN is nil,
