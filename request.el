@@ -532,7 +532,7 @@ raw-header slot."
       (re-search-forward "^$")
       (setf (request-response--raw-header response)
             (buffer-substring (point-min) (point)))
-      (delete-region (point-min) (1+ (point))))))
+      (delete-region (point-min) (min (1+ (point)) (point-max))))))
 
 (defun request--parse-data (response parser)
   "Run PARSER in current buffer if ERROR-THROWN is nil,
