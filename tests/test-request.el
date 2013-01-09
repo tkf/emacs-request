@@ -493,11 +493,11 @@ based backends (e.g., `curl') should avoid this problem."
 (message "Using test server: %s" request-testing-server-name)
 
 (request-deftest request-tfw-server ()
-  (request-testing-with-response-slots
-        (request-testing-sync
-         "report/some-path"
-         :parser (lambda () (downcase (mail-fetch-field "server"))))
-      (should (string-prefix-p request-testing-server-name data))))
+  (let* ((response (request-testing-sync "report/some-path"))
+         (servers (request-response-header response "server")))
+    (should (= (length servers) 1))
+    (should (string-prefix-p request-testing-server-name
+                             (downcase (car servers))))))
 
 
 ;;; `request-backend'-independent tests
