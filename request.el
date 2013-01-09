@@ -205,7 +205,7 @@ for older Emacs versions.")
   status-code redirects data error-thrown symbol-status url
   done-p settings
   ;; internal variables
-  -buffer -timer -backend -tempfiles)
+  -buffer -raw-header -timer -backend -tempfiles)
 
 (defmacro request--document-response (function docstring)
   (declare (indent defun)
@@ -489,29 +489,51 @@ and requests.request_ (Python).
                        #'request-response--timeout-callback response)))
   response)
 
+(defun request--clean-header (response)
+  "Strip off carriage returns in the header of REQUEST."
+  (request-log 'debug "-CLEAN-HEADER")
+  (let ((buffer       (request-response--buffer      response))
+        (backend      (request-response--backend     response))
+        sep-regexp)
+    (if (eq backend 'url-retrieve)
+        ;; FIXME: make this workaround optional.
+        ;; But it looks like sometimes `url-http-clean-headers'
+        ;; fails to cleanup.  So, let's be bit permissive here...
+        (setq sep-regexp "^\r?$")
+      (setq sep-regexp "^\r$"))
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (goto-char (point-min))
+        (re-search-forward sep-regexp)
+        (unless (equal (match-string 0) "")
+          (while (re-search-backward "\r$" (point-min) t)
+            (replace-match "")))))))
+
+(defun request--cut-header (response)
+  "Cut the first header part in the buffer of RESPONSE and move it to
+raw-header slot."
+  (request-log 'debug "-CUT-HEADER")
+  (let ((buffer (request-response--buffer response)))
+    (with-current-buffer buffer
+      (goto-char (point-min))
+      (re-search-forward "")
+      (setf (request-response--raw-header response)
+            (buffer-substring (point-min) (point)))
+      (delete-region (point-min) (point))
+      ;; `forward-char' will fail when there is no body.
+      (ignore-errors (forward-char)))))
+
 (defun request--parse-data (response parser)
   "Run PARSER in current buffer if ERROR-THROWN is nil,
 then kill the current buffer."
   (request-log 'debug "-PARSE-DATA")
   (let ((buffer       (request-response--buffer      response))
-        (backend      (request-response--backend     response))
         (error-thrown (request-response-error-thrown response)))
     (request-log 'debug "parser = %s" parser)
     (request-log 'debug "error-thrown = %S" error-thrown)
-    (request-log 'debug "backend = %S" backend)
     (when (and (buffer-live-p buffer) parser (not error-thrown))
       (with-current-buffer buffer
         (goto-char (point-min))
-        ;; Should be no \r.
-        ;; See `url-http-clean-headers' and `request--curl-preprocess'.
-        (if (eq backend 'url-retrieve)
-            ;; FIXME: make this workaround optional.
-            ;; But it looks like sometimes `url-http-clean-headers'
-            ;; fails to cleanup.  So, let's be bit permissive here...
-            (re-search-forward "^\r?$")
-          (re-search-forward "^$"))
-        ;; `forward-char' will fail when there is no body.
-        (ignore-errors (forward-char))
         (setf (request-response-data response) (funcall parser))))))
 
 (defun* request--callback (buffer &key parser success error complete
@@ -534,6 +556,8 @@ then kill the current buffer."
        (done-p (request-response-done-p response)))
 
     ;; Parse response body
+    (request--clean-header response)
+    (request--cut-header response)
     (condition-case err
         (request--parse-data response parser)
       (error
