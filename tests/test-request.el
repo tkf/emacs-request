@@ -92,10 +92,14 @@
       (request-testing-sync "redirect/redirect/report/some-path"
                             :parser 'json-read)
     (request-testing-assert-redirected-to response "some-path")
-    (should
-     (equal redirects
-            (list (request-testing-url "redirect/redirect/report/some-path")
-                  (request-testing-url "redirect/report/some-path"))))))
+    (let ((desired
+           (list (request-testing-url "redirect/redirect/report/some-path")
+                 (request-testing-url "redirect/report/some-path"))))
+      (if (and noninteractive (eq request-backend 'url-retrieve))
+          (loop for url in redirects
+                for durl in desired
+                do (should (string-prefix-p url durl)))
+        (should (equal redirects desired))))))
 
 (request-deftest request-get-broken-redirection ()
   "Relative Location must be treated gracefully, even if it is not
