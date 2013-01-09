@@ -527,11 +527,9 @@ raw-header slot."
   "Run PARSER in current buffer if ERROR-THROWN is nil,
 then kill the current buffer."
   (request-log 'debug "-PARSE-DATA")
-  (let ((buffer       (request-response--buffer      response))
-        (error-thrown (request-response-error-thrown response)))
+  (let ((buffer (request-response--buffer response)))
     (request-log 'debug "parser = %s" parser)
-    (request-log 'debug "error-thrown = %S" error-thrown)
-    (when (and (buffer-live-p buffer) parser (not error-thrown))
+    (when (and (buffer-live-p buffer) parser)
       (with-current-buffer buffer
         (goto-char (point-min))
         (setf (request-response-data response) (funcall parser))))))
@@ -556,11 +554,13 @@ then kill the current buffer."
        (done-p (request-response-done-p response)))
 
     ;; Parse response body
+    (request-log 'debug "error-thrown = %S" error-thrown)
     (unless error-thrown
       (request--clean-header response)
       (request--cut-header response))
     (condition-case err
-        (request--parse-data response parser)
+        (unless error-thrown
+          (request--parse-data response parser))
       (error
        (setq symbol-status 'parse-error)
        (setq error-thrown err)
