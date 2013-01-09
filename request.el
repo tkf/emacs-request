@@ -516,7 +516,7 @@ raw-header slot."
   (let ((buffer (request-response--buffer response)))
     (with-current-buffer buffer
       (goto-char (point-min))
-      (re-search-forward "")
+      (re-search-forward "^$")
       (setf (request-response--raw-header response)
             (buffer-substring (point-min) (point)))
       (delete-region (point-min) (point))
