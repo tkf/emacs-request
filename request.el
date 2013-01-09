@@ -694,7 +694,7 @@ associated process is exited."
     (set-process-query-on-exit-flag proc nil)))
 
 (defun* request--url-retrieve-callback (status &rest settings
-                                               &key response
+                                               &key response url
                                                &allow-other-keys)
   (declare (special url-http-method
                     url-http-response-status))
@@ -709,10 +709,14 @@ associated process is exited."
       (setf (request-response-url response) redirect)
       (setf (request-response-redirects response)
             (loop with l = nil
-                  for (k v) on redirect by 'cddr
+                  with first = t
+                  for (k v) on status by 'cddr
                   when (eq k :redirect)
+                  if first
+                  do (setq first nil)
+                  else
                   do (push v l)
-                  finally return l))))
+                  finally return (cons url l)))))
 
   (symbol-macrolet ((error-thrown (request-response-error-thrown response))
                     (status-error (plist-get status :error)))
