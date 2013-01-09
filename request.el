@@ -556,8 +556,9 @@ then kill the current buffer."
        (done-p (request-response-done-p response)))
 
     ;; Parse response body
-    (request--clean-header response)
-    (request--cut-header response)
+    (unless error-thrown
+      (request--clean-header response)
+      (request--cut-header response))
     (condition-case err
         (request--parse-data response parser)
       (error
