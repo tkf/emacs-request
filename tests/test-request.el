@@ -534,12 +534,12 @@ RESPONSE-BODY")
     (let ((info (request--curl-preprocess)))
       (should (equal (buffer-string)
                      "\
-HTTP/1.0 200 OK
-Content-Type: application/json
-Content-Length: 88
-Server: Werkzeug/0.8.1 Python/2.7.2+
-Date: Sat, 15 Dec 2012 23:04:26 GMT
-
+HTTP/1.0 200 OK\r
+Content-Type: application/json\r
+Content-Length: 88\r
+Server: Werkzeug/0.8.1 Python/2.7.2+\r
+Date: Sat, 15 Dec 2012 23:04:26 GMT\r
+\r
 RESPONSE-BODY"))
       (should (equal info
                      (list :num-redirects 0
@@ -576,12 +576,12 @@ RESPONSE-BODY")
     (let ((info (request--curl-preprocess)))
       (should (equal (buffer-string)
                      "\
-HTTP/1.0 200 OK
-Content-Type: application/json
-Content-Length: 88
-Server: Werkzeug/0.8.1 Python/2.7.2+
-Date: Sat, 15 Dec 2012 23:04:26 GMT
-
+HTTP/1.0 200 OK\r
+Content-Type: application/json\r
+Content-Length: 88\r
+Server: Werkzeug/0.8.1 Python/2.7.2+\r
+Date: Sat, 15 Dec 2012 23:04:26 GMT\r
+\r
 RESPONSE-BODY"))
       (should (equal info
                      (list :num-redirects 2
@@ -608,13 +608,13 @@ RESPONSE-BODY")
     (let ((info (request--curl-preprocess)))
       (should (equal (buffer-string)
                      "\
-HTTP/1.1 200 OK
-Content-Type: application/json
-Date: Wed, 19 Dec 2012 16:51:53 GMT
-Server: gunicorn/0.13.4
-Content-Length: 492
-Connection: keep-alive
-
+HTTP/1.1 200 OK\r
+Content-Type: application/json\r
+Date: Wed, 19 Dec 2012 16:51:53 GMT\r
+Server: gunicorn/0.13.4\r
+Content-Length: 492\r
+Connection: keep-alive\r
+\r
 RESPONSE-BODY"))
       (should (equal info
                      (list :num-redirects 0
