@@ -202,7 +202,7 @@ for older Emacs versions.")
 
 (defstruct request-response
   "A structure holding all relevant information of a request."
-  status-code redirects data error-thrown symbol-status url
+  status-code history redirects data error-thrown symbol-status url
   done-p settings
   ;; internal variables
   -buffer -raw-header -timer -backend -tempfiles)
@@ -218,6 +218,10 @@ for older Emacs versions.")
 
 (request--document-response request-response-status-code
   "Integer HTTP response code (e.g., 200).")
+
+(request--document-response request-response-history
+  "Redirection history (a list of response object).
+The first element is the oldest redirection.")
 
 (request--document-response request-response-redirects
   "Redirection history (a list of URLs).
@@ -929,7 +933,7 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
 
 (defun request--curl-preprocess ()
   "Pre-process current buffer before showing it to user."
-  (let (redirects)
+  (let (history)
     (destructuring-bind (&key num-redirects url-effective)
         (request--curl-read-and-delete-tail-info)
       (goto-char (point-min))
@@ -937,21 +941,18 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
       (when (> num-redirects 0)
         (loop with case-fold-search = t
               repeat num-redirects
+              ;; Do not store code=100 headers:
               do (request--consume-100-continue)
-              for beg = (point)
-              do (request--goto-next-body)
-              for end = (point)
-              ;; FIXME: use `mail-fetch-field'
-              do (progn
-                   (re-search-backward "^location: \\([^\r\n]+\\)\r\n" beg)
-                   (push (match-string 1) redirects)
-                   (goto-char end))
-              ;; Remove headers for redirection.
-              finally do (delete-region (point-min) end)))
+              do (let ((response (make-request-response
+                                  :-buffer (current-buffer)
+                                  :-backend 'curl)))
+                   (request--clean-header response)
+                   (request--cut-header response)
+                   (push response history))))
 
       (goto-char (point-min))
       (nconc (list :num-redirects num-redirects :url-effective url-effective
-                   :redirects redirects)
+                   :history (nreverse history))
              (request--parse-response-at-point)))))
 
 (defun request--curl-absolutify-redirects (start-url redirects)
@@ -962,6 +963,18 @@ START-URL is the URL requested."
         unless (string-match url-nonrelative-link url)
         do (setq url (url-expand-file-name url prev-url))
         collect url))
+
+(defun request--curl-absolutify-location-history (start-url history)
+  "Convert relative paths in HISTORY to absolute URLs.
+START-URL is the URL requested."
+  (loop for url in (request--curl-absolutify-redirects
+                    start-url
+                    (mapcar
+                     (lambda (response)
+                       (car (request-response-header response "location")))
+                     history))
+        for response in history
+        do (setf (request-response-url response) url)))
 
 (defun request--curl-callback (proc event)
   (let* ((buffer (process-buffer proc))
@@ -979,18 +992,20 @@ START-URL is the URL requested."
       (setf (request-response-error-thrown response) (cons 'error event))
       (apply #'request--callback buffer settings))
      ((equal event "finished\n")
-      (destructuring-bind (&key version code num-redirects redirects error
+      (destructuring-bind (&key version code num-redirects history error
                                 url-effective)
           (condition-case err
               (with-current-buffer buffer
                 (request--curl-preprocess))
             ((debug error)
              (list :error err)))
+        (request--curl-absolutify-location-history (plist-get settings :url)
+                                                   history)
         (setf (request-response-status-code  response) code)
         (setf (request-response-url          response) url-effective)
+        (setf (request-response-history      response) history)
         (setf (request-response-redirects    response)
-              (request--curl-absolutify-redirects (plist-get settings :url)
-                                                  (nreverse redirects)))
+              (mapcar #'request-response-url history))
         (setf (request-response-error-thrown response)
               (or error (when (>= code 400) `(error . (http ,code)))))
         (apply #'request--callback buffer settings))))))

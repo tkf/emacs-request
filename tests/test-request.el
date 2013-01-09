@@ -544,7 +544,7 @@ RESPONSE-BODY"))
       (should (equal info
                      (list :num-redirects 0
                            :url-effective "DUMMY-URL"
-                           :redirects nil
+                           :history nil
                            :version "1.0" :code 200))))))
 
 (ert-deftest request--curl-preprocess/two-redirects ()
@@ -573,7 +573,31 @@ Date: Sat, 15 Dec 2012 23:04:26 GMT\r
 \r
 RESPONSE-BODY")
     (insert "\n(:num-redirects 2 :url-effective \"DUMMY-URL\")")
-    (let ((info (request--curl-preprocess)))
+    (let ((info (request--curl-preprocess))
+          (history (list (make-request-response
+                          ;; :url "http://example.com/a/b"
+                          :-buffer (current-buffer)
+                          :-backend 'curl
+                          :-raw-header "\
+HTTP/1.0 302 FOUND
+Content-Type: text/html; charset=utf-8
+Content-Length: 257
+Location: http://example.com/redirect/a/b
+Server: Werkzeug/0.8.1 Python/2.7.2+
+Date: Sat, 15 Dec 2012 23:04:26 GMT
+")
+                         (make-request-response
+                          ;; :url "http://example.com/redirect/a/b"
+                          :-buffer (current-buffer)
+                          :-backend 'curl
+                          :-raw-header "\
+HTTP/1.0 302 FOUND
+Content-Type: text/html; charset=utf-8
+Content-Length: 239
+Location: http://example.com/a/b
+Server: Werkzeug/0.8.1 Python/2.7.2+
+Date: Sat, 15 Dec 2012 23:04:26 GMT
+"))))
       (should (equal (buffer-string)
                      "\
 HTTP/1.0 200 OK\r
@@ -586,8 +610,7 @@ RESPONSE-BODY"))
       (should (equal info
                      (list :num-redirects 2
                            :url-effective "DUMMY-URL"
-                           :redirects '("http://example.com/a/b"
-                                        "http://example.com/redirect/a/b")
+                           :history history
                            :version "1.0" :code 200))))))
 
 (ert-deftest request--curl-preprocess/100 ()
@@ -619,7 +642,7 @@ RESPONSE-BODY"))
       (should (equal info
                      (list :num-redirects 0
                            :url-effective "DUMMY-URL"
-                           :redirects nil
+                           :history nil
                            :version "1.1" :code 200))))))
 
 (ert-deftest request--curl-absolutify-redirects/simple ()
