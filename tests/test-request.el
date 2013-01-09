@@ -76,9 +76,7 @@
   (request-testing-with-response-slots
       response
     (if (and noninteractive (eq request-backend 'url-retrieve))
-        ;; `url-retrieve' adds %0D to redirection path when the test
-        ;; is run in noninteractive environment.
-        ;; probably it's a bug in `url-retrieve'...
+        ;; See [#url-noninteractive]_
         (progn
           (should (string-prefix-p (request-testing-url "report" path) url))
           (should (string-prefix-p path (assoc-default 'path data))))
@@ -86,6 +84,9 @@
       (should (equal (assoc-default 'path data) path)))
     (should (equal status-code 200))
     (should (equal (assoc-default 'method data) "GET"))))
+;; .. [#url-noninteractive] `url-retrieve' adds %0D to redirection
+;;    path when the test is run in noninteractive environment.
+;;    probably it's a bug in `url-retrieve'...
 
 (request-deftest request-get-simple-redirection ()
   (request-testing-with-response-slots
@@ -96,6 +97,7 @@
            (list (request-testing-url "redirect/redirect/report/some-path")
                  (request-testing-url "redirect/report/some-path"))))
       (if (and noninteractive (eq request-backend 'url-retrieve))
+          ;; See [#url-noninteractive]_
           (loop for url in redirects
                 for durl in desired
                 do (should (string-prefix-p url durl)))
