@@ -967,13 +967,15 @@ START-URL is the URL requested."
 (defun request--curl-absolutify-location-history (start-url history)
   "Convert relative paths in HISTORY to absolute URLs.
 START-URL is the URL requested."
+  (when history
+    (setf (request-response-url (car history)) start-url))
   (loop for url in (request--curl-absolutify-redirects
                     start-url
                     (mapcar
                      (lambda (response)
                        (car (request-response-header response "location")))
                      history))
-        for response in history
+        for response in (cdr history)
         do (setf (request-response-url response) url)))
 
 (defun request--curl-callback (proc event)
