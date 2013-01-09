@@ -503,6 +503,8 @@ and requests.request_ (Python).
       (setq sep-regexp "^\r$"))
     (when (buffer-live-p buffer)
       (with-current-buffer buffer
+        (request-log 'trace
+          "(buffer-string) at %S =\n%s" buffer (buffer-string))
         (goto-char (point-min))
         (re-search-forward sep-regexp)
         (unless (equal (match-string 0) "")
@@ -531,6 +533,8 @@ then kill the current buffer."
     (request-log 'debug "parser = %s" parser)
     (when (and (buffer-live-p buffer) parser)
       (with-current-buffer buffer
+        (request-log 'trace
+          "(buffer-string) at %S =\n%s" buffer (buffer-string))
         (goto-char (point-min))
         (setf (request-response-data response) (funcall parser))))))
 
