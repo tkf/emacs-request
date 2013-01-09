@@ -935,13 +935,6 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
               ;; Remove headers for redirection.
               finally do (delete-region (point-min) end)))
 
-      ;; Remove \r from header to use `mail-fetch-field'.
-      ;; See: `url-http-clean-headers'
-      (goto-char (point-min))
-      (request--goto-next-body)
-      (while (re-search-backward "\r$" (point-min) t)
-        (replace-match ""))
-
       (goto-char (point-min))
       (nconc (list :num-redirects num-redirects :url-effective url-effective
                    :redirects redirects)
