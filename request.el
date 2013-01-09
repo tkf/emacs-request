@@ -249,11 +249,14 @@ as URL which is the requested URL.")
 
 (defun request-response-header (response field-name)
   "Fetch the values of RESPONSE header field named FIELD-NAME."
-  (with-temp-buffer
-    (erase-buffer)
-    (insert (request-response--raw-header response))
-    (goto-char (point-min))
-    (mail-fetch-field field-name nil nil t)))
+  (let ((raw-header (request-response--raw-header response)))
+    (when raw-header
+      (with-temp-buffer
+        (erase-buffer)
+        (insert raw-header)
+        ;; ALL=t to fetch all fields with the same name.
+        ;; FIXME: Is this the right choice?
+        (mail-fetch-field field-name nil nil t)))))
 
 
 ;;; Backend dispatcher
