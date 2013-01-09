@@ -88,9 +88,14 @@
     (should (equal (assoc-default 'method data) "GET"))))
 
 (request-deftest request-get-simple-redirection ()
-  (let ((response (request-testing-sync "redirect/redirect/report/some-path"
-                                        :parser 'json-read)))
-    (request-testing-assert-redirected-to response "some-path")))
+  (request-testing-with-response-slots
+      (request-testing-sync "redirect/redirect/report/some-path"
+                            :parser 'json-read)
+    (request-testing-assert-redirected-to response "some-path")
+    (should
+     (equal redirects
+            (list (request-testing-url "redirect/redirect/report/some-path")
+                  (request-testing-url "redirect/report/some-path"))))))
 
 (request-deftest request-get-broken-redirection ()
   "Relative Location must be treated gracefully, even if it is not
@@ -100,9 +105,13 @@ See also:
 * GNU bug report #12374: http://debbugs.gnu.org/cgi/bugreport.cgi?bug=12374
 "
   :backends (curl)
-  (let ((response (request-testing-sync "broken_redirect/report/some-path"
-                                        :parser 'json-read)))
-    (request-testing-assert-redirected-to response "some-path")))
+  (request-testing-with-response-slots
+      (request-testing-sync "broken_redirect/report/some-path"
+                            :parser 'json-read)
+    (request-testing-assert-redirected-to response "some-path")
+    (should
+     (equal redirects
+            (list (request-testing-url "broken_redirect/report/some-path"))))))
 
 (request-deftest request-get-code-success ()
   (loop for code in (nconc (loop for c from 200 to 207 collect c)
