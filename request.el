@@ -202,7 +202,7 @@ for older Emacs versions.")
 
 (defstruct request-response
   "A structure holding all relevant information of a request."
-  status-code redirects data error-thrown symbol-status url
+  status-code history data error-thrown symbol-status url
   done-p settings
   ;; internal variables
   -buffer -raw-header -timer -backend -tempfiles)
@@ -219,9 +219,25 @@ for older Emacs versions.")
 (request--document-response request-response-status-code
   "Integer HTTP response code (e.g., 200).")
 
-(request--document-response request-response-redirects
-  "Redirection history (a list of URLs).
-The first element is the oldest redirection.")
+(request--document-response request-response-history
+  "Redirection history (a list of response object).
+The first element is the oldest redirection.
+
+You can use restricted portion of functions for the response
+objects in the history slot.  It also depends on backend.  Here
+is the table showing what functions you can use for the response
+objects in the history slot.
+
+==================================== ============== ==============
+Slots                                          Backends
+------------------------------------ -----------------------------
+\\                                    curl           url-retrieve
+==================================== ============== ==============
+request-response-url                  yes            yes
+request-response-header               yes            no
+other functions                       no             no
+==================================== ============== ==============
+")
 
 (request--document-response request-response-data
   "Response parsed by the given parser.")
@@ -248,15 +264,29 @@ passed to the backend.  Also, it has additional keywords such
 as URL which is the requested URL.")
 
 (defun request-response-header (response field-name)
-  "Fetch the values of RESPONSE header field named FIELD-NAME."
+  "Fetch the values of RESPONSE header field named FIELD-NAME.
+
+It returns comma separated values when the header has multiple
+field with the same name, as :RFC:`2616` specifies.
+
+Examples::
+
+  (request-response-header response
+                           \"content-type\") ; => \"text/html; charset=utf-8\"
+  (request-response-header response
+                           \"unknown-field\") ; => nil
+"
   (let ((raw-header (request-response--raw-header response)))
     (when raw-header
       (with-temp-buffer
         (erase-buffer)
         (insert raw-header)
-        ;; ALL=t to fetch all fields with the same name.
-        ;; FIXME: Is this the right choice?
-        (mail-fetch-field field-name nil nil t)))))
+        ;; ALL=t to fetch all fields with the same name to get comma
+        ;; separated value [#rfc2616-sec4]_.
+        (mail-fetch-field field-name nil t)))))
+;; .. [#rfc2616-sec4] RFC2616 says this is the right thing to do
+;;    (see http://tools.ietf.org/html/rfc2616.html#section-4.2).
+;;    Python's requests module does this too.
 
 
 ;;; Backend dispatcher
@@ -382,7 +412,6 @@ Arguments data, error-thrown, symbol-status can be accessed by
 Response object holds other information which can be accessed by
 the following accessors:
 `request-response-status-code',
-`request-response-redirects',
 `request-response-url' and
 `request-response-settings'
 
@@ -431,14 +460,12 @@ Example FILES argument::
 * PARSER function
 
 PARSER function takes no argument and it is executed in the
-buffer with HTTP response.  The current position in the
-HTTP response buffer is at the beginning of the response
-body.  So, for example, you can pass `json-read' to parse
-JSON object in the buffer.  To fetch whole buffer as a string,
-pass `buffer-string'.  If you want just the response part
-without header, pass::
-
-    (lambda () (buffer-substring (point) (point-max)))
+buffer with HTTP response body.  The current position in the HTTP
+response buffer is at the beginning of the buffer.  As the HTTP
+header is stripped off, the cursor is actually at the beginning
+of the response body.  So, for example, you can pass `json-read'
+to parse JSON object in the buffer.  To fetch whole response as a
+string, pass `buffer-string'.
 
 This is analogous to the `dataType' argument of jQuery.ajax_.
 Only this function can access to the process buffer, which
@@ -456,7 +483,7 @@ which must return some value), make sure to set TIMEOUT to
 relatively small value.
 
 Due to limitation of `url-retrieve-synchronously', response slots
-`request-response-error-thrown', `request-response-redirects' and
+`request-response-error-thrown', `request-response-history' and
 `request-response-url' are unknown (always `nil') when using
 synchronous request with `url-retrieve' backend.
 
@@ -690,7 +717,7 @@ associated process is exited."
     (set-process-query-on-exit-flag proc nil)))
 
 (defun* request--url-retrieve-callback (status &rest settings
-                                               &key response
+                                               &key response url
                                                &allow-other-keys)
   (declare (special url-http-method
                     url-http-response-status))
@@ -702,13 +729,21 @@ associated process is exited."
   (setf (request-response-status-code response) url-http-response-status)
   (let ((redirect (plist-get status :redirect)))
     (when redirect
-      (setf (request-response-url response) redirect)
-      (setf (request-response-redirects response)
-            (loop with l = nil
-                  for (k v) on redirect by 'cddr
-                  when (eq k :redirect)
-                  do (push v l)
-                  finally return l))))
+      (setf (request-response-url response) redirect)))
+  ;; Construct history slot
+  (loop for v in
+        (loop with first = t
+              with l = nil
+              for (k v) on status by 'cddr
+              when (eq k :redirect)
+              if first
+              do (setq first nil)
+              else
+              do (push v l)
+              finally do (cons url l))
+        do (let ((r (make-request-response :-backend 'url-retrieve)))
+             (setf (request-response-url r) v)
+             (push r (request-response-history response))))
 
   (symbol-macrolet ((error-thrown (request-response-error-thrown response))
                     (status-error (plist-get status :error)))
@@ -929,7 +964,7 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
 
 (defun request--curl-preprocess ()
   "Pre-process current buffer before showing it to user."
-  (let (redirects)
+  (let (history)
     (destructuring-bind (&key num-redirects url-effective)
         (request--curl-read-and-delete-tail-info)
       (goto-char (point-min))
@@ -937,21 +972,18 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
       (when (> num-redirects 0)
         (loop with case-fold-search = t
               repeat num-redirects
+              ;; Do not store code=100 headers:
               do (request--consume-100-continue)
-              for beg = (point)
-              do (request--goto-next-body)
-              for end = (point)
-              ;; FIXME: use `mail-fetch-field'
-              do (progn
-                   (re-search-backward "^location: \\([^\r\n]+\\)\r\n" beg)
-                   (push (match-string 1) redirects)
-                   (goto-char end))
-              ;; Remove headers for redirection.
-              finally do (delete-region (point-min) end)))
+              do (let ((response (make-request-response
+                                  :-buffer (current-buffer)
+                                  :-backend 'curl)))
+                   (request--clean-header response)
+                   (request--cut-header response)
+                   (push response history))))
 
       (goto-char (point-min))
       (nconc (list :num-redirects num-redirects :url-effective url-effective
-                   :redirects redirects)
+                   :history (nreverse history))
              (request--parse-response-at-point)))))
 
 (defun request--curl-absolutify-redirects (start-url redirects)
@@ -962,6 +994,19 @@ START-URL is the URL requested."
         unless (string-match url-nonrelative-link url)
         do (setq url (url-expand-file-name url prev-url))
         collect url))
+
+(defun request--curl-absolutify-location-history (start-url history)
+  "Convert relative paths in HISTORY to absolute URLs.
+START-URL is the URL requested."
+  (when history
+    (setf (request-response-url (car history)) start-url))
+  (loop for url in (request--curl-absolutify-redirects
+                    start-url
+                    (mapcar (lambda (response)
+                              (request-response-header response "location"))
+                            history))
+        for response in (cdr history)
+        do (setf (request-response-url response) url)))
 
 (defun request--curl-callback (proc event)
   (let* ((buffer (process-buffer proc))
@@ -979,18 +1024,18 @@ START-URL is the URL requested."
       (setf (request-response-error-thrown response) (cons 'error event))
       (apply #'request--callback buffer settings))
      ((equal event "finished\n")
-      (destructuring-bind (&key version code num-redirects redirects error
+      (destructuring-bind (&key version code num-redirects history error
                                 url-effective)
           (condition-case err
               (with-current-buffer buffer
                 (request--curl-preprocess))
             ((debug error)
              (list :error err)))
+        (request--curl-absolutify-location-history (plist-get settings :url)
+                                                   history)
         (setf (request-response-status-code  response) code)
         (setf (request-response-url          response) url-effective)
-        (setf (request-response-redirects    response)
-              (request--curl-absolutify-redirects (plist-get settings :url)
-                                                  (nreverse redirects)))
+        (setf (request-response-history      response) history)
         (setf (request-response-error-thrown response)
               (or error (when (>= code 400) `(error . (http ,code)))))
         (apply #'request--callback buffer settings))))))
