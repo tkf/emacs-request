@@ -706,17 +706,16 @@ associated process is exited."
   (setf (request-response-status-code response) url-http-response-status)
   (let ((redirect (plist-get status :redirect)))
     (when redirect
-      (setf (request-response-url response) redirect)
-      (setf (request-response-redirects response)
-            (loop with l = nil
-                  with first = t
-                  for (k v) on status by 'cddr
-                  when (eq k :redirect)
-                  if first
-                  do (setq first nil)
-                  else
-                  do (push v l)
-                  finally return (cons url l)))))
+      (setf (request-response-url response) redirect)))
+  (loop with first = t
+        with l = nil
+        for (k v) on status by 'cddr
+        when (eq k :redirect)
+        if first
+        do (setq first nil)
+        else
+        do (push v l)
+        finally do (setf (request-response-redirects response) (cons url l)))
 
   (symbol-macrolet ((error-thrown (request-response-error-thrown response))
                     (status-error (plist-get status :error)))
