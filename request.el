@@ -202,7 +202,7 @@ for older Emacs versions.")
 
 (defstruct request-response
   "A structure holding all relevant information of a request."
-  status-code history redirects data error-thrown symbol-status url
+  status-code history data error-thrown symbol-status url
   done-p settings
   ;; internal variables
   -buffer -raw-header -timer -backend -tempfiles)
@@ -221,10 +221,6 @@ for older Emacs versions.")
 
 (request--document-response request-response-history
   "Redirection history (a list of response object).
-The first element is the oldest redirection.")
-
-(request--document-response request-response-redirects
-  "Redirection history (a list of URLs).
 The first element is the oldest redirection.")
 
 (request--document-response request-response-data
@@ -386,7 +382,6 @@ Arguments data, error-thrown, symbol-status can be accessed by
 Response object holds other information which can be accessed by
 the following accessors:
 `request-response-status-code',
-`request-response-redirects',
 `request-response-url' and
 `request-response-settings'
 
@@ -460,7 +455,7 @@ which must return some value), make sure to set TIMEOUT to
 relatively small value.
 
 Due to limitation of `url-retrieve-synchronously', response slots
-`request-response-error-thrown', `request-response-redirects' and
+`request-response-error-thrown', `request-response-history' and
 `request-response-url' are unknown (always `nil') when using
 synchronous request with `url-retrieve' backend.
 
@@ -721,8 +716,6 @@ associated process is exited."
         do (let ((r (make-request-response :-backend 'url-retrieve)))
              (setf (request-response-url r) v)
              (push r (request-response-history response))))
-  (setf (request-response-redirects response)
-        (mapcar #'request-response-url (request-response-history response)))
 
   (symbol-macrolet ((error-thrown (request-response-error-thrown response))
                     (status-error (plist-get status :error)))
@@ -1016,8 +1009,6 @@ START-URL is the URL requested."
         (setf (request-response-status-code  response) code)
         (setf (request-response-url          response) url-effective)
         (setf (request-response-history      response) history)
-        (setf (request-response-redirects    response)
-              (mapcar #'request-response-url history))
         (setf (request-response-error-thrown response)
               (or error (when (>= code 400) `(error . (http ,code)))))
         (apply #'request--callback buffer settings))))))
