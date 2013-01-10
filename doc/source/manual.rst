@@ -14,7 +14,7 @@ Response object
 ---------------
 
 .. el:function:: request-response-status-code
-.. el:function:: request-response-redirects
+.. el:function:: request-response-history
 .. el:function:: request-response-data
 .. el:function:: request-response-error-thrown
 .. el:function:: request-response-symbol-status
