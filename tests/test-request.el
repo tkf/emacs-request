@@ -168,6 +168,14 @@ See also:
     (should error-thrown)
     (should done-p)))
 
+(request-deftest request-get-parse-header-when-400 ()
+  (request-testing-with-response-slots
+      (request-testing-sync "code/400")
+    (should (equal error-thrown '(error . (http 400))))
+    (should (equal status-code 400))
+    ;; Header should be parse-able:
+    (should (request-response-header response "server"))))
+
 (request-deftest request-get-sync ()
   (request-testing-with-response-slots
       (request (request-testing-url "report/some-path")
