@@ -511,10 +511,8 @@ based backends (e.g., `curl') should avoid this problem."
 
 (request-deftest request-tfw-server ()
   (let* ((response (request-testing-sync "report/some-path"))
-         (servers (request-response-header response "server")))
-    (should (= (length servers) 1))
-    (should (string-prefix-p request-testing-server-name
-                             (downcase (car servers))))))
+         (server (request-response-header response "server")))
+    (should (string-prefix-p request-testing-server-name (downcase server)))))
 
 
 ;;; `request-backend'-independent tests

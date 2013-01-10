@@ -264,15 +264,21 @@ passed to the backend.  Also, it has additional keywords such
 as URL which is the requested URL.")
 
 (defun request-response-header (response field-name)
-  "Fetch the values of RESPONSE header field named FIELD-NAME."
+  "Fetch the values of RESPONSE header field named FIELD-NAME.
+
+It returns comma separated values when the header has multiple
+field with the same name, as :RFC:`2616` specifies."
   (let ((raw-header (request-response--raw-header response)))
     (when raw-header
       (with-temp-buffer
         (erase-buffer)
         (insert raw-header)
-        ;; ALL=t to fetch all fields with the same name.
-        ;; FIXME: Is this the right choice?
-        (mail-fetch-field field-name nil nil t)))))
+        ;; ALL=t to fetch all fields with the same name to get comma
+        ;; separated value [#rfc2616-sec4]_.
+        (mail-fetch-field field-name nil t)))))
+;; .. [#rfc2616-sec4] RFC2616 says this is the right thing to do
+;;    (see http://tools.ietf.org/html/rfc2616.html#section-4.2).
+;;    Python's requests module does this too.
 
 
 ;;; Backend dispatcher
@@ -988,10 +994,9 @@ START-URL is the URL requested."
     (setf (request-response-url (car history)) start-url))
   (loop for url in (request--curl-absolutify-redirects
                     start-url
-                    (mapcar
-                     (lambda (response)
-                       (car (request-response-header response "location")))
-                     history))
+                    (mapcar (lambda (response)
+                              (request-response-header response "location"))
+                            history))
         for response in (cdr history)
         do (setf (request-response-url response) url)))
 
