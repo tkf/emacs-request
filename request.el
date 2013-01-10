@@ -707,15 +707,22 @@ associated process is exited."
   (let ((redirect (plist-get status :redirect)))
     (when redirect
       (setf (request-response-url response) redirect)))
-  (loop with first = t
-        with l = nil
-        for (k v) on status by 'cddr
-        when (eq k :redirect)
-        if first
-        do (setq first nil)
-        else
-        do (push v l)
-        finally do (setf (request-response-redirects response) (cons url l)))
+  ;; Construct history slot
+  (loop for v in
+        (loop with first = t
+              with l = nil
+              for (k v) on status by 'cddr
+              when (eq k :redirect)
+              if first
+              do (setq first nil)
+              else
+              do (push v l)
+              finally do (cons url l))
+        do (let ((r (make-request-response :-backend 'url-retrieve)))
+             (setf (request-response-url r) v)
+             (push r (request-response-history response))))
+  (setf (request-response-redirects response)
+        (mapcar #'request-response-url (request-response-history response)))
 
   (symbol-macrolet ((error-thrown (request-response-error-thrown response))
                     (status-error (plist-get status :error)))
