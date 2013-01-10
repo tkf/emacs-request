@@ -267,7 +267,15 @@ as URL which is the requested URL.")
   "Fetch the values of RESPONSE header field named FIELD-NAME.
 
 It returns comma separated values when the header has multiple
-field with the same name, as :RFC:`2616` specifies."
+field with the same name, as :RFC:`2616` specifies.
+
+Examples::
+
+  (request-response-header response
+                           \"content-type\") ; => \"text/html; charset=utf-8\"
+  (request-response-header response
+                           \"unknown-field\") ; => nil
+"
   (let ((raw-header (request-response--raw-header response)))
     (when raw-header
       (with-temp-buffer

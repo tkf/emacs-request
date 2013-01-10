@@ -22,6 +22,8 @@ Response object
 .. el:function:: request-response-done-p
 .. el:function:: request-response-settings
 
+.. el:function:: request-response-header
+
 
 Cookie
 ------
