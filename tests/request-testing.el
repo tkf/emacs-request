@@ -39,7 +39,7 @@
   "Destructure RESPONSE object and execute BODY.
 Following symbols are bound:
 
-  response / status-code / redirects / data / error-thrown /
+  response / status-code / history / data / error-thrown /
   symbol-status / url / done-p / settings / -buffer / -timer
 
 The symbols other than `response' is bound using `symbol-macrolet'."
@@ -47,7 +47,7 @@ The symbols other than `response' is bound using `symbol-macrolet'."
   `(let ((response ,response))
      (symbol-macrolet
          ,(loop for slot in '(status-code
-                              redirects
+                              history
                               data
                               error-thrown
                               symbol-status

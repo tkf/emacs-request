@@ -95,7 +95,8 @@
     (request-testing-assert-redirected-to response "some-path")
     (let ((desired
            (list (request-testing-url "redirect/redirect/report/some-path")
-                 (request-testing-url "redirect/report/some-path"))))
+                 (request-testing-url "redirect/report/some-path")))
+          (redirects (mapcar #'request-response-url history)))
       (if (and noninteractive (eq request-backend 'url-retrieve))
           ;; See [#url-noninteractive]_
           (loop for url in redirects
@@ -115,9 +116,10 @@ See also:
       (request-testing-sync "broken_redirect/report/some-path"
                             :parser 'json-read)
     (request-testing-assert-redirected-to response "some-path")
-    (should
-     (equal redirects
-            (list (request-testing-url "broken_redirect/report/some-path"))))))
+    (let ((desired
+           (list (request-testing-url "broken_redirect/report/some-path")))
+          (redirects (mapcar #'request-response-url history)))
+      (should (equal redirects desired)))))
 
 (request-deftest request-get-code-success ()
   (loop for code in (nconc (loop for c from 200 to 207 collect c)
