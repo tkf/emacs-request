@@ -205,7 +205,7 @@ for older Emacs versions.")
   status-code redirects data error-thrown symbol-status url
   done-p settings
   ;; internal variables
-  -buffer -timer -backend -tempfiles)
+  -buffer -raw-header -timer -backend -tempfiles)
 
 (defmacro request--document-response (function docstring)
   (declare (indent defun)
@@ -246,6 +246,17 @@ One of success/error/timeout/abort/parse-error.")
 Some arguments such as HEADERS is changed to the one actually
 passed to the backend.  Also, it has additional keywords such
 as URL which is the requested URL.")
+
+(defun request-response-header (response field-name)
+  "Fetch the values of RESPONSE header field named FIELD-NAME."
+  (let ((raw-header (request-response--raw-header response)))
+    (when raw-header
+      (with-temp-buffer
+        (erase-buffer)
+        (insert raw-header)
+        ;; ALL=t to fetch all fields with the same name.
+        ;; FIXME: Is this the right choice?
+        (mail-fetch-field field-name nil nil t)))))
 
 
 ;;; Backend dispatcher
@@ -489,35 +500,52 @@ and requests.request_ (Python).
                        #'request-response--timeout-callback response)))
   response)
 
-(defun request--parse-data (buffer parser error-thrown backend)
+(defun request--clean-header (response)
+  "Strip off carriage returns in the header of REQUEST."
+  (request-log 'debug "-CLEAN-HEADER")
+  (let ((buffer       (request-response--buffer      response))
+        (backend      (request-response--backend     response))
+        sep-regexp)
+    (if (eq backend 'url-retrieve)
+        ;; FIXME: make this workaround optional.
+        ;; But it looks like sometimes `url-http-clean-headers'
+        ;; fails to cleanup.  So, let's be bit permissive here...
+        (setq sep-regexp "^\r?$")
+      (setq sep-regexp "^\r$"))
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (request-log 'trace
+          "(buffer-string) at %S =\n%s" buffer (buffer-string))
+        (goto-char (point-min))
+        (re-search-forward sep-regexp)
+        (unless (equal (match-string 0) "")
+          (while (re-search-backward "\r$" (point-min) t)
+            (replace-match "")))))))
+
+(defun request--cut-header (response)
+  "Cut the first header part in the buffer of RESPONSE and move it to
+raw-header slot."
+  (request-log 'debug "-CUT-HEADER")
+  (let ((buffer (request-response--buffer response)))
+    (with-current-buffer buffer
+      (goto-char (point-min))
+      (re-search-forward "^$")
+      (setf (request-response--raw-header response)
+            (buffer-substring (point-min) (point)))
+      (delete-region (point-min) (min (1+ (point)) (point-max))))))
+
+(defun request--parse-data (response parser)
   "Run PARSER in current buffer if ERROR-THROWN is nil,
 then kill the current buffer."
   (request-log 'debug "-PARSE-DATA")
-  (request-log 'debug "parser = %s" parser)
-  (request-log 'debug "error-thrown = %S" error-thrown)
-  (request-log 'debug "backend = %S" backend)
-  (let (noerror)
-    (unwind-protect
-        (prog1
-            (when (and (buffer-live-p buffer) parser (not error-thrown))
-              (with-current-buffer buffer
-                (goto-char (point-min))
-                ;; Should be no \r.
-                ;; See `url-http-clean-headers' and `request--curl-preprocess'.
-                (if (eq backend 'url-retrieve)
-                    ;; FIXME: make this workaround optional.
-                    ;; But it looks like sometimes `url-http-clean-headers'
-                    ;; fails to cleanup.  So, let's be bit permissive here...
-                    (re-search-forward "^\r?$")
-                  (re-search-forward "^$"))
-                ;; `forward-char' will fail when there is no body.
-                (ignore-errors (forward-char))
-                (funcall parser)))
-          (setq noerror t))
-      (unless noerror
-        (request-log 'error "REQUEST--PARSE-DATA: error from parser %S"
-                     parser))
-      (kill-buffer buffer))))
+  (let ((buffer (request-response--buffer response)))
+    (request-log 'debug "parser = %s" parser)
+    (when (and (buffer-live-p buffer) parser)
+      (with-current-buffer buffer
+        (request-log 'trace
+          "(buffer-string) at %S =\n%s" buffer (buffer-string))
+        (goto-char (point-min))
+        (setf (request-response-data response) (funcall parser))))))
 
 (defun* request--callback (buffer &key parser success error complete
                                   timeout status-code response
@@ -527,6 +555,10 @@ then kill the current buffer."
                (when (buffer-live-p buffer)
                  (with-current-buffer buffer (buffer-string))))
 
+  ;; Sometimes BUFFER given as the argument is different from the
+  ;; buffer already set in RESPONSE.  That's why it is reset here.
+  ;; FIXME: Refactor how BUFFER is passed around.
+  (setf (request-response--buffer response) buffer)
   (request-response--cancel-timer response)
   (symbol-macrolet
       ((error-thrown (request-response-error-thrown response))
@@ -535,12 +567,18 @@ then kill the current buffer."
        (done-p (request-response-done-p response)))
 
     ;; Parse response body
-    (setq data (condition-case err
-                   (request--parse-data buffer parser error-thrown
-                                        (request-response--backend response))
-                 (error
-                  (setq symbol-status 'parse-error)
-                  (setq error-thrown err))))
+    (request-log 'debug "error-thrown = %S" error-thrown)
+    (unless error-thrown
+      (request--clean-header response)
+      (request--cut-header response))
+    (condition-case err
+        (unless error-thrown
+          (request--parse-data response parser))
+      (error
+       (setq symbol-status 'parse-error)
+       (setq error-thrown err)
+       (request-log 'error "Error from parser %S: %S" parser err)))
+    (kill-buffer buffer)
     (request-log 'debug "data = %s" data)
 
     ;; Determine `symbol-status'
@@ -910,13 +948,6 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
                    (goto-char end))
               ;; Remove headers for redirection.
               finally do (delete-region (point-min) end)))
-
-      ;; Remove \r from header to use `mail-fetch-field'.
-      ;; See: `url-http-clean-headers'
-      (goto-char (point-min))
-      (request--goto-next-body)
-      (while (re-search-backward "\r$" (point-min) t)
-        (replace-match ""))
 
       (goto-char (point-min))
       (nconc (list :num-redirects num-redirects :url-effective url-effective
