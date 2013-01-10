@@ -221,7 +221,23 @@ for older Emacs versions.")
 
 (request--document-response request-response-history
   "Redirection history (a list of response object).
-The first element is the oldest redirection.")
+The first element is the oldest redirection.
+
+You can use restricted portion of functions for the response
+objects in the history slot.  It also depends on backend.  Here
+is the table showing what functions you can use for the response
+objects in the history slot.
+
+==================================== ============== ==============
+Slots                                          Backends
+------------------------------------ -----------------------------
+\\                                    curl           url-retrieve
+==================================== ============== ==============
+request-response-url                  yes            yes
+request-response-header               yes            no
+other functions                       no             no
+==================================== ============== ==============
+")
 
 (request--document-response request-response-data
   "Response parsed by the given parser.")
