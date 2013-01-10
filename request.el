@@ -5,7 +5,7 @@
 ;;   Free Software Foundation, Inc.
 
 ;; Author: Takafumi Arakaki <aka.tkf at gmail.com>
-;; Version: 0.1.1alpha0
+;; Version: 0.2.0alpha0
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -48,7 +48,7 @@
   :group 'comm
   :prefix "request-")
 
-(defconst request-version "0.1.1alpha0")
+(defconst request-version "0.2.0alpha0")
 
 
 ;;; Customize variables
