@@ -681,6 +681,14 @@ RESPONSE-BODY"))
                   '("/a" "/b"))
                  '("http://localhost:8000/a" "http://localhost:8000/b"))))
 
+(ert-deftest request-abort-killed-buffer ()
+  (request-testing-with-response-slots
+      (make-request-response
+       :-buffer (with-temp-buffer (current-buffer)))
+    (should-not (buffer-live-p -buffer))
+    (request-abort response)
+    (should done-p)))
+
 (ert-deftest request--netscape-cookie-parse ()
   (with-temp-buffer
     (erase-buffer)

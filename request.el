@@ -686,10 +686,13 @@ associated process is exited."
                     (symbol-status (request-response-symbol-status response))
                     (done-p (request-response-done-p response)))
     (let ((process (get-buffer-process buffer)))
-      (when (and (request--process-live-p process) (not symbol-status))
+      (unless symbol-status             ; should I use done-p here?
         (setq symbol-status 'abort)
         (setq done-p t)
-        (funcall (request--choose-backend 'terminate-process) process)))))
+        (when (and
+               (processp process) ; process can be nil when buffer is killed
+               (request--process-live-p process))
+          (funcall (request--choose-backend 'terminate-process) process))))))
 
 
 ;;; Backend: `url-retrieve'
