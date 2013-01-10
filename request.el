@@ -664,6 +664,12 @@ then kill the current buffer."
         ;; sometimes with `url-retrieve' backend.
         (request-log 'error "Callback is not called when stopping process! \
 Explicitly calling from timer.")
+        (when (buffer-live-p buffer)
+          (destructuring-bind (&key code &allow-other-keys)
+              (with-current-buffer buffer
+                (goto-char (point-min))
+                (request--parse-response-at-point))
+            (setf (request-response-status-code response) code)))
         (apply #'request--callback
                buffer
                (request-response-settings response))
