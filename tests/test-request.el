@@ -76,9 +76,7 @@
   (request-testing-with-response-slots
       response
     (if (and noninteractive (eq request-backend 'url-retrieve))
-        ;; `url-retrieve' adds %0D to redirection path when the test
-        ;; is run in noninteractive environment.
-        ;; probably it's a bug in `url-retrieve'...
+        ;; See [#url-noninteractive]_
         (progn
           (should (string-prefix-p (request-testing-url "report" path) url))
           (should (string-prefix-p path (assoc-default 'path data))))
@@ -86,11 +84,25 @@
       (should (equal (assoc-default 'path data) path)))
     (should (equal status-code 200))
     (should (equal (assoc-default 'method data) "GET"))))
+;; .. [#url-noninteractive] `url-retrieve' adds %0D to redirection
+;;    path when the test is run in noninteractive environment.
+;;    probably it's a bug in `url-retrieve'...
 
 (request-deftest request-get-simple-redirection ()
-  (let ((response (request-testing-sync "redirect/redirect/report/some-path"
-                                        :parser 'json-read)))
-    (request-testing-assert-redirected-to response "some-path")))
+  (request-testing-with-response-slots
+      (request-testing-sync "redirect/redirect/report/some-path"
+                            :parser 'json-read)
+    (request-testing-assert-redirected-to response "some-path")
+    (let ((desired
+           (list (request-testing-url "redirect/redirect/report/some-path")
+                 (request-testing-url "redirect/report/some-path")))
+          (redirects (mapcar #'request-response-url history)))
+      (if (and noninteractive (eq request-backend 'url-retrieve))
+          ;; See [#url-noninteractive]_
+          (loop for url in redirects
+                for durl in desired
+                do (should (string-prefix-p durl url)))
+        (should (equal redirects desired))))))
 
 (request-deftest request-get-broken-redirection ()
   "Relative Location must be treated gracefully, even if it is not
@@ -100,9 +112,14 @@ See also:
 * GNU bug report #12374: http://debbugs.gnu.org/cgi/bugreport.cgi?bug=12374
 "
   :backends (curl)
-  (let ((response (request-testing-sync "broken_redirect/report/some-path"
-                                        :parser 'json-read)))
-    (request-testing-assert-redirected-to response "some-path")))
+  (request-testing-with-response-slots
+      (request-testing-sync "broken_redirect/report/some-path"
+                            :parser 'json-read)
+    (request-testing-assert-redirected-to response "some-path")
+    (let ((desired
+           (list (request-testing-url "broken_redirect/report/some-path")))
+          (redirects (mapcar #'request-response-url history)))
+      (should (equal redirects desired)))))
 
 (request-deftest request-get-code-success ()
   (loop for code in (nconc (loop for c from 200 to 207 collect c)
@@ -493,11 +510,9 @@ based backends (e.g., `curl') should avoid this problem."
 (message "Using test server: %s" request-testing-server-name)
 
 (request-deftest request-tfw-server ()
-  (request-testing-with-response-slots
-        (request-testing-sync
-         "report/some-path"
-         :parser (lambda () (downcase (mail-fetch-field "server"))))
-      (should (string-prefix-p request-testing-server-name data))))
+  (let* ((response (request-testing-sync "report/some-path"))
+         (server (request-response-header response "server")))
+    (should (string-prefix-p request-testing-server-name (downcase server)))))
 
 
 ;;; `request-backend'-independent tests
@@ -534,17 +549,17 @@ RESPONSE-BODY")
     (let ((info (request--curl-preprocess)))
       (should (equal (buffer-string)
                      "\
-HTTP/1.0 200 OK
-Content-Type: application/json
-Content-Length: 88
-Server: Werkzeug/0.8.1 Python/2.7.2+
-Date: Sat, 15 Dec 2012 23:04:26 GMT
-
+HTTP/1.0 200 OK\r
+Content-Type: application/json\r
+Content-Length: 88\r
+Server: Werkzeug/0.8.1 Python/2.7.2+\r
+Date: Sat, 15 Dec 2012 23:04:26 GMT\r
+\r
 RESPONSE-BODY"))
       (should (equal info
                      (list :num-redirects 0
                            :url-effective "DUMMY-URL"
-                           :redirects nil
+                           :history nil
                            :version "1.0" :code 200))))))
 
 (ert-deftest request--curl-preprocess/two-redirects ()
@@ -573,21 +588,44 @@ Date: Sat, 15 Dec 2012 23:04:26 GMT\r
 \r
 RESPONSE-BODY")
     (insert "\n(:num-redirects 2 :url-effective \"DUMMY-URL\")")
-    (let ((info (request--curl-preprocess)))
-      (should (equal (buffer-string)
-                     "\
-HTTP/1.0 200 OK
-Content-Type: application/json
-Content-Length: 88
+    (let ((info (request--curl-preprocess))
+          (history (list (make-request-response
+                          ;; :url "http://example.com/a/b"
+                          :-buffer (current-buffer)
+                          :-backend 'curl
+                          :-raw-header "\
+HTTP/1.0 302 FOUND
+Content-Type: text/html; charset=utf-8
+Content-Length: 257
+Location: http://example.com/redirect/a/b
 Server: Werkzeug/0.8.1 Python/2.7.2+
 Date: Sat, 15 Dec 2012 23:04:26 GMT
-
+")
+                         (make-request-response
+                          ;; :url "http://example.com/redirect/a/b"
+                          :-buffer (current-buffer)
+                          :-backend 'curl
+                          :-raw-header "\
+HTTP/1.0 302 FOUND
+Content-Type: text/html; charset=utf-8
+Content-Length: 239
+Location: http://example.com/a/b
+Server: Werkzeug/0.8.1 Python/2.7.2+
+Date: Sat, 15 Dec 2012 23:04:26 GMT
+"))))
+      (should (equal (buffer-string)
+                     "\
+HTTP/1.0 200 OK\r
+Content-Type: application/json\r
+Content-Length: 88\r
+Server: Werkzeug/0.8.1 Python/2.7.2+\r
+Date: Sat, 15 Dec 2012 23:04:26 GMT\r
+\r
 RESPONSE-BODY"))
       (should (equal info
                      (list :num-redirects 2
                            :url-effective "DUMMY-URL"
-                           :redirects '("http://example.com/a/b"
-                                        "http://example.com/redirect/a/b")
+                           :history history
                            :version "1.0" :code 200))))))
 
 (ert-deftest request--curl-preprocess/100 ()
@@ -608,18 +646,18 @@ RESPONSE-BODY")
     (let ((info (request--curl-preprocess)))
       (should (equal (buffer-string)
                      "\
-HTTP/1.1 200 OK
-Content-Type: application/json
-Date: Wed, 19 Dec 2012 16:51:53 GMT
-Server: gunicorn/0.13.4
-Content-Length: 492
-Connection: keep-alive
-
+HTTP/1.1 200 OK\r
+Content-Type: application/json\r
+Date: Wed, 19 Dec 2012 16:51:53 GMT\r
+Server: gunicorn/0.13.4\r
+Content-Length: 492\r
+Connection: keep-alive\r
+\r
 RESPONSE-BODY"))
       (should (equal info
                      (list :num-redirects 0
                            :url-effective "DUMMY-URL"
-                           :redirects nil
+                           :history nil
                            :version "1.1" :code 200))))))
 
 (ert-deftest request--curl-absolutify-redirects/simple ()
