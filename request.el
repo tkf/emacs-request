@@ -658,7 +658,7 @@ then kill the current buffer."
         (request-log 'error "Callback is not called when stopping process! \
 Explicitly calling from timer.")
         (apply #'request--callback
-               (with-temp-buffer (current-buffer)) ; #<killed buffer>
+               buffer
                (request-response-settings response))
         (setq done-p t)))))
 
