@@ -544,8 +544,9 @@ and requests.request_ (Python).
         (request-log 'trace
           "(buffer-string) at %S =\n%s" buffer (buffer-string))
         (goto-char (point-min))
-        (re-search-forward sep-regexp)
-        (unless (equal (match-string 0) "")
+        (when (and (re-search-forward sep-regexp nil t)
+                   ;; Are \r characters stripped off already?:
+                   (not (equal (match-string 0) "")))
           (while (re-search-backward "\r$" (point-min) t)
             (replace-match "")))))))
 
@@ -554,12 +555,13 @@ and requests.request_ (Python).
 raw-header slot."
   (request-log 'debug "-CUT-HEADER")
   (let ((buffer (request-response--buffer response)))
-    (with-current-buffer buffer
-      (goto-char (point-min))
-      (re-search-forward "^$")
-      (setf (request-response--raw-header response)
-            (buffer-substring (point-min) (point)))
-      (delete-region (point-min) (min (1+ (point)) (point-max))))))
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (goto-char (point-min))
+        (when (re-search-forward "^$" nil t)
+          (setf (request-response--raw-header response)
+                (buffer-substring (point-min) (point)))
+          (delete-region (point-min) (min (1+ (point)) (point-max))))))))
 
 (defun request--parse-data (response parser)
   "Run PARSER in current buffer if ERROR-THROWN is nil,
@@ -593,11 +595,16 @@ then kill the current buffer."
        (data (request-response-data response))
        (done-p (request-response-done-p response)))
 
+    ;; Parse response header
+    (request--clean-header response)
+    (request--cut-header response)
+    ;; Note: Try to do this even `error-thrown' is set.  For example,
+    ;; timeout error can occur while downloading response body and
+    ;; header is there in that case.
+
     ;; Parse response body
     (request-log 'debug "error-thrown = %S" error-thrown)
     (unless error-thrown
-      (request--clean-header response)
-      (request--cut-header response)
       (condition-case err
           (request--parse-data response parser)
         (error
