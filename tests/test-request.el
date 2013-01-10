@@ -168,6 +168,14 @@ See also:
     (should error-thrown)
     (should done-p)))
 
+(request-deftest request-get-parse-header-when-400 ()
+  (request-testing-with-response-slots
+      (request-testing-sync "code/400")
+    (should (equal error-thrown '(error . (http 400))))
+    (should (equal status-code 400))
+    ;; Header should be parse-able:
+    (should (request-response-header response "server"))))
+
 (request-deftest request-get-sync ()
   (request-testing-with-response-slots
       (request (request-testing-url "report/some-path")
@@ -680,6 +688,14 @@ RESPONSE-BODY"))
                   "http://localhost:8000"
                   '("/a" "/b"))
                  '("http://localhost:8000/a" "http://localhost:8000/b"))))
+
+(ert-deftest request-abort-killed-buffer ()
+  (request-testing-with-response-slots
+      (make-request-response
+       :-buffer (with-temp-buffer (current-buffer)))
+    (should-not (buffer-live-p -buffer))
+    (request-abort response)
+    (should done-p)))
 
 (ert-deftest request--netscape-cookie-parse ()
   (with-temp-buffer
