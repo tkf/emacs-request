@@ -100,7 +100,7 @@
           ;; See [#url-noninteractive]_
           (loop for url in redirects
                 for durl in desired
-                do (should (string-prefix-p url durl)))
+                do (should (string-prefix-p durl url)))
         (should (equal redirects desired))))))
 
 (request-deftest request-get-broken-redirection ()
