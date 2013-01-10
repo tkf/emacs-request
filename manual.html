@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Request.el manual &mdash; Request.el 0.1.0 documentation</title>
+    <title>Request.el manual &mdash; Request.el 0.2.0alpha0 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.1.0',
+        VERSION:     '0.2.0alpha0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="Request.el 0.1.0 documentation" href="index.html" />
+    <link rel="top" title="Request.el 0.2.0alpha0 documentation" href="index.html" />
     <link rel="prev" title="Request.el – Easy HTTP request for Emacs Lisp" href="index.html" /> 
   </head>
   <body>
@@ -37,7 +37,7 @@
         <li class="right" >
           <a href="index.html" title="Request.el – Easy HTTP request for Emacs Lisp"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">Request.el 0.1.0 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Request.el 0.2.0alpha0 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -127,7 +127,6 @@ arguments (i.e., it&#8217;s better to use <tt class="xref el el-symbol docutils 
 <p>Response object holds other information which can be accessed by
 the following accessors:
 <a class="reference internal" href="#request-response-status-code" title="request-response-status-code"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-status-code</span></tt></a>,
-<a class="reference internal" href="#request-response-redirects" title="request-response-redirects"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-redirects</span></tt></a>,
 <a class="reference internal" href="#request-response-url" title="request-response-url"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-url</span></tt></a> and
 <a class="reference internal" href="#request-response-settings" title="request-response-settings"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-settings</span></tt></a></p>
 <ul class="simple">
@@ -174,15 +173,11 @@ Contributions are welcome.</p>
 <li>PARSER function</li>
 </ul>
 <p>PARSER function takes no argument and it is executed in the
-buffer with HTTP response.  The current position in the
-HTTP response buffer is at the beginning of the response
-body.  So, for example, you can pass <tt class="xref el el-symbol docutils literal"><span class="pre">json-read</span></tt> to parse
-JSON object in the buffer.  To fetch whole buffer as a string,
-pass <tt class="xref el el-symbol docutils literal"><span class="pre">buffer-string</span></tt>.  If you want just the response part
-without header, pass:</p>
-<div class="highlight-cl"><div class="highlight"><pre><span class="p">(</span><span class="k">lambda</span> <span class="p">()</span> <span class="p">(</span><span class="nv">buffer-substring</span> <span class="p">(</span><span class="nv">point</span><span class="p">)</span> <span class="p">(</span><span class="nv">point-max</span><span class="p">)))</span>
-</pre></div>
-</div>
+buffer with HTTP response body.  The current position in the HTTP
+response buffer is at the beginning of the buffer.  As the HTTP
+header is stripped off, the cursor is actually at the beginning
+of the response body.  So, for example, you can pass <tt class="xref el el-symbol docutils literal"><span class="pre">json-read</span></tt>to parse JSON object in the buffer.  To fetch whole response as a
+string, pass <tt class="xref el el-symbol docutils literal"><span class="pre">buffer-string</span></tt>.</p>
 <p>This is analogous to the <tt class="xref el el-symbol docutils literal"><span class="pre">dataType</span></tt> argument of <a class="reference external" href="http://api.jquery.com/jQuery.ajax/">jQuery.ajax</a>.
 Only this function can access to the process buffer, which
 is killed immediately after the execution of this function.</p>
@@ -197,7 +192,7 @@ way to write callback chains, use <a class="reference internal" href="#request-d
 which must return some value), make sure to set TIMEOUT to
 relatively small value.</p>
 <p>Due to limitation of <tt class="xref el el-symbol docutils literal"><span class="pre">url-retrieve-synchronously</span></tt>, response slots
-<a class="reference internal" href="#request-response-error-thrown" title="request-response-error-thrown"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-error-thrown</span></tt></a>, <a class="reference internal" href="#request-response-redirects" title="request-response-redirects"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-redirects</span></tt></a> and
+<a class="reference internal" href="#request-response-error-thrown" title="request-response-error-thrown"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-error-thrown</span></tt></a>, <a class="reference internal" href="#request-response-history" title="request-response-history"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-history</span></tt></a> and
 <a class="reference internal" href="#request-response-url" title="request-response-url"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-url</span></tt></a> are unknown (always <tt class="xref el el-symbol docutils literal"><span class="pre">nil</span></tt>) when using
 synchronous request with <tt class="xref el el-symbol docutils literal"><span class="pre">url-retrieve</span></tt> backend.</p>
 <ul class="simple">
@@ -225,10 +220,44 @@ associated process is exited.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="request-response-redirects">
-<em class="property">function </em><big>(</big><tt class="descname">request-response-redirects </tt><em>cl-x</em><big>)</big><a class="headerlink" href="#request-response-redirects" title="Permalink to this definition">¶</a></dt>
-<dd><p>Redirection history (a list of URLs).
+<dt id="request-response-history">
+<em class="property">function </em><big>(</big><tt class="descname">request-response-history </tt><em>cl-x</em><big>)</big><a class="headerlink" href="#request-response-history" title="Permalink to this definition">¶</a></dt>
+<dd><p>Redirection history (a list of response object).
 The first element is the oldest redirection.</p>
+<p>You can use restricted portion of functions for the response
+objects in the history slot.  It also depends on backend.  Here
+is the table showing what functions you can use for the response
+objects in the history slot.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="56%" />
+<col width="22%" />
+<col width="22%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Slots</th>
+<th class="head" colspan="2">Backends</th>
+</tr>
+<tr class="row-even"><th class="head"></th>
+<th class="head">curl</th>
+<th class="head">url-retrieve</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-odd"><td>request-response-url</td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="row-even"><td>request-response-header</td>
+<td>yes</td>
+<td>no</td>
+</tr>
+<tr class="row-odd"><td>other functions</td>
+<td>no</td>
+<td>no</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -271,6 +300,21 @@ One of success/error/timeout/abort/parse-error.</p>
 Some arguments such as HEADERS is changed to the one actually
 passed to the backend.  Also, it has additional keywords such
 as URL which is the requested URL.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="request-response-header">
+<em class="property">function </em><big>(</big><tt class="descname">request-response-header </tt><em>response</em> <em>field-name</em><big>)</big><a class="headerlink" href="#request-response-header" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetch the values of RESPONSE header field named FIELD-NAME.</p>
+<p>It returns comma separated values when the header has multiple
+field with the same name, as <span class="target" id="index-0"></span><a class="rfc reference external" href="http://tools.ietf.org/html/rfc2616.html"><strong>RFC 2616</strong></a> specifies.</p>
+<p>Examples:</p>
+<div class="highlight-cl"><div class="highlight"><pre><span class="p">(</span><span class="nv">request-response-header</span> <span class="nv">response</span>
+                         <span class="s">&quot;content-type&quot;</span><span class="p">)</span> <span class="c1">; =&gt; &quot;text/html; charset=utf-8&quot;</span>
+<span class="p">(</span><span class="nv">request-response-header</span> <span class="nv">response</span>
+                         <span class="s">&quot;unknown-field&quot;</span><span class="p">)</span> <span class="c1">; =&gt; nil</span>
+</pre></div>
+</div>
 </dd></dl>
 
 </div>
@@ -387,7 +431,7 @@ See <a class="reference internal" href="#request-log-level" title="request-log-l
         <li class="right" >
           <a href="index.html" title="Request.el – Easy HTTP request for Emacs Lisp"
              >previous</a> |</li>
-        <li><a href="index.html">Request.el 0.1.0 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Request.el 0.2.0alpha0 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

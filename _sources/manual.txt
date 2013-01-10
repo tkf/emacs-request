@@ -14,13 +14,15 @@ Response object
 ---------------
 
 .. el:function:: request-response-status-code
-.. el:function:: request-response-redirects
+.. el:function:: request-response-history
 .. el:function:: request-response-data
 .. el:function:: request-response-error-thrown
 .. el:function:: request-response-symbol-status
 .. el:function:: request-response-url
 .. el:function:: request-response-done-p
 .. el:function:: request-response-settings
+
+.. el:function:: request-response-header
 
 
 Cookie
