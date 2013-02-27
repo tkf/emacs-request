@@ -148,12 +148,12 @@ Supported Emacs versions:
 
 Supported backends:
 
-========== ============================================
- Backends   Remarks
-========== ============================================
- url.el     Included in Emacs.
- curl       Reliable.  Needed for multipart form POST.
-========== ============================================
+========== ==================== ================ =========================
+ Backends   Remarks              Multipart Form   Automatic Decompression
+========== ==================== ================ =========================
+ url.el     Included in Emacs
+ curl       Reliable             ✔               ✔
+========== ==================== ================ =========================
 
 
 Monkey patches for url.el

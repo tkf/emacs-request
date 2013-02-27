@@ -836,6 +836,8 @@ Currently it is used only for testing.")
   (append
    (list request-curl "--silent" "--include"
          "--location"
+         ;; FIXME: test automatic decompression
+         "--compressed"
          ;; FIMXE: this way of using cookie might be problem when
          ;;        running multiple requests.
          "--cookie" cookie-jar "--cookie-jar" cookie-jar
