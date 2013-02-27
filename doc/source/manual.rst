@@ -2,6 +2,11 @@
  Request.el manual
 ===================
 
+.. note:: Entire manual is generated from docstrings.  To
+   quickly check what function/variable does, use :kbd:`<f1> f`
+   or :kbd:`<f1> v`, (or :kbd:`C-h` instead of :kbd:`<f1>` if you
+   don't rebind it).
+
 API
 ===
 
