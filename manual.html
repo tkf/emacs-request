@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Request.el manual &mdash; Request.el 0.2.0alpha0 documentation</title>
+    <title>Request.el manual &mdash; Request.el 0.2.0alpha2 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.2.0alpha0',
+        VERSION:     '0.2.0alpha2',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="Request.el 0.2.0alpha0 documentation" href="index.html" />
+    <link rel="top" title="Request.el 0.2.0alpha2 documentation" href="index.html" />
     <link rel="prev" title="Request.el – Easy HTTP request for Emacs Lisp" href="index.html" /> 
   </head>
   <body>
@@ -37,7 +37,7 @@
         <li class="right" >
           <a href="index.html" title="Request.el – Easy HTTP request for Emacs Lisp"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">Request.el 0.2.0alpha0 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Request.el 0.2.0alpha2 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -47,6 +47,13 @@
             
   <div class="section" id="request-el-manual">
 <h1>Request.el manual<a class="headerlink" href="#request-el-manual" title="Permalink to this headline">¶</a></h1>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Entire manual is generated from docstrings.  To
+quickly check what function/variable does, use <tt class="kbd docutils literal"><span class="pre">&lt;f1&gt;</span> <span class="pre">f</span></tt>
+or <tt class="kbd docutils literal"><span class="pre">&lt;f1&gt;</span> <span class="pre">v</span></tt>, (or <tt class="kbd docutils literal"><span class="pre">C-h</span></tt> instead of <tt class="kbd docutils literal"><span class="pre">&lt;f1&gt;</span></tt> if you
+don&#8217;t rebind it).</p>
+</div>
 <div class="section" id="api">
 <h2>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
@@ -56,8 +63,8 @@
 <p>Request.el has a single entry point.  It is <a class="reference internal" href="#request" title="request"><tt class="xref el el-symbol docutils literal"><span class="pre">request</span></tt></a>.</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="19%" />
-<col width="81%" />
+<col width="20%" />
+<col width="80%" />
 </colgroup>
 <thead valign="bottom">
 <tr class="row-odd"><th class="head">Keyword argument</th>
@@ -176,7 +183,8 @@ Contributions are welcome.</p>
 buffer with HTTP response body.  The current position in the HTTP
 response buffer is at the beginning of the buffer.  As the HTTP
 header is stripped off, the cursor is actually at the beginning
-of the response body.  So, for example, you can pass <tt class="xref el el-symbol docutils literal"><span class="pre">json-read</span></tt>to parse JSON object in the buffer.  To fetch whole response as a
+of the response body.  So, for example, you can pass <tt class="xref el el-symbol docutils literal"><span class="pre">json-read</span></tt>
+to parse JSON object in the buffer.  To fetch whole response as a
 string, pass <tt class="xref el el-symbol docutils literal"><span class="pre">buffer-string</span></tt>.</p>
 <p>This is analogous to the <tt class="xref el el-symbol docutils literal"><span class="pre">dataType</span></tt> argument of <a class="reference external" href="http://api.jquery.com/jQuery.ajax/">jQuery.ajax</a>.
 Only this function can access to the process buffer, which
@@ -387,7 +395,7 @@ Libraries using request.el must not modify these variables.</p>
 
 <dl class="variable">
 <dt id="request-backend">
-<em class="property">variable </em><big>(</big><tt class="descname">request-backend </tt><em>curl</em><big>)</big><a class="headerlink" href="#request-backend" title="Permalink to this definition">¶</a></dt>
+<em class="property">variable </em><big>(</big><tt class="descname">request-backend </tt><em>'curl</em><big>)</big><a class="headerlink" href="#request-backend" title="Permalink to this definition">¶</a></dt>
 <dd><p>Backend to be used for HTTP request.
 Automatically set to <tt class="xref el el-symbol docutils literal"><span class="pre">curl</span></tt> if curl command is found.</p>
 </dd></dl>
@@ -401,7 +409,7 @@ Automatically set to <tt class="xref el el-symbol docutils literal"><span class=
 
 <dl class="variable">
 <dt id="request-log-level">
-<em class="property">variable </em><big>(</big><tt class="descname">request-log-level </tt><em>-1</em><big>)</big><a class="headerlink" href="#request-log-level" title="Permalink to this definition">¶</a></dt>
+<em class="property">variable </em><big>(</big><tt class="descname">request-log-level </tt><em>'-1</em><big>)</big><a class="headerlink" href="#request-log-level" title="Permalink to this definition">¶</a></dt>
 <dd><p>Logging level for request.
 One of <tt class="xref el el-symbol docutils literal"><span class="pre">error</span></tt>/<tt class="xref el el-symbol docutils literal"><span class="pre">warn</span></tt>/<tt class="xref el el-symbol docutils literal"><span class="pre">info</span></tt>/<tt class="xref el el-symbol docutils literal"><span class="pre">verbose</span></tt>/<tt class="xref el el-symbol docutils literal"><span class="pre">debug</span></tt>.
 -1 means no logging.</p>
@@ -409,7 +417,7 @@ One of <tt class="xref el el-symbol docutils literal"><span class="pre">error</s
 
 <dl class="variable">
 <dt id="request-message-level">
-<em class="property">variable </em><big>(</big><tt class="descname">request-message-level </tt><em>warn</em><big>)</big><a class="headerlink" href="#request-message-level" title="Permalink to this definition">¶</a></dt>
+<em class="property">variable </em><big>(</big><tt class="descname">request-message-level </tt><em>'warn</em><big>)</big><a class="headerlink" href="#request-message-level" title="Permalink to this definition">¶</a></dt>
 <dd><p>Logging level for request.
 See <a class="reference internal" href="#request-log-level" title="request-log-level"><tt class="xref el el-symbol docutils literal"><span class="pre">request-log-level</span></tt></a>.</p>
 </dd></dl>
@@ -431,7 +439,7 @@ See <a class="reference internal" href="#request-log-level" title="request-log-l
         <li class="right" >
           <a href="index.html" title="Request.el – Easy HTTP request for Emacs Lisp"
              >previous</a> |</li>
-        <li><a href="index.html">Request.el 0.2.0alpha0 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Request.el 0.2.0alpha2 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

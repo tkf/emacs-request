@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Request.el – Easy HTTP request for Emacs Lisp &mdash; Request.el 0.2.0alpha0 documentation</title>
+    <title>Request.el – Easy HTTP request for Emacs Lisp &mdash; Request.el 0.2.0alpha2 documentation</title>
     
     <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,7 +15,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.2.0alpha0',
+        VERSION:     '0.2.0alpha2',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="Request.el 0.2.0alpha0 documentation" href="#" />
+    <link rel="top" title="Request.el 0.2.0alpha2 documentation" href="#" />
     <link rel="next" title="Request.el manual" href="manual.html" /> 
   </head>
   <body>
@@ -37,7 +37,7 @@
         <li class="right" >
           <a href="manual.html" title="Request.el manual"
              accesskey="N">next</a> |</li>
-        <li><a href="#">Request.el 0.2.0alpha0 documentation</a> &raquo;</li> 
+        <li><a href="#">Request.el 0.2.0alpha2 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -201,11 +201,15 @@ See <a class="reference internal" href="#monkey-patches-for-url-el">monkey patch
 <td>yes</td>
 <td>no</td>
 </tr>
-<tr class="row-even"><td>GNU Emacs 23.1</td>
+<tr class="row-even"><td>GNU Emacs 23.3</td>
 <td>yes</td>
 <td>yes</td>
 </tr>
-<tr class="row-odd"><td>GNU Emacs &lt; 23</td>
+<tr class="row-odd"><td>GNU Emacs 23.1</td>
+<td>yes (as of this writing)</td>
+<td>no</td>
+</tr>
+<tr class="row-even"><td>GNU Emacs &lt; 23</td>
 <td>?</td>
 <td>no</td>
 </tr>
@@ -214,20 +218,28 @@ See <a class="reference internal" href="#monkey-patches-for-url-el">monkey patch
 <p>Supported backends:</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="19%" />
-<col width="81%" />
+<col width="14%" />
+<col width="28%" />
+<col width="23%" />
+<col width="35%" />
 </colgroup>
 <thead valign="bottom">
 <tr class="row-odd"><th class="head">Backends</th>
 <th class="head">Remarks</th>
+<th class="head">Multipart Form</th>
+<th class="head">Automatic Decompression</th>
 </tr>
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td>url.el</td>
-<td>Included in Emacs.</td>
+<td>Included in Emacs</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
 </tr>
 <tr class="row-odd"><td>curl</td>
-<td>Reliable.  Needed for multipart form POST.</td>
+<td>Reliable</td>
+<td>✔</td>
+<td>✔</td>
 </tr>
 </tbody>
 </table>
@@ -298,7 +310,7 @@ See COPYING file for details.</p>
         <li class="right" >
           <a href="manual.html" title="Request.el manual"
              >next</a> |</li>
-        <li><a href="#">Request.el 0.2.0alpha0 documentation</a> &raquo;</li> 
+        <li><a href="#">Request.el 0.2.0alpha2 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
