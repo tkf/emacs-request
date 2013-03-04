@@ -394,7 +394,7 @@ SYNC         (bool)   If `t', wait until request is done.  Default is `nil'.
 Callback functions STATUS, ERROR, COMPLETE and `cdr's in element of
 the alist STATUS-CODE take same keyword arguments listed below.  For
 forward compatibility, these functions must ignore unused keyword
-arguments (i.e., it's better to use `&allow-other-keys').::
+arguments (i.e., it's better to use `&allow-other-keys' [#]_).::
 
     (CALLBACK                      ; SUCCESS/ERROR/COMPLETE/STATUS-CODE
      :data          data           ; whatever PARSER function returns, or nil
@@ -402,6 +402,14 @@ arguments (i.e., it's better to use `&allow-other-keys').::
      :symbol-status symbol-status  ; success/error/timeout/abort/parse-error
      :response      response       ; request-response object
      ...)
+
+.. [#] `&allow-other-keys' is a special \"markers\" available in macros
+   in the CL library for function definition such as `defun*' and
+   `function*'.  Without this marker, you need to specify all arguments
+   to be passed.  This becomes problem when request.el adds new arguments
+   when calling callback functions.  If you use `&allow-other-keys'
+   (or manually ignore other arguments), your code is free from this
+   problem.  See info node `(cl) Argument Lists' for more information.
 
 Arguments data, error-thrown, symbol-status can be accessed by
 `request-response-data', `request-response-error-thrown',
