@@ -467,6 +467,20 @@ of the response body.  So, for example, you can pass `json-read'
 to parse JSON object in the buffer.  To fetch whole response as a
 string, pass `buffer-string'.
 
+When using `json-read', it is useful to know that the returned
+type can be modified by `json-object-type', `json-array-type',
+`json-key-type', `json-false' and `json-null'.  See docstring of
+each function for what it does.  For example, to convert JSON
+objects to plist instead of alist, wrap `json-read' by `lambda'
+like this.::
+
+    (request
+     \"http://...\"
+     :parser (lambda ()
+               (let ((json-object-type 'plist))
+                 (json-read)))
+     ...)
+
 This is analogous to the `dataType' argument of jQuery.ajax_.
 Only this function can access to the process buffer, which
 is killed immediately after the execution of this function.
