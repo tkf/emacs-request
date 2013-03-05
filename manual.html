@@ -116,7 +116,7 @@ don&#8217;t rebind it).</p>
 <p>Callback functions STATUS, ERROR, COMPLETE and <tt class="xref el el-symbol docutils literal"><span class="pre">cdr</span></tt>s in element of
 the alist STATUS-CODE take same keyword arguments listed below.  For
 forward compatibility, these functions must ignore unused keyword
-arguments (i.e., it&#8217;s better to use <tt class="xref el el-symbol docutils literal"><span class="pre">&amp;allow-other-keys</span></tt>).:</p>
+arguments (i.e., it&#8217;s better to use <tt class="xref el el-symbol docutils literal"><span class="pre">&amp;allow-other-keys</span></tt> <a class="footnote-reference" href="#id2" id="id1">[1]</a>).:</p>
 <div class="highlight-cl"><div class="highlight"><pre><span class="p">(</span><span class="nv">CALLBACK</span>                      <span class="c1">; SUCCESS/ERROR/COMPLETE/STATUS-CODE</span>
  <span class="ss">:data</span>          <span class="nv">data</span>           <span class="c1">; whatever PARSER function returns, or nil</span>
  <span class="ss">:error-thrown</span>  <span class="nv">error-thrown</span>   <span class="c1">; (ERROR-SYMBOL . DATA), or nil</span>
@@ -125,6 +125,18 @@ arguments (i.e., it&#8217;s better to use <tt class="xref el el-symbol docutils 
  <span class="o">...</span><span class="p">)</span>
 </pre></div>
 </div>
+<table class="docutils footnote" frame="void" id="id2" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td><tt class="xref el el-symbol docutils literal"><span class="pre">&amp;allow-other-keys</span></tt> is a special &#8220;markers&#8221; available in macros
+in the CL library for function definition such as <tt class="xref el el-symbol docutils literal"><span class="pre">defun*</span></tt> and
+<tt class="xref el el-symbol docutils literal"><span class="pre">function*</span></tt>.  Without this marker, you need to specify all arguments
+to be passed.  This becomes problem when request.el adds new arguments
+when calling callback functions.  If you use <tt class="xref el el-symbol docutils literal"><span class="pre">&amp;allow-other-keys</span></tt>
+(or manually ignore other arguments), your code is free from this
+problem.  See info node <a class="reference external" href="http://www.gnu.org/software/emacs/manual/html_node/cl/Argument-Lists.html">(cl) Argument Lists</a> for more information.</td></tr>
+</tbody>
+</table>
 <p>Arguments data, error-thrown, symbol-status can be accessed by
 <a class="reference internal" href="#request-response-data" title="request-response-data"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-data</span></tt></a>, <a class="reference internal" href="#request-response-error-thrown" title="request-response-error-thrown"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-error-thrown</span></tt></a>,
 <a class="reference internal" href="#request-response-symbol-status" title="request-response-symbol-status"><tt class="xref el el-symbol docutils literal"><span class="pre">request-response-symbol-status</span></tt></a> accessors, i.e.:</p>
@@ -186,6 +198,20 @@ header is stripped off, the cursor is actually at the beginning
 of the response body.  So, for example, you can pass <tt class="xref el el-symbol docutils literal"><span class="pre">json-read</span></tt>
 to parse JSON object in the buffer.  To fetch whole response as a
 string, pass <tt class="xref el el-symbol docutils literal"><span class="pre">buffer-string</span></tt>.</p>
+<p>When using <tt class="xref el el-symbol docutils literal"><span class="pre">json-read</span></tt>, it is useful to know that the returned
+type can be modified by <tt class="xref el el-symbol docutils literal"><span class="pre">json-object-type</span></tt>, <tt class="xref el el-symbol docutils literal"><span class="pre">json-array-type</span></tt>,
+<tt class="xref el el-symbol docutils literal"><span class="pre">json-key-type</span></tt>, <tt class="xref el el-symbol docutils literal"><span class="pre">json-false</span></tt> and <tt class="xref el el-symbol docutils literal"><span class="pre">json-null</span></tt>.  See docstring of
+each function for what it does.  For example, to convert JSON
+objects to plist instead of alist, wrap <tt class="xref el el-symbol docutils literal"><span class="pre">json-read</span></tt> by <tt class="xref el el-symbol docutils literal"><span class="pre">lambda</span></tt>
+like this.:</p>
+<div class="highlight-cl"><div class="highlight"><pre><span class="p">(</span><span class="nv">request</span>
+ <span class="s">&quot;http://...&quot;</span>
+ <span class="ss">:parser</span> <span class="p">(</span><span class="k">lambda</span> <span class="p">()</span>
+           <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">json-object-type</span> <span class="ss">&#39;plist</span><span class="p">))</span>
+             <span class="p">(</span><span class="nv">json-read</span><span class="p">)))</span>
+ <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
 <p>This is analogous to the <tt class="xref el el-symbol docutils literal"><span class="pre">dataType</span></tt> argument of <a class="reference external" href="http://api.jquery.com/jQuery.ajax/">jQuery.ajax</a>.
 Only this function can access to the process buffer, which
 is killed immediately after the execution of this function.</p>
