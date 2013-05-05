@@ -530,6 +530,7 @@ and requests.request_ (Python).
     (setq data (request--urlencode-alist data))
     (setq settings (plist-put settings :data data)))
   (when params
+    (assert (listp params) nil "PARAMS must be an alist.  Given: %S" params)
     (setq url (concat url (if (string-match-p "\\?" url) "&" "?")
                       (request--urlencode-alist params))))
   (setq settings (plist-put settings :url url))
