@@ -8,9 +8,8 @@ env:
     - CARTON=$HOME/.carton/bin/carton
 matrix:
   allow_failures:
-    - env:
-        - EMACS=emacs-snapshot
-        - CARTON=$HOME/.carton/bin/carton
+    - env: EMACS=emacs-snapshot
+    - env: EMACS=emacs
 before_install:
   - pip install -q flask tornado
   - curl -fsSkL
