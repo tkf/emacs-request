@@ -685,13 +685,15 @@ then kill the current buffer."
       (unless done-p
         ;; This code should never be executed.  However, it occurs
         ;; sometimes with `url-retrieve' backend.
+        ;; FIXME: In Emacs 24.3.50 or later, this is always executed in
+        ;;        request-get-timeout test.  Find out if it is fine.
         (request-log 'error "Callback is not called when stopping process! \
 Explicitly calling from timer.")
         (when (buffer-live-p buffer)
           (destructuring-bind (&key code &allow-other-keys)
               (with-current-buffer buffer
                 (goto-char (point-min))
-                (request--parse-response-at-point))
+                (ignore-errors (request--parse-response-at-point)))
             (setf (request-response-status-code response) code)))
         (apply #'request--callback
                buffer
