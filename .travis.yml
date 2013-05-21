@@ -23,5 +23,4 @@ before_install:
 script:
   - VIRTUAL_ENV= tox
 after_failure:
-  - cat elpa/install.log
   - cat .tox/$TOXENV/log/*.log
