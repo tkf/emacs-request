@@ -22,7 +22,7 @@ before_install:
           emacs-snapshot-el emacs-snapshot-gtk emacs-snapshot;
     fi
 script:
-  - tox
+  - VIRTUAL_ENV= tox
 after_failure:
   - cat elpa/install.log
   - cat .tox/$TOXENV/log/*.log
