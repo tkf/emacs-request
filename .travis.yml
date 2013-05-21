@@ -7,7 +7,6 @@ env:
 matrix:
   allow_failures:
     - env: TOXENV=emacs-snapshot
-    - env: TOXENV=emacs23
 before_install:
   - pip install --quiet --use-mirrors tox
   - if [ "$TOXENV" = "emacs24" ]; then
