@@ -54,38 +54,3 @@ clean-elc:
 	rm -f *.elc */*.elc
 
 clean: clean-elpa clean-elc
-
-print-deps: elpa
-	@echo "----------------------- Dependencies -----------------------"
-	$(EMACS) --version
-	curl --version
-	@echo "------------------------------------------------------------"
-
-travis-ci: print-deps test
-
-
-
-# Run test against Emacs listed in ${EL4T_EMACS_LIST}.
-# This is for running tests for multiple Emacs versions.
-# This is not used in Travis CI.  Usage::
-#
-#     make EL4T_EMACS_LIST="emacs emacs-snapshot emacs23" test-all
-#
-# See: http://stackoverflow.com/a/12110773/727827
-#
-# Use ${EL4T_MET_MAKEFLAGS} to do the tests in parallel.
-#
-#    EL4T_MET_MAKEFLAGS=-j4
-#
-# Use ${EL4T_MET_PRE_TARGETS} to set additional jobs to do before tests.
-#
-#    EL4T_MET_PRE_TARGETS=compile
-
-JOBS := $(addprefix job-,${EL4T_EMACS_LIST})
-.PHONY: ${JOBS}
-
-${JOBS}: job-%:
-	${MAKE} EMACS=$* clean elpa ${EL4T_MET_PRE_TARGETS}
-	${MAKE} EMACS=$* ${EL4T_MET_MAKEFLAGS} test
-
-test-all: ${JOBS}
