@@ -89,3 +89,28 @@ ${JOBS}: job-%:
 	${MAKE} EMACS=$* ${EL4T_MET_MAKEFLAGS} test
 
 test-all: ${JOBS}
+
+
+
+### Package installation
+PACKAGE = request.el
+PACKAGE_USER_DIR =
+TEST_PACKAGE_DIR = dist/test
+TEST_INSTALL = ${MAKE} install-dist PACKAGE_USER_DIR=${TEST_PACKAGE_DIR}
+
+install-dist:
+	test -d '${PACKAGE_USER_DIR}'
+	${EMACS} --batch -Q \
+	-l package \
+        --eval " \
+        (add-to-list 'package-archives \
+             '(\"marmalade\" . \"http://marmalade-repo.org/packages/\") t)" \
+	--eval '(setq package-user-dir "${PWD}/${PACKAGE_USER_DIR}")' \
+	--eval '(package-list-packages)' \
+	--eval '(package-install-file "${PWD}/${PACKAGE}")'
+
+test-install:
+	rm -rf ${TEST_PACKAGE_DIR}
+	mkdir -p ${TEST_PACKAGE_DIR}
+	${TEST_INSTALL}
+	${TEST_INSTALL} PACKAGE=request-deferred.el
