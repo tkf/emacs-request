@@ -175,6 +175,13 @@ FSF holds the copyright of this function:
 This is used for making `request--urlencode-alist' RFC 3986 compliant
 for older Emacs versions.")
 
+(defun request--string-filter (obj)
+  (cond ((functionp obj)
+         (funcall obj))
+        ((symbolp obj)
+         (eval obj))
+        (t obj)))
+
 (defun request--urlencode-alist (alist)
   ;; FIXME: make monkey patching `url-unreserved-chars' optional
   (let ((url-unreserved-chars request--url-unreserved-chars))
@@ -183,7 +190,7 @@ for older Emacs versions.")
           concat sep
           concat (url-hexify-string (format "%s" k))
           concat "="
-          concat (url-hexify-string v))))
+          concat (url-hexify-string (request--string-filter v)))))
 
 
 ;;; Header parser
@@ -845,7 +852,9 @@ Currently it is used only for testing.")
       (expand-file-name "curl-cookie-jar" request-storage-directory)))
 
 (defconst request--curl-write-out-template
-  "\\n(:num-redirects %{num_redirects} :url-effective \"%{url_effective}\")")
+  (if (eq system-type 'windows-nt)
+      "\\n(:num-redirects %{num_redirects} :url-effective %{url_effective})"
+    "\\n(:num-redirects %{num_redirects} :url-effective \"%{url_effective}\")"))
 ;; FIXME: should % be escaped for Windows?
 
 (defun request--curl-mkdir-for-cookie-jar ()
