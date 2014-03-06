@@ -27,5 +27,9 @@ before_install:
         --retry-delay 10
         https://raw.github.com/cask/cask/master/go
         | python
+
+  # The following command does (should) not have any effect on test,
+  # but to separate installation phase and testing phase:
+  - make before-test
 script:
   make travis-ci

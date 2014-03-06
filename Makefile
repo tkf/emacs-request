@@ -9,7 +9,7 @@ ELPA_DIR = \
 TEST_1 = ${MAKE} EMACS=${EMACS} CASK=${CASK} test-1
 
 .PHONY : test test-all test-1 compile elpa clean clean-elpa clean-elc \
-	print-deps travis-ci
+	print-deps before-test travis-ci
 
 test: elpa
 	${MAKE} test-3
@@ -59,6 +59,8 @@ print-deps: elpa
 	$(EMACS) --version
 	curl --version
 	@echo "------------------------------------------------------------"
+
+before-test: elpa
 
 travis-ci: print-deps test
 
