@@ -16,7 +16,7 @@ before_install:
         --max-time 10
         --retry 10
         --retry-delay 10
-        https://raw.github.com/rejeep/cask/master/go
+        https://raw.github.com/cask/cask/master/go
         | python
   - if [ "$EMACS" = "emacs24" ]; then
         sudo add-apt-repository -y ppa:cassou/emacs &&
