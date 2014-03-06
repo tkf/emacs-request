@@ -4,12 +4,14 @@ env:
     - EMACS=emacs
     - EMACS=emacs24 EMACS_PPA=ppa:cassou/emacs
     - EMACS=emacs-snapshot EMACS_PPA=ppa:cassou/emacs
+    - EMACS=emacs-snapshot EMACS_PPA=ppa:ubuntu-elisp/ppa
   global:
     - CASK=$HOME/.cask/bin/cask
 matrix:
   allow_failures:
     - env: EMACS=emacs
     - env: EMACS=emacs-snapshot EMACS_PPA=ppa:cassou/emacs
+    - env: EMACS=emacs-snapshot EMACS_PPA=ppa:ubuntu-elisp/ppa
 before_install:
   - pip install -q flask tornado
 
