@@ -66,28 +66,28 @@ travis-ci: print-deps test
 
 
 
-# Run test against Emacs listed in ${EL4T_EMACS_LIST}.
+# Run test against Emacs listed in ${EMACS_LIST}.
 # This is for running tests for multiple Emacs versions.
 # This is not used in Travis CI.  Usage::
 #
-#     make EL4T_EMACS_LIST="emacs emacs-snapshot emacs23" test-all
+#     make EMACS_LIST="emacs emacs-snapshot emacs23" test-all
 #
 # See: http://stackoverflow.com/a/12110773/727827
 #
-# Use ${EL4T_MET_MAKEFLAGS} to do the tests in parallel.
+# Use ${MET_MAKEFLAGS} to do the tests in parallel.
 #
-#    EL4T_MET_MAKEFLAGS=-j4
+#    MET_MAKEFLAGS=-j4
 #
-# Use ${EL4T_MET_PRE_TARGETS} to set additional jobs to do before tests.
+# Use ${MET_PRE_TARGETS} to set additional jobs to do before tests.
 #
-#    EL4T_MET_PRE_TARGETS=compile
+#    MET_PRE_TARGETS=compile
 
-JOBS := $(addprefix job-,${EL4T_EMACS_LIST})
+JOBS := $(addprefix job-,${EMACS_LIST})
 .PHONY: ${JOBS}
 
 ${JOBS}: job-%:
-	${MAKE} EMACS=$* clean elpa ${EL4T_MET_PRE_TARGETS}
-	${MAKE} EMACS=$* ${EL4T_MET_MAKEFLAGS} test
+	${MAKE} EMACS=$* clean-elc ${MET_PRE_TARGETS}
+	${MAKE} EMACS=$* ${MET_MAKEFLAGS} test
 
 test-all: ${JOBS}
 
