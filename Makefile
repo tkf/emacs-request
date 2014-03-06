@@ -1,14 +1,15 @@
-CARTON ?= carton
+CASK ?= cask
 EMACS ?= emacs
+VIRTUAL_EMACS = ${CASK} exec ${EMACS}
 
-EL4T_SCRIPT = tools/el4t/emacs.sh
-EL4T_CARTON = EL4T_EMACS=${EMACS} EMACS=${EL4T_SCRIPT} ${CARTON}
-EL4T_CARTON_EMACS = ${EL4T_CARTON} exec ${EL4T_SCRIPT}
+ELPA_DIR = \
+	.cask/$(shell ${EMACS} -Q --batch --eval '(princ emacs-version)')/elpa
+# See: cask-elpa-dir
 
-TEST_1 = ${MAKE} EMACS=${EMACS} CARTON=${CARTON} test-1
+TEST_1 = ${MAKE} EMACS=${EMACS} CASK=${CASK} test-1
 
-.PHONY : test test-all test-1 compile clean clean-elpa clean-elc \
-	print-deps travis-ci
+.PHONY : test test-all test-1 compile elpa clean clean-elpa clean-elc \
+	print-deps before-test travis-ci
 
 test: elpa
 	${MAKE} test-3
@@ -32,22 +33,20 @@ test-2-curl:
 
 # Run test without checking elpa directory.
 test-1:
-	${EL4T_CARTON_EMACS} -Q -batch \
+	${VIRTUAL_EMACS} -Q -batch \
 		-L . -L tests -l tests/test-request.el \
 		-f ert-run-tests-batch-and-exit
 
-${EL4T_SCRIPT}:
-	git submodule update --init
-
-elpa: ${EL4T_SCRIPT}
-	mkdir elpa
-	${EL4T_CARTON} install 2> elpa/install.log
+elpa: ${ELPA_DIR}
+${ELPA_DIR}: Cask
+	${CASK} install
+	touch $@
 
 clean-elpa:
-	rm -rf elpa
+	rm -rf ${ELPA_DIR}
 
 compile: clean-elc elpa
-	${EL4T_CARTON_EMACS} -Q -batch -L . -L tests \
+	${VIRTUAL_EMACS} -Q -batch -L . -L tests \
 		-f batch-byte-compile *.el */*.el
 
 clean-elc:
@@ -61,32 +60,34 @@ print-deps: elpa
 	curl --version
 	@echo "------------------------------------------------------------"
 
+before-test: elpa
+
 travis-ci: print-deps test
 
 
 
-# Run test against Emacs listed in ${EL4T_EMACS_LIST}.
+# Run test against Emacs listed in ${EMACS_LIST}.
 # This is for running tests for multiple Emacs versions.
 # This is not used in Travis CI.  Usage::
 #
-#     make EL4T_EMACS_LIST="emacs emacs-snapshot emacs23" test-all
+#     make EMACS_LIST="emacs emacs-snapshot emacs23" test-all
 #
 # See: http://stackoverflow.com/a/12110773/727827
 #
-# Use ${EL4T_MET_MAKEFLAGS} to do the tests in parallel.
+# Use ${MET_MAKEFLAGS} to do the tests in parallel.
 #
-#    EL4T_MET_MAKEFLAGS=-j4
+#    MET_MAKEFLAGS=-j4
 #
-# Use ${EL4T_MET_PRE_TARGETS} to set additional jobs to do before tests.
+# Use ${MET_PRE_TARGETS} to set additional jobs to do before tests.
 #
-#    EL4T_MET_PRE_TARGETS=compile
+#    MET_PRE_TARGETS=compile
 
-JOBS := $(addprefix job-,${EL4T_EMACS_LIST})
+JOBS := $(addprefix job-,${EMACS_LIST})
 .PHONY: ${JOBS}
 
 ${JOBS}: job-%:
-	${MAKE} EMACS=$* clean elpa ${EL4T_MET_PRE_TARGETS}
-	${MAKE} EMACS=$* ${EL4T_MET_MAKEFLAGS} test
+	${MAKE} EMACS=$* clean-elc ${MET_PRE_TARGETS}
+	${MAKE} EMACS=$* ${MET_MAKEFLAGS} test
 
 test-all: ${JOBS}
 
