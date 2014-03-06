@@ -1,13 +1,14 @@
-CARTON ?= carton
+CASK ?= cask
 EMACS ?= emacs
+VIRTUAL_EMACS = ${CASK} exec ${EMACS}
 
-EL4T_SCRIPT = tools/el4t/emacs.sh
-EL4T_CARTON = EL4T_EMACS=${EMACS} EMACS=${EL4T_SCRIPT} ${CARTON}
-EL4T_CARTON_EMACS = ${EL4T_CARTON} exec ${EL4T_SCRIPT}
+ELPA_DIR = \
+	.cask/$(shell ${EMACS} -Q --batch --eval '(princ emacs-version)')/elpa
+# See: cask-elpa-dir
 
-TEST_1 = ${MAKE} EMACS=${EMACS} CARTON=${CARTON} test-1
+TEST_1 = ${MAKE} EMACS=${EMACS} CASK=${CASK} test-1
 
-.PHONY : test test-all test-1 compile clean clean-elpa clean-elc \
+.PHONY : test test-all test-1 compile elpa clean clean-elpa clean-elc \
 	print-deps travis-ci
 
 test: elpa
@@ -32,22 +33,20 @@ test-2-curl:
 
 # Run test without checking elpa directory.
 test-1:
-	${EL4T_CARTON_EMACS} -Q -batch \
+	${VIRTUAL_EMACS} -Q -batch \
 		-L . -L tests -l tests/test-request.el \
 		-f ert-run-tests-batch-and-exit
 
-${EL4T_SCRIPT}:
-	git submodule update --init
-
-elpa: ${EL4T_SCRIPT}
-	mkdir elpa
-	${EL4T_CARTON} install 2> elpa/install.log
+elpa: ${ELPA_DIR}
+${ELPA_DIR}: Cask
+	${CASK} install
+	touch $@
 
 clean-elpa:
-	rm -rf elpa
+	rm -rf ${ELPA_DIR}
 
 compile: clean-elc elpa
-	${EL4T_CARTON_EMACS} -Q -batch -L . -L tests \
+	${VIRTUAL_EMACS} -Q -batch -L . -L tests \
 		-f batch-byte-compile *.el */*.el
 
 clean-elc:
