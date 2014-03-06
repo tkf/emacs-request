@@ -79,15 +79,12 @@ See <a class="reference internal" href="#monkey-patches-for-url-el">monkey patch
 <h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
 <p>GET:</p>
 <div class="highlight-cl"><div class="highlight"><pre><span class="p">(</span><span class="nv">request</span>
- <span class="s">&quot;http://search.twitter.com/search.json&quot;</span>
- <span class="ss">:params</span> <span class="o">&#39;</span><span class="p">((</span><span class="nv">q</span> <span class="o">.</span> <span class="s">&quot;emacs awesome&quot;</span><span class="p">))</span>
+ <span class="s">&quot;http://httpbin.org/get&quot;</span>
+ <span class="ss">:params</span> <span class="o">&#39;</span><span class="p">((</span><span class="s">&quot;key&quot;</span> <span class="o">.</span> <span class="s">&quot;value&quot;</span><span class="p">)</span> <span class="p">(</span><span class="s">&quot;key2&quot;</span> <span class="o">.</span> <span class="s">&quot;value2&quot;</span><span class="p">))</span>
  <span class="ss">:parser</span> <span class="ss">&#39;json-read</span>
  <span class="ss">:success</span> <span class="p">(</span><span class="nv">function*</span>
            <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="k">&amp;key</span> <span class="nv">data</span> <span class="k">&amp;allow-other-keys</span><span class="p">)</span>
-             <span class="p">(</span><span class="k">let*</span> <span class="p">((</span><span class="nv">tweet</span> <span class="p">(</span><span class="nb">elt</span> <span class="p">(</span><span class="nv">assoc-default</span> <span class="ss">&#39;results</span> <span class="nv">data</span><span class="p">)</span> <span class="mi">0</span><span class="p">))</span>
-                    <span class="p">(</span><span class="nv">text</span> <span class="p">(</span><span class="nv">assoc-default</span> <span class="ss">&#39;text</span> <span class="nv">tweet</span><span class="p">))</span>
-                    <span class="p">(</span><span class="nv">user</span> <span class="p">(</span><span class="nv">assoc-default</span> <span class="ss">&#39;from_user_name</span> <span class="nv">tweet</span><span class="p">)))</span>
-               <span class="p">(</span><span class="nv">message</span> <span class="s">&quot;%s says %s&quot;</span> <span class="nv">user</span> <span class="nv">text</span><span class="p">)))))</span>
+             <span class="p">(</span><span class="nv">message</span> <span class="s">&quot;I sent: %S&quot;</span> <span class="p">(</span><span class="nv">assoc-default</span> <span class="ss">&#39;args</span> <span class="nv">data</span><span class="p">)))))</span>
 </pre></div>
 </div>
 <p>POST:</p>
