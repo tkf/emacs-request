@@ -39,15 +39,12 @@ Examples
 GET::
 
   (request
-   "http://search.twitter.com/search.json"
-   :params '((q . "emacs awesome"))
+   "http://httpbin.org/get"
+   :params '(("key" . "value") ("key2" . "value2"))
    :parser 'json-read
    :success (function*
              (lambda (&key data &allow-other-keys)
-               (let* ((tweet (elt (assoc-default 'results data) 0))
-                      (text (assoc-default 'text tweet))
-                      (user (assoc-default 'from_user_name tweet)))
-                 (message "%s says %s" user text)))))
+               (message "I sent: %S" (assoc-default 'args data)))))
 
 POST::
 
