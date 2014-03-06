@@ -5,7 +5,7 @@ env:
     - EMACS=emacs24
     - EMACS=emacs-snapshot
   global:
-    - CARTON=$HOME/.carton/bin/carton
+    - CASK=$HOME/.cask/bin/cask
 matrix:
   allow_failures:
     - env: EMACS=emacs-snapshot
