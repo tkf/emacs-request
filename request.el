@@ -85,6 +85,14 @@ One of `error'/`warn'/`info'/`verbose'/`debug'.
 See `request-log-level'."
   :group 'request)
 
+(defcustom request-extra-curl-switches nil
+  "List of extra switches to pass to curl.
+
+Switches may be set per request by dynamically binding this
+variable."
+  :type '(repeat (string :tag "Option"))
+  :group 'request)
+
 
 ;;; Utilities
 
@@ -867,6 +875,7 @@ Currently it is used only for testing.")
          ;;        running multiple requests.
          "--cookie" cookie-jar "--cookie-jar" cookie-jar
          "--write-out" request--curl-write-out-template)
+   request-extra-curl-switches
    (loop for (name filename path mime-type) in files*
          collect "--form"
          collect (format "%s=@%s;filename=%s%s" name path filename
