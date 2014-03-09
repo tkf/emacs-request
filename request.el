@@ -62,6 +62,11 @@
   "Executable for curl command."
   :group 'request)
 
+(defcustom request-curl-extra-flags ""
+  "Extra flags for curl command."
+  :type 'string
+  :group 'request)
+
 (defcustom request-backend (if (executable-find request-curl)
                                'curl
                              'url-retrieve)
@@ -867,6 +872,7 @@ Currently it is used only for testing.")
          ;;        running multiple requests.
          "--cookie" cookie-jar "--cookie-jar" cookie-jar
          "--write-out" request--curl-write-out-template)
+   (split-string request-curl-extra-flags)
    (loop for (name filename path mime-type) in files*
          collect "--form"
          collect (format "%s=@%s;filename=%s%s" name path filename
