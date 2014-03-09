@@ -1004,6 +1004,11 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
       ;; FIXME: Does this make sense?  Is it possible to have multiple 100?
       (request--consume-100-continue))))
 
+(defun request--consume-200-connection-established ()
+  "Remove \"HTTP/* 200 Connection established\" header at the point."
+  (when (looking-at-p "HTTP/1\\.0 200 Connection established")
+    (delete-region (point) (progn (request--goto-next-body) (point)))))
+
 (defun request--curl-preprocess ()
   "Pre-process current buffer before showing it to user."
   (let (history)
@@ -1011,6 +1016,7 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
         (request--curl-read-and-delete-tail-info)
       (goto-char (point-min))
       (request--consume-100-continue)
+      (request--consume-200-connection-established)
       (when (> num-redirects 0)
         (loop with case-fold-search = t
               repeat num-redirects
