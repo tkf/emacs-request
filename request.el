@@ -845,8 +845,9 @@ Currently it is used only for testing.")
       (expand-file-name "curl-cookie-jar" request-storage-directory)))
 
 (defconst request--curl-write-out-template
-  "\\n(:num-redirects %{num_redirects} :url-effective \"%{url_effective}\")")
-;; FIXME: should % be escaped for Windows?
+  (if (eq system-type 'windows-nt)
+      "\\n(:num-redirects %{num_redirects} :url-effective %{url_effective})"
+    "\\n(:num-redirects %{num_redirects} :url-effective \"%{url_effective}\")"))
 
 (defun request--curl-mkdir-for-cookie-jar ()
   (ignore-errors
