@@ -526,7 +526,7 @@ and requests.request_ (Python).
     (setq settings (plist-put settings :error error)))
   (unless (or (stringp data)
               (null data)
-              (assoc-string headers "Content-Type" t))
+              (assoc-string "Content-Type" headers t))
     (setq data (request--urlencode-alist data))
     (setq settings (plist-put settings :data data)))
   (when params
@@ -734,7 +734,7 @@ associated process is exited."
     (error "`url-retrieve' backend does not support FILES."))
   (when (and (equal type "POST")
              data
-             (not (assoc-string headers "Content-Type" t)))
+             (not (assoc-string "Content-Type" headers t)))
     (push '("Content-Type" . "application/x-www-form-urlencoded") headers)
     (setq settings (plist-put settings :headers headers)))
   settings)
