@@ -62,6 +62,18 @@
   "Executable for curl command."
   :group 'request)
 
+(defcustom request-parse-data-even-in-error nil
+  "Whether we should attempt to parse the response body when an error is thrown.
+
+When NIL (the default), request will not attempt to parse the
+body of the response if an error was thrown during the
+fetching. Setting this to t means the passed in parser will be
+used on the response body. In this latter case, it is the
+responsibilty of the caller to deal with any errors (like an
+empty response body)."
+  :group 'request)
+
+
 (defcustom request-backend (if (executable-find request-curl)
                                'curl
                              'url-retrieve)
@@ -627,7 +639,8 @@ then kill the current buffer."
 
     ;; Parse response body
     (request-log 'debug "error-thrown = %S" error-thrown)
-    (unless error-thrown
+    (when (or request-parse-data-even-in-error
+              (not error-thrown))
       (condition-case err
           (request--parse-data response parser)
         (error
