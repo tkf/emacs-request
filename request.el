@@ -971,6 +971,7 @@ removed from the buffer before it is shown to the parser function.
     (process-put proc :request-response response)
     (set-process-query-on-exit-flag proc nil)
     (set-process-sentinel proc #'request--curl-callback)
+    (set-process-coding-system proc 'utf-8 'utf-8)
     (when data
       (process-send-string proc data)
       (process-send-eof proc))))
