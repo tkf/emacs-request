@@ -62,18 +62,6 @@
   "Executable for curl command."
   :group 'request)
 
-(defcustom request-parse-data-even-in-error nil
-  "Whether we should attempt to parse the response body when an error is thrown.
-
-When NIL (the default), request will not attempt to parse the
-body of the response if an error was thrown during the
-fetching. Setting this to t means the passed in parser will be
-used on the response body. In this latter case, it is the
-responsibilty of the caller to deal with any errors (like an
-empty response body)."
-  :group 'request)
-
-
 (defcustom request-backend (if (executable-find request-curl)
                                'curl
                              'url-retrieve)
@@ -639,14 +627,12 @@ then kill the current buffer."
 
     ;; Parse response body
     (request-log 'debug "error-thrown = %S" error-thrown)
-    (when (or request-parse-data-even-in-error
-              (not error-thrown))
-      (condition-case err
-          (request--parse-data response parser)
-        (error
-         (setq symbol-status 'parse-error)
-         (setq error-thrown err)
-         (request-log 'error "Error from parser %S: %S" parser err))))
+    (condition-case err
+        (request--parse-data response parser)
+      (error
+       (setq symbol-status 'parse-error)
+       (setq error-thrown err)
+       (request-log 'error "Error from parser %S: %S" parser err))))
     (kill-buffer buffer)
     (request-log 'debug "data = %s" data)
 
@@ -1178,33 +1164,33 @@ FSF holds the copyright of this function:
     (setf (url-port urlobj) (or (url-portspec urlobj)
                                 (and (string= (url-type urlobj)
                                               (url-type defobj))
-				     (url-port defobj))))
+                                     (url-port defobj))))
     (if (not (string= "file" (url-type urlobj)))
-	(setf (url-host urlobj) (or (url-host urlobj) (url-host defobj))))
+        (setf (url-host urlobj) (or (url-host urlobj) (url-host defobj))))
     (if (string= "ftp"  (url-type urlobj))
-	(setf (url-user urlobj) (or (url-user urlobj) (url-user defobj))))
+        (setf (url-user urlobj) (or (url-user urlobj) (url-user defobj))))
     (if (string= (url-filename urlobj) "")
-	(setf (url-filename urlobj) "/"))
+        (setf (url-filename urlobj) "/"))
     ;; If the object we're expanding from is full, then we are now
     ;; full.
     (unless (url-fullness urlobj)
       (setf (url-fullness urlobj) (url-fullness defobj)))
     (if (string-match "^/" (url-filename urlobj))
-	nil
+        nil
       (let ((query nil)
-	    (file nil)
-	    (sepchar nil))
-	(if (string-match "[?#]" (url-filename urlobj))
-	    (setq query (substring (url-filename urlobj) (match-end 0))
-		  file (substring (url-filename urlobj) 0 (match-beginning 0))
-		  sepchar (substring (url-filename urlobj) (match-beginning 0) (match-end 0)))
-	  (setq file (url-filename urlobj)))
-	;; We use concat rather than expand-file-name to combine
-	;; directory and file name, since urls do not follow the same
-	;; rules as local files on all platforms.
-	(setq file (url-expander-remove-relative-links
-		    (concat (url-file-directory (url-filename defobj)) file)))
-	(setf (url-filename urlobj)
+            (file nil)
+            (sepchar nil))
+        (if (string-match "[?#]" (url-filename urlobj))
+            (setq query (substring (url-filename urlobj) (match-end 0))
+                  file (substring (url-filename urlobj) 0 (match-beginning 0))
+                  sepchar (substring (url-filename urlobj) (match-beginning 0) (match-end 0)))
+          (setq file (url-filename urlobj)))
+        ;; We use concat rather than expand-file-name to combine
+        ;; directory and file name, since urls do not follow the same
+        ;; rules as local files on all platforms.
+        (setq file (url-expander-remove-relative-links
+                    (concat (url-file-directory (url-filename defobj)) file)))
+        (setf (url-filename urlobj)
               (if query (concat file sepchar query) file))))))
 
 (defadvice url-default-expander
@@ -1241,24 +1227,24 @@ See: http://thread.gmane.org/gmane.emacs.devel/155698"
 FSF holds the copyright of this function:
   Copyright (C) 1999, 2001, 2004-2012  Free Software Foundation, Inc."
   (url-http-debug "url-http-end-of-document-sentinel in buffer (%s)"
-		  (process-buffer proc))
+                  (process-buffer proc))
   (url-http-idle-sentinel proc why)
   (when (buffer-name (process-buffer proc))
     (with-current-buffer (process-buffer proc)
       (goto-char (point-min))
       (cond ((not (looking-at "HTTP/"))
-	     (if url-http-no-retry
-		 ;; HTTP/0.9 just gets passed back no matter what
-		 (url-http-activate-callback)
-	       ;; Call `url-http' again if our connection expired.
-	       (erase-buffer)
+             (if url-http-no-retry
+                 ;; HTTP/0.9 just gets passed back no matter what
+                 (url-http-activate-callback)
+               ;; Call `url-http' again if our connection expired.
+               (erase-buffer)
                (let ((url-request-method url-http-method)
                      (url-request-extra-headers url-http-extra-headers)
                      (url-request-data url-http-data))
                  (url-http url-current-object url-callback-function
                            url-callback-arguments (current-buffer)))))
-	    ((url-http-parse-headers)
-	     (url-http-activate-callback))))))
+            ((url-http-parse-headers)
+             (url-http-activate-callback))))))
 
 (defadvice url-http-end-of-document-sentinel
   (around request-monkey-patch-url-http-end-of-document-sentinel (proc why))
