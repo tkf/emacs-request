@@ -632,7 +632,7 @@ then kill the current buffer."
       (error
        (setq symbol-status 'parse-error)
        (setq error-thrown err)
-       (request-log 'error "Error from parser %S: %S" parser err))))
+       (request-log 'error "Error from parser %S: %S" parser err)))
     (kill-buffer buffer)
     (request-log 'debug "data = %s" data)
 
