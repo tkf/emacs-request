@@ -5,6 +5,7 @@
 ;;   Free Software Foundation, Inc.
 
 ;; Author: Takafumi Arakaki <aka.tkf at gmail.com>
+;; Package-Requires: ((cl-lib "0.5"))
 ;; Version: 0.2.0
 
 ;; This file is NOT part of GNU Emacs.
@@ -39,7 +40,7 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl-lib))
 (require 'url)
 (require 'mail-utils)
 
@@ -347,26 +348,26 @@ Example::
 
 ;;; Main
 
-(defun* request-default-error-callback (url &key symbol-status
-                                            &allow-other-keys)
+(cl-defun request-default-error-callback (url &key symbol-status
+                                              &allow-other-keys)
   (request-log 'error
     "Error (%s) while connecting to %s." symbol-status url))
 
-(defun* request (url &rest settings
-                     &key
-                     (type "GET")
-                     (params nil)
-                     (data nil)
-                     (files nil)
-                     (parser nil)
-                     (headers nil)
-                     (success nil)
-                     (error nil)
-                     (complete nil)
-                     (timeout request-timeout)
-                     (status-code nil)
-                     (sync nil)
-                     (response (make-request-response)))
+(cl-defun request (url &rest settings
+                       &key
+                       (type "GET")
+                       (params nil)
+                       (data nil)
+                       (files nil)
+                       (parser nil)
+                       (headers nil)
+                       (success nil)
+                       (error nil)
+                       (complete nil)
+                       (timeout request-timeout)
+                       (status-code nil)
+                       (sync nil)
+                       (response (make-request-response)))
   "Send request to URL.
 
 Request.el has a single entry point.  It is `request'.
@@ -404,7 +405,7 @@ arguments (i.e., it's better to use `&allow-other-keys' [#]_).::
      ...)
 
 .. [#] `&allow-other-keys' is a special \"markers\" available in macros
-   in the CL library for function definition such as `defun*' and
+   in the CL library for function definition such as `cl-defun' and
    `function*'.  Without this marker, you need to specify all arguments
    to be passed.  This becomes problem when request.el adds new arguments
    when calling callback functions.  If you use `&allow-other-keys'
@@ -599,9 +600,9 @@ then kill the current buffer."
         (goto-char (point-min))
         (setf (request-response-data response) (funcall parser))))))
 
-(defun* request--callback (buffer &key parser success error complete
-                                  timeout status-code response
-                                  &allow-other-keys)
+(cl-defun request--callback (buffer &key parser success error complete
+                                    timeout status-code response
+                                    &allow-other-keys)
   (request-log 'debug "REQUEST--CALLBACK")
   (request-log 'debug "(buffer-string) =\n%s"
                (when (buffer-live-p buffer)
@@ -671,7 +672,7 @@ then kill the current buffer."
     ;;        callback is never called.
     (request--safe-delete-files (request-response--tempfiles response))))
 
-(defun* request-response--timeout-callback (response)
+(cl-defun request-response--timeout-callback (response)
   (request-log 'debug "-TIMEOUT-CALLBACK")
   (setf (request-response-symbol-status response) 'timeout)
   (setf (request-response-error-thrown response)  '(error . ("Timeout")))
@@ -728,7 +729,7 @@ associated process is exited."
 
 ;;; Backend: `url-retrieve'
 
-(defun* request--url-retrieve-preprocess-settings
+(cl-defun request--url-retrieve-preprocess-settings
     (&rest settings &key type data files headers &allow-other-keys)
   (when files
     (error "`url-retrieve' backend does not support FILES."))
@@ -739,10 +740,10 @@ associated process is exited."
     (setq settings (plist-put settings :headers headers)))
   settings)
 
-(defun* request--url-retrieve (url &rest settings
-                                   &key type data timeout response
-                                   &allow-other-keys
-                                   &aux headers)
+(cl-defun request--url-retrieve (url &rest settings
+                                     &key type data timeout response
+                                     &allow-other-keys
+                                     &aux headers)
   (setq settings (apply #'request--url-retrieve-preprocess-settings settings))
   (setq headers (plist-get settings :headers))
   (let* ((url-request-extra-headers headers)
@@ -756,9 +757,9 @@ associated process is exited."
     (request-log 'debug "Start querying: %s" url)
     (set-process-query-on-exit-flag proc nil)))
 
-(defun* request--url-retrieve-callback (status &rest settings
-                                               &key response url
-                                               &allow-other-keys)
+(cl-defun request--url-retrieve-callback (status &rest settings
+                                                 &key response url
+                                                 &allow-other-keys)
   (declare (special url-http-method
                     url-http-response-status))
   (request-log 'debug "-URL-RETRIEVE-CALLBACK")
@@ -796,10 +797,10 @@ associated process is exited."
 
   (apply #'request--callback (current-buffer) settings))
 
-(defun* request--url-retrieve-sync (url &rest settings
-                                        &key type data timeout response
-                                        &allow-other-keys
-                                        &aux headers)
+(cl-defun request--url-retrieve-sync (url &rest settings
+                                          &key type data timeout response
+                                          &allow-other-keys
+                                          &aux headers)
   (setq settings (apply #'request--url-retrieve-preprocess-settings settings))
   (setq headers (plist-get settings :headers))
   (let* ((url-request-extra-headers headers)
@@ -853,7 +854,7 @@ Currently it is used only for testing.")
   (ignore-errors
     (make-directory (file-name-directory (request--curl-cookie-jar)) t)))
 
-(defun* request--curl-command
+(cl-defun request--curl-command
     (url &key type data headers timeout files*
          &allow-other-keys
          &aux
@@ -935,9 +936,9 @@ temporary file paths."
                                "Failed delete file %s. Got: %S" f err))))
         files))
 
-(defun* request--curl (url &rest settings
-                           &key type data files headers timeout response
-                           &allow-other-keys)
+(cl-defun request--curl (url &rest settings
+                             &key type data files headers timeout response
+                             &allow-other-keys)
   "cURL-based request backend.
 
 Redirection handling strategy
@@ -1089,7 +1090,7 @@ START-URL is the URL requested."
               (or error (when (>= code 400) `(error . (http ,code)))))
         (apply #'request--callback buffer settings))))))
 
-(defun* request--curl-sync (url &rest settings &key response &allow-other-keys)
+(cl-defun request--curl-sync (url &rest settings &key response &allow-other-keys)
   ;; To make timeout work, use polling approach rather than using
   ;; `call-process'.
   (lexical-let (finished)
