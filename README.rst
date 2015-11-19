@@ -85,7 +85,7 @@ Rich callback dispatch (like `jQuery.ajax`)::
                     (insert data)
                     (pop-to-buffer (current-buffer))))))
    :error
-   (function* (lambda (&key error-thrown &allow-other-keys&rest _)
+   (function* (lambda (&rest args &key error-thrown &allow-other-keys)
                 (message "Got error: %S" error-thrown)))
    :complete (lambda (&rest _) (message "Finished!"))
    :status-code '((400 . (lambda (&rest _) (message "Got 400.")))
