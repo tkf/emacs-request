@@ -1013,8 +1013,18 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
       (request--consume-100-continue))))
 
 (defun request--consume-200-connection-established ()
-  "Remove \"HTTP/* 200 Connection established\" header at the point."
-  (when (looking-at-p "HTTP/1\\.0 200 Connection established")
+  "Remove proxy header at the point.
+
+Some proxies return a header block before the server headers.  Remove it."
+  ;; [RFC draft][1] & [Privoxy code][2] use "Connection established".
+  ;; But [polipo][] & [cow][] use "Tunnel established".  I use `[^\r\n]` here for
+  ;; compatibility.
+  ;;
+  ;; [1]: https://tools.ietf.org/html/draft-luotonen-web-proxy-tunneling-01#section-3.2
+  ;; [2]: http://ijbswa.cvs.sourceforge.net/viewvc/ijbswa/current/jcc.c?view=markup
+  ;; [polipo]: https://github.com/jech/polipo/blob/master/tunnel.c#L302
+  ;; [cow]: https://github.com/cyfdecyf/cow/blob/master/proxy.go#L1160
+  (when (looking-at-p "HTTP/[0-9]+\\.[0-9]+ 2[0-9][0-9] [^\r\n]* established\r\n")
     (delete-region (point) (progn (request--goto-next-body) (point)))))
 
 (defun request--curl-preprocess ()
