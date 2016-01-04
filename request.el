@@ -410,7 +410,7 @@ arguments (i.e., it's better to use `&allow-other-keys' [#]_).::
 
 .. [#] `&allow-other-keys' is a special \"markers\" available in macros
    in the CL library for function definition such as `cl-defun' and
-   `function*'.  Without this marker, you need to specify all arguments
+   `cl-function'.  Without this marker, you need to specify all arguments
    to be passed.  This becomes problem when request.el adds new arguments
    when calling callback functions.  If you use `&allow-other-keys'
    (or manually ignore other arguments), your code is free from this
