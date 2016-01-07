@@ -975,6 +975,7 @@ removed from the buffer before it is shown to the parser function.
     (request-log 'debug "Run: %s" (mapconcat 'identity command " "))
     (setf (request-response--buffer response) buffer)
     (process-put proc :request-response response)
+    (set-process-coding-system proc 'binary 'binary)
     (set-process-query-on-exit-flag proc nil)
     (set-process-sentinel proc #'request--curl-callback)
     (when data
