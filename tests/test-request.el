@@ -402,7 +402,7 @@ To check that, run test with:
         (should-not (request--process-live-p process))))
 
     (should (= (length called) 1))
-    (destructuring-bind (&key data symbol-status error-thrown response)
+    (cl-destructuring-bind (&key data symbol-status error-thrown response)
         (car called)
       (should-not data)
       (should (eq symbol-status 'abort))

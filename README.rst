@@ -42,7 +42,7 @@ GET::
    "http://httpbin.org/get"
    :params '(("key" . "value") ("key2" . "value2"))
    :parser 'json-read
-   :success (function*
+   :success (cl-function
              (lambda (&key data &allow-other-keys)
                (message "I sent: %S" (assoc-default 'args data)))))
 
@@ -54,7 +54,7 @@ POST::
    :data '(("key" . "value") ("key2" . "value2"))
    ;; :data "key=value&key2=value2"  ; this is equivalent
    :parser 'json-read
-   :success (function*
+   :success (cl-function
              (lambda (&key data &allow-other-keys)
                (message "I sent: %S" (assoc-default 'form data)))))
 
@@ -66,7 +66,7 @@ POST file (**WARNING**: it will send the contents of the current buffer!)::
    :files `(("current buffer" . ,(current-buffer))
             ("data" . ("data.csv" :data "1,2,3\n4,5,6\n")))
    :parser 'json-read
-   :success (function*
+   :success (cl-function
              (lambda (&key data &allow-other-keys)
                (message "I sent: %S" (assoc-default 'files data)))))
 
@@ -78,15 +78,15 @@ Rich callback dispatch (like `jQuery.ajax`)::
    ;; "http://httpbin.org/status/400"  ; you will see "Got 400."
    :parser 'buffer-string
    :success
-   (function* (lambda (&key data &allow-other-keys)
-                (when data
-                  (with-current-buffer (get-buffer-create "*request demo*")
-                    (erase-buffer)
-                    (insert data)
-                    (pop-to-buffer (current-buffer))))))
+   (cl-function (lambda (&key data &allow-other-keys)
+                  (when data
+                    (with-current-buffer (get-buffer-create "*request demo*")
+                      (erase-buffer)
+                      (insert data)
+                      (pop-to-buffer (current-buffer))))))
    :error
-   (function* (lambda (&rest args &key error-thrown &allow-other-keys)
-                (message "Got error: %S" error-thrown)))
+   (cl-function (lambda (&rest args &key error-thrown &allow-other-keys)
+                  (message "Got error: %S" error-thrown)))
    :complete (lambda (&rest _) (message "Finished!"))
    :status-code '((400 . (lambda (&rest _) (message "Got 400.")))
                   (418 . (lambda (&rest _) (message "Got 418.")))))
@@ -97,7 +97,7 @@ Flexible PARSER option::
    "https://github.com/tkf/emacs-request/commits/master.atom"
    ;; Parse XML in response body:
    :parser (lambda () (libxml-parse-xml-region (point) (point-max)))
-   :success (function*
+   :success (cl-function
              (lambda (&key data &allow-other-keys)
                ;; Just don't look at this function....
                (let ((get (lambda (node &rest names)
@@ -119,7 +119,7 @@ PUT JSON data::
    :data (json-encode '(("key" . "value") ("key2" . "value2")))
    :headers '(("Content-Type" . "application/json"))
    :parser 'json-read
-   :success (function*
+   :success (cl-function
              (lambda (&key data &allow-other-keys)
                (message "I sent: %S" (assoc-default 'json data)))))
 

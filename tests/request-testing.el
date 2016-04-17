@@ -55,22 +55,22 @@ Following symbols are bound:
   response / status-code / history / data / error-thrown /
   symbol-status / url / done-p / settings / -buffer / -timer
 
-The symbols other than `response' is bound using `symbol-macrolet'."
+The symbols other than `response' is bound using `cl-symbol-macrolet'."
   (declare (indent 1))
   `(let ((response ,response))
-     (symbol-macrolet
-         ,(loop for slot in '(status-code
-                              history
-                              data
-                              error-thrown
-                              symbol-status
-                              url
-                              done-p
-                              settings
-                              -buffer
-                              -timer)
-                for accessor = (intern (format "request-response-%s" slot))
-                collect `(,slot (,accessor response)))
+     (cl-symbol-macrolet
+         ,(cl-loop for slot in '(status-code
+                                 history
+                                 data
+                                 error-thrown
+                                 symbol-status
+                                 url
+                                 done-p
+                                 settings
+                                 -buffer
+                                 -timer)
+                   for accessor = (intern (format "request-response-%s" slot))
+                   collect `(,slot (,accessor response)))
        ,@body)))
 
 (defvar request-testing-server--process nil)
@@ -246,7 +246,7 @@ TEMPFILES
     ;; "Decorate" BODY.
     (setq body (request-deftest--capture-message body))
     (setq body (request-deftest--url-retrieve-isolate body))
-    (destructuring-bind (&key backends tempfiles) req-keys
+    (cl-destructuring-bind (&key backends tempfiles) req-keys
       (setq body (request-deftest--tempfiles tempfiles body))
       (setq body (request-deftest--backends backends name body)))
 
