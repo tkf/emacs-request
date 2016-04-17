@@ -42,7 +42,9 @@
 
 (eval-when-compile
   (require 'cl) ; for obsolete `lexical-let'
-  (require 'cl-lib))
+  (require 'cl-lib)
+  (defvar url-http-method)
+  (defvar url-http-response-status))
 (require 'url)
 (require 'mail-utils)
 
