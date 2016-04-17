@@ -402,7 +402,7 @@ To check that, run test with:
         (should-not (request--process-live-p process))))
 
     (should (= (length called) 1))
-    (destructuring-bind (&key data symbol-status error-thrown response)
+    (cl-destructuring-bind (&key data symbol-status error-thrown response)
         (car called)
       (should-not data)
       (should (eq symbol-status 'abort))
@@ -673,6 +673,38 @@ RESPONSE-BODY"))
     (erase-buffer)
     (insert "\
 HTTP/1.0 200 Connection established\r
+\r
+HTTP/1.1 200 OK\r
+Content-Type: application/json\r
+Date: Wed, 19 Dec 2012 16:51:53 GMT\r
+Server: gunicorn/0.13.4\r
+Content-Length: 492\r
+Connection: keep-alive\r
+\r
+RESPONSE-BODY")
+    (insert "\n(:num-redirects 0 :url-effective \"DUMMY-URL\")")
+    (let ((info (request--curl-preprocess)))
+      (should (equal (buffer-string)
+                     "\
+HTTP/1.1 200 OK\r
+Content-Type: application/json\r
+Date: Wed, 19 Dec 2012 16:51:53 GMT\r
+Server: gunicorn/0.13.4\r
+Content-Length: 492\r
+Connection: keep-alive\r
+\r
+RESPONSE-BODY"))
+      (should (equal info
+                     (list :num-redirects 0
+                           :url-effective "DUMMY-URL"
+                           :history nil
+                           :version "1.1" :code 200))))))
+
+(ert-deftest request--curl-preprocess/200-proxy-tunnel-established ()
+  (with-temp-buffer
+    (erase-buffer)
+    (insert "\
+HTTP/1.1 200 Tunnel established\r
 \r
 HTTP/1.1 200 OK\r
 Content-Type: application/json\r
