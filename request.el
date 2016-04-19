@@ -632,13 +632,12 @@ then kill the current buffer."
 
     ;; Parse response body
     (request-log 'debug "error-thrown = %S" error-thrown)
-    (unless error-thrown
-      (condition-case err
-          (request--parse-data response parser)
-        (error
-         (setq symbol-status 'parse-error)
-         (setq error-thrown err)
-         (request-log 'error "Error from parser %S: %S" parser err))))
+    (condition-case err
+        (request--parse-data response parser)
+      (error
+       (setq symbol-status 'parse-error)
+       (setq error-thrown err)
+       (request-log 'error "Error from parser %S: %S" parser err)))
     (kill-buffer buffer)
     (request-log 'debug "data = %s" data)
 
