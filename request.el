@@ -1,11 +1,11 @@
-;;; request.el --- Compatible layer for URL request in Emacs
+;;; request.el --- Compatible layer for URL request in Emacs -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2012 Takafumi Arakaki
 ;; Copyright (C) 1985-1986, 1992, 1994-1995, 1999-2012
 ;;   Free Software Foundation, Inc.
 
 ;; Author: Takafumi Arakaki <aka.tkf at gmail.com>
-;; Package-Requires: ((cl-lib "0.5"))
+;; Package-Requires: ((emacs "24") (cl-lib "0.5"))
 ;; Version: 0.2.0
 
 ;; This file is NOT part of GNU Emacs.
@@ -41,10 +41,10 @@
 ;;; Code:
 
 (eval-when-compile
-  (require 'cl) ; for obsolete `lexical-let'
-  (require 'cl-lib)
   (defvar url-http-method)
   (defvar url-http-response-status))
+
+(require 'cl-lib)
 (require 'url)
 (require 'mail-utils)
 
@@ -1102,7 +1102,7 @@ START-URL is the URL requested."
 (cl-defun request--curl-sync (url &rest settings &key response &allow-other-keys)
   ;; To make timeout work, use polling approach rather than using
   ;; `call-process'.
-  (lexical-let (finished)
+  (let (finished)
     (prog1 (apply #'request--curl url
                   :complete (lambda (&rest _) (setq finished t))
                   settings)

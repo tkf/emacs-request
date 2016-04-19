@@ -1,4 +1,4 @@
-;;; request-deferred.el --- Wrap request.el by deferred
+;;; request-deferred.el --- Wrap request.el by deferred -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2012 Takafumi Arakaki
 
