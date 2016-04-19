@@ -371,7 +371,8 @@ Example::
                        (timeout request-timeout)
                        (status-code nil)
                        (sync nil)
-                       (response (make-request-response)))
+                       (response (make-request-response))
+                       (unix-socket nil))
   "Send request to URL.
 
 Request.el has a single entry point.  It is `request'.
@@ -540,6 +541,7 @@ and requests.request_ (Python).
                       (request--urlencode-alist params))))
   (setq settings (plist-put settings :url url))
   (setq settings (plist-put settings :response response))
+  (setq settings (plist-put settings :unix-socket unix-socket))
   (setf (request-response-settings response) settings)
   (setf (request-response-url      response) url)
   (setf (request-response--backend response) request-backend)
@@ -859,7 +861,7 @@ Currently it is used only for testing.")
     (make-directory (file-name-directory (request--curl-cookie-jar)) t)))
 
 (cl-defun request--curl-command
-    (url &key type data headers timeout files*
+    (url &key type data headers timeout files* unix-socket
          &allow-other-keys
          &aux
          (cookie-jar (convert-standard-filename
@@ -873,6 +875,7 @@ Currently it is used only for testing.")
          ;;        running multiple requests.
          "--cookie" cookie-jar "--cookie-jar" cookie-jar
          "--write-out" request--curl-write-out-template)
+   (when unix-socket (list "--unix-socket" unix-socket))
    (cl-loop for (name filename path mime-type) in files*
             collect "--form"
             collect (format "%s=@%s;filename=%s%s" name path filename
