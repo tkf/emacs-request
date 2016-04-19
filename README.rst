@@ -123,6 +123,16 @@ PUT JSON data::
              (lambda (&key data &allow-other-keys)
                (message "I sent: %S" (assoc-default 'json data)))))
 
+GET with Unix domain socket data::
+
+  (request
+   "http:/hello.txt"
+   :unix-socket "/tmp/app.sock"
+   :parser (lambda () (buffer-string))
+   :success (cl-function
+             (lambda (&key data &allow-other-keys)
+               (message "Got: %s" data))))
+
 
 Compatibility / backends
 ========================
@@ -145,12 +155,12 @@ Supported Emacs versions:
 
 Supported backends:
 
-========== ==================== ================ =========================
- Backends   Remarks              Multipart Form   Automatic Decompression
-========== ==================== ================ =========================
+========== ==================== ================ ========================= =============
+ Backends   Remarks              Multipart Form   Automatic Decompression   Unix Socket
+========== ==================== ================ ========================= =============
  url.el     Included in Emacs
- curl       Reliable             ✔               ✔
-========== ==================== ================ =========================
+ curl       Reliable             ✔               ✔                         ✔
+========== ==================== ================ ========================= =============
 
 
 Monkey patches for url.el
