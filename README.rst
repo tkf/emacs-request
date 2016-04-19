@@ -143,8 +143,10 @@ Supported Emacs versions:
  Emacs version          Does request.el work?      Tested on Travis CI
                                                    |build-status|
 ====================== ========================== =====================
- GNU Emacs 24.3-devel   yes (as of this writing)   yes
- GNU Emacs 24.2         yes                        yes
+ GNU Emacs 24.5         yes (as of this writing)   yes
+ GNU Emacs 24.4         yes (as of this writing)   yes
+ GNU Emacs 24.3         yes (as of this writing)   yes
+ GNU Emacs 24.2         yes                        no
  GNU Emacs 24.1         yes                        no
  GNU Emacs 23.4         yes                        no
  GNU Emacs 23.3         yes                        yes
