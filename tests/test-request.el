@@ -26,7 +26,7 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl))
+(require 'cl-lib)
 (require 'json)
 (require 'request-testing)
 
@@ -99,9 +99,9 @@
           (redirects (mapcar #'request-response-url history)))
       (if (and noninteractive (eq request-backend 'url-retrieve))
           ;; See [#url-noninteractive]_
-          (loop for url in redirects
-                for durl in desired
-                do (should (string-prefix-p durl url)))
+          (cl-loop for url in redirects
+                   for durl in desired
+                   do (should (string-prefix-p durl url)))
         (should (equal redirects desired))))))
 
 (request-deftest request-get-broken-redirection ()
@@ -122,42 +122,42 @@ See also:
       (should (equal redirects desired)))))
 
 (request-deftest request-get-code-success ()
-  (loop for code in (nconc (loop for c from 200 to 207 collect c)
-                           (list 226))
-        do (request-testing-with-response-slots
+  (cl-loop for code in (nconc (cl-loop for c from 200 to 207 collect c)
+                              (list 226))
+           do (request-testing-with-response-slots
                (request-testing-sync (format "code/%d" code)
                                      :parser 'ignore)
-             (should-not error-thrown)
-             (should (equal status-code code)))))
+               (should-not error-thrown)
+               (should (equal status-code code)))))
 
 (request-deftest request-get-code-client-error ()
-  (loop for code in (loop for c from 400 to 418
-                          ;; 401: Unauthorized
-                          ;;      `url-retrieve' pops prompt.
-                          ;;      FIXME: find a way to test in a batch mode.
-                          ;; 402: Payment Required
-                          ;;      "Reserved for future use."
-                          ;;      So it's OK to ignore this code?
-                          ;; 407: Proxy Authentication Required
-                          ;;      FIXME: how to support this?
-                          unless (member c '(401 402 407))
-                          collect c)
-        do (request-testing-with-response-slots
+  (cl-loop for code in (cl-loop for c from 400 to 418
+                                ;; 401: Unauthorized
+                                ;;      `url-retrieve' pops prompt.
+                                ;;      FIXME: find a way to test in a batch mode.
+                                ;; 402: Payment Required
+                                ;;      "Reserved for future use."
+                                ;;      So it's OK to ignore this code?
+                                ;; 407: Proxy Authentication Required
+                                ;;      FIXME: how to support this?
+                                unless (member c '(401 402 407))
+                                collect c)
+           do (request-testing-with-response-slots
                (request-testing-sync (format "code/%d" code)
                                      :parser 'ignore)
-             (should (equal error-thrown `(error . (http ,code))))
-             (should (equal status-code code)))))
+               (should (equal error-thrown `(error . (http ,code))))
+               (should (equal status-code code)))))
 
 (request-deftest request-get-code-server-error ()
-  (loop for code in (loop for c from 500 to 510
-                          ;; flask does not support them:
-                          unless (member c '(506 508 509))
-                          collect c)
-        do (request-testing-with-response-slots
+  (cl-loop for code in (cl-loop for c from 500 to 510
+                                ;; flask does not support them:
+                                unless (member c '(506 508 509))
+                                collect c)
+           do (request-testing-with-response-slots
                (request-testing-sync (format "code/%d" code)
                                      :parser 'ignore)
-             (should (equal error-thrown `(error . (http ,code))))
-             (should (equal status-code code)))))
+               (should (equal error-thrown `(error . (http ,code))))
+               (should (equal status-code code)))))
 
 (request-deftest request-get-timeout ()
   (request-testing-with-response-slots
@@ -382,20 +382,20 @@ To check that, run test with:
                                            (push args called))
                                :parser 'json-read)
       (let ((process (get-buffer-process -buffer)))
-        (loop repeat 30
-              when (request--process-live-p process) return nil
-              do (sleep-for 0.1)
-              finally (error "Timeout: failed to check process is started."))
+        (cl-loop repeat 30
+                 when (request--process-live-p process) return nil
+                 do (sleep-for 0.1)
+                 finally (error "Timeout: failed to check process is started."))
 
         (should-not symbol-status)
         (should-not done-p)
         (should (request--process-live-p process))
 
         (request-abort response)
-        (loop repeat 30
-              when called return nil
-              do (sleep-for 0.1)
-              finally (error "Timeout: failed to check process is aborted."))
+        (cl-loop repeat 30
+                 when called return nil
+                 do (sleep-for 0.1)
+                 finally (error "Timeout: failed to check process is aborted."))
 
         (should (equal symbol-status 'abort))
         (should done-p)

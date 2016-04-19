@@ -26,7 +26,7 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl))
+(require 'cl-lib)
 (require 'ert)
 (require 'request-deferred)
 
@@ -78,16 +78,16 @@ The symbols other than `response' is bound using `cl-symbol-macrolet'."
 
 (defun request-testing--wait-process-until (process output-regexp)
   "Wait until PROCESS outputs text which matches to OUTPUT-REGEXP."
-  (loop with buffer = (process-buffer process)
-        repeat 30
-        do (accept-process-output process 0.1 nil t)
-        for str = (with-current-buffer buffer (buffer-string))
-        do (cond
-            ((string-match output-regexp str)
-             (return str))
-            ((not (eq 'run (process-status process)))
-             (error "Server startup error.")))
-        finally do (error "Server timeout error.")))
+  (cl-loop with buffer = (process-buffer process)
+           repeat 30
+           do (accept-process-output process 0.1 nil t)
+           for str = (with-current-buffer buffer (buffer-string))
+           do (cond
+               ((string-match output-regexp str)
+                (return str))
+               ((not (eq 'run (process-status process)))
+                (error "Server startup error.")))
+           finally do (error "Server timeout error.")))
 
 (defun request-testing-server ()
   "Get running test server and return its root URL."
@@ -117,10 +117,10 @@ The symbols other than `response' is bound using `cl-symbol-macrolet'."
 (add-hook 'kill-emacs-hook 'request-testing-stop-server)
 
 (defun request-testing-url (&rest path)
-  (loop with url = (format "http://127.0.0.1:%s" request-testing-server--port)
-        for p in path
-        do (setq url (concat url "/" p))
-        finally return url))
+  (cl-loop with url = (format "http://127.0.0.1:%s" request-testing-server--port)
+           for p in path
+           do (setq url (concat url "/" p))
+           finally return url))
 
 (defun request-testing-async (url &rest args)
   (apply #'request (request-testing-url url) args))
@@ -156,17 +156,17 @@ The symbols other than `response' is bound using `cl-symbol-macrolet'."
 
 (defun request-deftest--tempfiles (tempfiles body)
   "[Macro helper] Execute BODY with TEMPFILES and then remove them."
-  (let ((symbols (loop for f in tempfiles
-                       collect (make-symbol (format "%s*" f)))))
-    `((let ,(loop for s in symbols
-                  collect `(,s (make-temp-file "emacs-request-")))
-        (let ,(loop for f in tempfiles
-                    for s in symbols
-                    collect `(,f ,s))
+  (let ((symbols (cl-loop for f in tempfiles
+                          collect (make-symbol (format "%s*" f)))))
+    `((let ,(cl-loop for s in symbols
+                     collect `(,s (make-temp-file "emacs-request-")))
+        (let ,(cl-loop for f in tempfiles
+                       for s in symbols
+                       collect `(,f ,s))
           (unwind-protect
               (progn ,@body)
-            ,@(loop for s in symbols
-                    collect `(ignore-errors (delete-file ,s)))))))))
+            ,@(cl-loop for s in symbols
+                       collect `(ignore-errors (delete-file ,s)))))))))
 
 (defun request-deftest--backends (backends name body)
   "[Macro helper] Execute BODY only when `request-backend' is in BACKENDS."
@@ -195,8 +195,8 @@ unless an error occurs.")
                   (setq ,noerror t))
               (fset 'message ,orig-message)
               (unless ,noerror
-                (loop for m in (nreverse ,messages)
-                      do (apply #'message m)))))
+                (cl-loop for m in (nreverse ,messages)
+                         do (apply #'message m)))))
         ,@body))))
 
 (defmacro* request-deftest (name () &body docstring-and-body)
