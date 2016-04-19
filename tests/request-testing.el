@@ -1,4 +1,4 @@
-;;; request-testing.el --- Testing framework for request.el
+;;; request-testing.el --- Testing framework for request.el -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2012 Takafumi Arakaki
 
@@ -126,7 +126,7 @@ The symbols other than `response' is bound using `cl-symbol-macrolet'."
   (apply #'request (request-testing-url url) args))
 
 (defun request-testing-sync (url &rest args)
-  (lexical-let (err timeout)
+  (let (err timeout)
     (let ((result
            (deferred:sync!
              (deferred:timeout

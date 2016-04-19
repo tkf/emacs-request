@@ -1,4 +1,4 @@
-;;; test-request.el --- Tests for request.el
+;;; test-request.el --- Tests for request.el -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2012 Takafumi Arakaki
 
