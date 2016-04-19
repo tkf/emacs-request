@@ -123,6 +123,16 @@ PUT JSON data::
              (lambda (&key data &allow-other-keys)
                (message "I sent: %S" (assoc-default 'json data)))))
 
+GET with Unix domain socket data::
+
+  (request
+   "http:/hello.txt"
+   :unix-socket "/tmp/app.sock"
+   :parser (lambda () (buffer-string))
+   :success (cl-function
+             (lambda (&key data &allow-other-keys)
+               (message "Got: %s" data))))
+
 
 Compatibility / backends
 ========================
@@ -133,8 +143,10 @@ Supported Emacs versions:
  Emacs version          Does request.el work?      Tested on Travis CI
                                                    |build-status|
 ====================== ========================== =====================
- GNU Emacs 24.3-devel   yes (as of this writing)   yes
- GNU Emacs 24.2         yes                        yes
+ GNU Emacs 24.5         yes (as of this writing)   yes
+ GNU Emacs 24.4         yes (as of this writing)   yes
+ GNU Emacs 24.3         yes (as of this writing)   yes
+ GNU Emacs 24.2         yes                        no
  GNU Emacs 24.1         yes                        no
  GNU Emacs 23.4         yes                        no
  GNU Emacs 23.3         yes                        yes
@@ -145,12 +157,12 @@ Supported Emacs versions:
 
 Supported backends:
 
-========== ==================== ================ =========================
- Backends   Remarks              Multipart Form   Automatic Decompression
-========== ==================== ================ =========================
+========== ==================== ================ ========================= =============
+ Backends   Remarks              Multipart Form   Automatic Decompression   Unix Socket
+========== ==================== ================ ========================= =============
  url.el     Included in Emacs
- curl       Reliable             ✔               ✔
-========== ==================== ================ =========================
+ curl       Reliable             ✔               ✔                         ✔
+========== ==================== ================ ========================= =============
 
 
 Monkey patches for url.el
