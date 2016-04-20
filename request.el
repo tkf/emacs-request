@@ -61,34 +61,46 @@
 (defcustom request-storage-directory
   (concat (file-name-as-directory user-emacs-directory) "request")
   "Directory to store data related to request.el."
-  :group 'request)
+  :type 'directory)
 
 (defcustom request-curl "curl"
   "Executable for curl command."
-  :group 'request)
+  :type 'string)
 
 (defcustom request-backend (if (executable-find request-curl)
                                'curl
                              'url-retrieve)
   "Backend to be used for HTTP request.
 Automatically set to `curl' if curl command is found."
-  :group 'request)
+  :type '(choice (const :tag "cURL backend" curl)
+                 (const :tag "url-retrieve backend" url-retrieve)))
 
 (defcustom request-timeout nil
   "Default request timeout in second.
 `nil' means no timeout."
-  :group 'request)
+  :type '(choice (integer :tag "Request timeout seconds")
+                 (boolean :tag "No timeout" nil)))
 
 (defcustom request-log-level -1
   "Logging level for request.
 One of `error'/`warn'/`info'/`verbose'/`debug'.
 -1 means no logging."
-  :group 'request)
+  :type '(choice (integer :tag "No logging" -1)
+                 (const :tag "Level error" error)
+                 (const :tag "Level warn" warn)
+                 (const :tag "Level info" info)
+                 (const :tag "Level Verbose" verbose)
+                 (const :tag "Level DEBUG" debug)))
 
 (defcustom request-message-level 'warn
   "Logging level for request.
 See `request-log-level'."
-  :group 'request)
+  :type '(choice (integer :tag "No logging" -1)
+                 (const :tag "Level error" error)
+                 (const :tag "Level warn" warn)
+                 (const :tag "Level info" info)
+                 (const :tag "Level Verbose" verbose)
+                 (const :tag "Level DEBUG" debug)))
 
 
 ;;; Utilities
@@ -541,7 +553,6 @@ and requests.request_ (Python).
                       (request--urlencode-alist params))))
   (setq settings (plist-put settings :url url))
   (setq settings (plist-put settings :response response))
-  (setq settings (plist-put settings :unix-socket unix-socket))
   (setf (request-response-settings response) settings)
   (setf (request-response-url      response) url)
   (setf (request-response--backend response) request-backend)
