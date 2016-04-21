@@ -977,7 +977,11 @@ removed from the buffer before it is shown to the parser function.
   (let* (;; Use pipe instead of pty.  Otherwise, curl process hangs.
          (process-connection-type nil)
          ;; Avoid starting program in non-existing directory.
-         (default-directory (expand-file-name "~/"))
+         (home-directory (if (file-remote-p default-directory)
+                             (with-parsed-tramp-file-name default-directory nil
+                               (tramp-make-tramp-file-name method user host "~/"))
+                           "~/"))
+         (default-directory (expand-file-name home-directory))
          (buffer (generate-new-buffer " *request curl*"))
          (command (cl-destructuring-bind
                       (files* tempfiles)
@@ -985,7 +989,7 @@ removed from the buffer before it is shown to the parser function.
                     (setf (request-response--tempfiles response) tempfiles)
                     (apply #'request--curl-command url :files* files*
                            settings)))
-         (proc (apply #'start-process "request curl" buffer command)))
+         (proc (apply #'start-file-process "request curl" buffer command)))
     (request-log 'debug "Run: %s" (mapconcat 'identity command " "))
     (setf (request-response--buffer response) buffer)
     (process-put proc :request-response response)
