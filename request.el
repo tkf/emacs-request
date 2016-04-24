@@ -645,10 +645,12 @@ then kill the current buffer."
 
     ;; Parse response body
     (request-log 'debug "error-thrown = %S" error-thrown)
-    (unless error-thrown
-      (condition-case err
-          (request--parse-data response parser)
-        (error
+    (condition-case err
+        (request--parse-data response parser)
+      (error
+       ;; If there was already an error (e.g. server timeout) do not set the
+       ;; status to `parse-error'.
+       (unless error-thrown
          (setq symbol-status 'parse-error)
          (setq error-thrown err)
          (request-log 'error "Error from parser %S: %S" parser err))))
