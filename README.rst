@@ -123,6 +123,23 @@ PUT JSON data::
              (lambda (&key data &allow-other-keys)
                (message "I sent: %S" (assoc-default 'json data)))))
 
+Another PUT JSON example (nested JSON using alist structure, how to represent a boolean & how to selectively evaluate lisp)::
+
+  (request
+   "http://httpbin.org/put"
+   :type "PUT"
+    :data (json-encode `(("jsonArray" . (        ; Prepend alist structure with a backtick (`) rather than single quote (') to allow elisp evaluation of selected elements prefixed with a comma (,)
+                       ("item1" . "value 1")
+                       ("item2" . t) ; This value is expected as a boolean so use the nil / t elisp alist denotation
+                       ("item3" . ,(your-custom-elisp-function)) ; The function will be evaluated as it has been prefixed with a comma (,)
+                       )
+               )))
+   :headers '(("Content-Type" . "application/json"))
+   :parser 'json-read
+   :success (cl-function
+             (lambda (&key data &allow-other-keys)
+               (message "I sent: %S" (assoc-default 'json data)))))
+
 GET with Unix domain socket data::
 
   (request
