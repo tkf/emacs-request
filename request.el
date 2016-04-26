@@ -978,12 +978,6 @@ removed from the buffer before it is shown to the parser function.
   (request--curl-mkdir-for-cookie-jar)
   (let* (;; Use pipe instead of pty.  Otherwise, curl process hangs.
          (process-connection-type nil)
-         ;; Avoid starting program in non-existing directory.
-         (home-directory (if (file-remote-p default-directory)
-                             (with-parsed-tramp-file-name default-directory nil
-                               (tramp-make-tramp-file-name method user host "~/"))
-                           "~/"))
-         (default-directory (expand-file-name home-directory))
          (buffer (generate-new-buffer " *request curl*"))
          (command (cl-destructuring-bind
                       (files* tempfiles)
