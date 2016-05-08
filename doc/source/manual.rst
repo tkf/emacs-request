@@ -41,7 +41,7 @@ Deferred
 --------
 
 deferred.el_ is a concise way to write callback chain.
-You can use :el:symbol:`require-deferred` to do requests
+You can use :el:symbol:`request-deferred` to do requests
 with deferred.el_.
 
 .. _deferred.el: https://github.com/kiwanami/emacs-deferred
