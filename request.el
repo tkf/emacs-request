@@ -200,7 +200,7 @@ for older Emacs versions.")
              concat sep
              concat (url-hexify-string (format "%s" k))
              concat "="
-             concat (url-hexify-string v))))
+             concat (url-hexify-string (format "%s" v)))))
 
 
 ;;; Header parser
