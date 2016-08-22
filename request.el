@@ -207,9 +207,9 @@ for older Emacs versions.")
 
 (defun request--parse-response-at-point ()
   "Parse the first header line such as \"HTTP/1.1 200 OK\"."
-  (re-search-forward "\\=[ \t\n]*HTTP/\\([0-9\\.]+\\) +\\([0-9]+\\)")
-  (list :version (match-string 1)
-        :code (string-to-number (match-string 2))))
+  (when (re-search-forward "\\=[ \t\n]*HTTP/\\([0-9\\.]+\\) +\\([0-9]+\\)" nil t)
+    (list :version (match-string 1)
+          :code (string-to-number (match-string 2)))))
 
 (defun request--goto-next-body ()
   (re-search-forward "^\r\n"))
@@ -713,7 +713,7 @@ Explicitly calling from timer.")
           (cl-destructuring-bind (&key code &allow-other-keys)
               (with-current-buffer buffer
                 (goto-char (point-min))
-                (ignore-errors (request--parse-response-at-point)))
+                (request--parse-response-at-point))
             (setf (request-response-status-code response) code)))
         (apply #'request--callback
                buffer
@@ -1026,7 +1026,7 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
 (defun request--consume-100-continue ()
   "Remove \"HTTP/* 100 Continue\" header at the point."
   (cl-destructuring-bind (&key code &allow-other-keys)
-      (save-excursion (ignore-errors (request--parse-response-at-point)))
+      (save-excursion (request--parse-response-at-point))
     (when (equal code 100)
       (delete-region (point) (progn (request--goto-next-body) (point)))
       ;; FIXME: Does this make sense?  Is it possible to have multiple 100?
