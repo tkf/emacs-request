@@ -1,12 +1,13 @@
 ;;; request.el --- Compatible layer for URL request in Emacs -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2016 Matthew Carter <m@ahungry.com>
 ;; Copyright (C) 2012 Takafumi Arakaki
 ;; Copyright (C) 1985-1986, 1992, 1994-1995, 1999-2012
 ;;   Free Software Foundation, Inc.
 
 ;; Author: Takafumi Arakaki <aka.tkf at gmail.com>
 ;; Package-Requires: ((emacs "24") (cl-lib "0.5"))
-;; Version: 0.2.0
+;; Version: 0.2.1
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -53,7 +54,7 @@
   :group 'comm
   :prefix "request-")
 
-(defconst request-version "0.2.0")
+(defconst request-version "0.2.1")
 
 
 ;;; Customize variables
@@ -610,7 +611,10 @@ then kill the current buffer."
   (request-log 'debug "-PARSE-DATA")
   (let ((buffer (request-response--buffer response)))
     (request-log 'debug "parser = %s" parser)
-    (when (and (buffer-live-p buffer) parser)
+    (when (and (buffer-live-p buffer)
+               parser
+               ;; An HTTP 204 No Content should not be parsed
+               (not (eq 204 (request-response-status-code response))))
       (with-current-buffer buffer
         (request-log 'trace
           "(buffer-string) at %S =\n%s" buffer (buffer-string))
