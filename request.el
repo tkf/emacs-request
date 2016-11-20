@@ -623,8 +623,9 @@ then kill the current buffer."
       (with-current-buffer buffer
         (request-log 'trace
           "(buffer-string) at %S =\n%s" buffer (buffer-string))
-        (goto-char (point-min))
-        (setf (request-response-data response) (funcall parser))))))
+        (when (/= (request-response-status-code response) 204)
+          (goto-char (point-min))
+          (setf (request-response-data response) (funcall parser)))))))
 
 (cl-defun request--callback (buffer &key parser success error complete
                                     timeout status-code response
