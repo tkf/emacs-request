@@ -909,10 +909,12 @@ Currently it is used only for testing.")
    (when data
      (let ((tempfile (request--make-temp-file)))
        (push tempfile (request-response--tempfiles response))
-       (with-temp-buffer
-         (erase-buffer)
-         (insert data)
-         (write-region (point-min) (point-max) tempfile nil 'silent))
+       (let ((file-coding-system-alist nil)
+             (coding-system-for-write 'binary))
+         (with-temp-file tempfile
+           (setq buffer-file-coding-system 'binary)
+           (set-buffer-multibyte nil)
+           (insert data)))
        (list "--data-binary" (concat  "@" (request-untrampify-filename tempfile)))))
    (when type (list "--request" type))
    (cl-loop for (k . v) in headers
