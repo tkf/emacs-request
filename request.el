@@ -1172,33 +1172,31 @@ START-URL is the URL requested."
 (defun request--netscape-cookie-parse ()
   "Parse Netscape/Mozilla cookie format."
   (goto-char (point-min))
-  (let ((tsv-re (concat "^\\="
+  (let ((tsv-re (concat "^\\(#HttpOnly_\\)?"
                         (cl-loop repeat 6 concat "\\([^\t\n]+\\)\t")
                         "\\(.*\\)"))
         cookies)
-    (while
-        (and
-         (cond
-          ((re-search-forward "^\\=#" nil t))
-          ((re-search-forward "^\\=$" nil t))
-          ((re-search-forward tsv-re)
-           (push (cl-loop for i from 1 to 7 collect (match-string i))
-                 cookies)
-           t))
-         (= (forward-line 1) 0)
-         (not (= (point) (point-max)))))
+    (while (not (eobp))
+      ;; HttpOnly cookie starts with '#' but its line is not comment line(#60)
+      (cond ((and (looking-at-p "^#") (not (looking-at-p "^#HttpOnly_"))) t)
+            ((looking-at-p "^$") t)
+            ((looking-at tsv-re)
+             (let ((cookie (cl-loop for i from 1 to 8 collect (match-string i))))
+               (push cookie cookies))))
+      (forward-line 1))
     (setq cookies (nreverse cookies))
-    (cl-loop for (domain flag path secure expiration name value) in cookies
+    (cl-loop for (http-only domain flag path secure expiration name value) in cookies
              collect (list domain
                            (equal flag "TRUE")
                            path
                            (equal secure "TRUE")
+                           (null (not http-only))
                            (string-to-number expiration)
                            name
                            value))))
 
 (defun request--netscape-filter-cookies (cookies host localpart secure)
-  (cl-loop for (domain flag path secure-1 expiration name value) in cookies
+  (cl-loop for (domain flag path secure-1 http-only expiration name value) in cookies
            when (and (equal domain host)
                      (equal path localpart)
                      (or secure (not secure-1)))
