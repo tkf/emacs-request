@@ -199,7 +199,7 @@ unless an error occurs.")
                          do (apply #'message m)))))
         ,@body))))
 
-(defmacro* request-deftest (name () &body docstring-and-body)
+(cl-defmacro request-deftest (name () &body docstring-and-body)
   "`ert-deftest' for test requiring test server.
 
 Additional keyword arguments:
