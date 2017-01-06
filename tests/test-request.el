@@ -742,8 +742,9 @@ RESPONSE-BODY"))
 127.0.0.1	FALSE	/	FALSE	0	key2	value2
 ")
     (should (equal (request--netscape-cookie-parse)
-                   '(("127.0.0.1" nil "/" nil 0 "key1" "value1")
-                     ("127.0.0.1" nil "/" nil 0 "key2" "value2"))))))
+                   '(("127.0.0.1" nil "/" nil t 0 "session" "\"Jm7AXQMIE\"")
+                     ("127.0.0.1" nil "/" nil nil 0 "key1" "value1")
+                     ("127.0.0.1" nil "/" nil nil 0 "key2" "value2"))))))
 
 (provide 'test-request)
 
