@@ -67,6 +67,10 @@
   "Executable for curl command."
   :type 'string)
 
+(defcustom request-curl-options nil
+  "curl command options."
+  :type '(repeat string))
+
 (defcustom request-backend (if (executable-find request-curl)
                                'curl
                              'url-retrieve)
@@ -898,6 +902,7 @@ Currently it is used only for testing.")
          ;;        running multiple requests.
          "--cookie" cookie-jar "--cookie-jar" cookie-jar
          "--write-out" request--curl-write-out-template)
+   request-curl-options
    (when unix-socket (list "--unix-socket" unix-socket))
    (cl-loop for (name filename path mime-type) in files*
             collect "--form"
