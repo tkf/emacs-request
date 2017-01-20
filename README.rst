@@ -11,6 +11,8 @@
    * `Repository <https://github.com/tkf/emacs-request>`_ (at GitHub)
    * `Issue tracker <https://github.com/tkf/emacs-request/issues>`_ (at GitHub)
    * `Travis CI <https://travis-ci.org/#!/tkf/emacs-request>`_ |build-status|
+   * `MELPA <https://melpa.org/#/request>`_ |melpa-badge|
+   * `MELPA Stable <https://stable.melpa.org/#/request>`_ |melpa-stable-badge|
 
 
 What is it?
@@ -31,6 +33,14 @@ use these backend without modifying their code.
 
 Request.el also patches url.el dynamically, to fix bugs in url.el.
 See `monkey patches for url.el`_ for the bugs fixed by request.el.
+
+
+Installation
+============
+
+request.el is available on `MELPA <https://melpa.org/>`_ and `MELPA stable <https://stable.melpa.org>`_.
+
+You can install request.el by package.el
 
 
 Examples
@@ -240,7 +250,15 @@ See COPYING file for details.
 
 
 .. |build-status|
-   image:: https://secure.travis-ci.org/tkf/emacs-request.png
+   image:: https://secure.travis-ci.org/tkf/emacs-request.svg
            ?branch=master
    :target: http://travis-ci.org/tkf/emacs-request
    :alt: Build Status
+.. |melpa-badge|
+   image:: http://melpa.org/packages/request-badge.svg
+   :target: http://melpa.org/#/request
+   :alt: MELPA Badge
+.. |melpa-stable-badge|
+   image:: http://stable.melpa.org/packages/request-badge.svg
+   :target: http://stable.melpa.org/#/request
+   :alt: MELPA Stable Badge
