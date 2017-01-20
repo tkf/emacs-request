@@ -68,7 +68,10 @@
   :type 'string)
 
 (defcustom request-curl-options nil
-  "curl command options."
+  "curl command options.
+
+List of strings that will be passed to every curl invocation. You can pass
+extra options here, like setting the proxy."
   :type '(repeat string))
 
 (defcustom request-backend (if (executable-find request-curl)
