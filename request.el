@@ -594,6 +594,27 @@ and requests.request_ (Python).
       (setq sep-regexp "^\r$"))
     (when (buffer-live-p buffer)
       (with-current-buffer buffer
+
+        ;; FIXME: workaround for http tunneling
+        (request-log 'trace
+          "(buffer-string) at %S =\n%s" buffer (buffer-string))
+        (goto-char (point-min))
+        ;; [RFC draft][1] & [Privoxy code][2] use "Connection established".
+        ;; But [cow][] use "Tunnel established".  I use `[^\r\n]` here for
+        ;; compatibility.
+        ;;
+        ;; [1]: https://tools.ietf.org/html/draft-luotonen-web-proxy-tunneling-01#section-3.2
+        ;; [2]: http://ijbswa.cvs.sourceforge.net/viewvc/ijbswa/current/jcc.c?view=markup
+        ;; [cow]: https://github.com/cyfdecyf/cow/blob/master/proxy.go#L1160
+        (let ((eol-regexp (if (eq backend 'url-retrieve) "\r?\n" "\r\n"))
+              (header-regexp (format "^HTTP/[0-9]+\\.[0-9]+ 2[0-9][0-9] [^\r\n]* established%s" eol-regexp))
+              (empty-line-regexp (format "^%s" eol-regexp)))
+          (when (re-search-forward header-regexp)
+            (when (and (re-search-forward empty-line-regexp nil t)
+                       ;; Are \r characters stripped off already?:
+                       (equal (match-string 0) "\r\n"))
+              (delete-region (point-min) (point)))))
+
         (request-log 'trace
           "(buffer-string) at %S =\n%s" buffer (buffer-string))
         (goto-char (point-min))
