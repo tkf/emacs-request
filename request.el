@@ -858,7 +858,7 @@ associated process is exited."
       (with-current-buffer buffer
         (goto-char (point-min))
         (cl-destructuring-bind (&key version code)
-            (request--parse-response-at-point)
+            (ignore-errors (request--parse-response-at-point))
           (setf (request-response-status-code response) code)))
       ;; Parse response body, etc.
       (apply #'request--callback buffer settings)))
