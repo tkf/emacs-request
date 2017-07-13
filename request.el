@@ -960,16 +960,8 @@ Currently it is used only for testing.")
 
 (defun request--make-temp-file ()
   "Create a temporary file."
-  (if (file-remote-p default-directory)
-      (let ((tramp-temp-name-prefix request-temp-prefix)
-            (vec (tramp-dissect-file-name default-directory)))
-        (tramp-make-tramp-file-name
-         (tramp-file-name-method vec)
-         (tramp-file-name-user vec)
-         (tramp-file-name-host vec)
-         (tramp-make-tramp-temp-file vec)
-         (tramp-file-name-hop vec)))
-    (make-temp-file request-temp-prefix)))
+  (make-temp-file
+   (concat (file-remote-p default-directory) request-temp-prefix)))
 
 (defun request--curl-normalize-files (files)
   "Change FILES into a list of (NAME FILENAME PATH MIME-TYPE).
@@ -1020,15 +1012,7 @@ removed from the buffer before it is shown to the parser function.
   (let* (;; Use pipe instead of pty.  Otherwise, curl process hangs.
          (process-connection-type nil)
          ;; Avoid starting program in non-existing directory.
-         (home-directory (if (file-remote-p default-directory)
-                             (let ((vec (tramp-dissect-file-name default-directory)))
-                               (tramp-make-tramp-file-name
-                                (tramp-file-name-method vec)
-                                (tramp-file-name-user vec)
-                                (tramp-file-name-host vec)
-                                "~/"
-                                (tramp-file-name-hop vec)))
-                           "~/"))
+         (home-directory (concat (file-remote-p default-directory) "~/"))
          (default-directory (expand-file-name home-directory))
          (buffer (generate-new-buffer " *request curl*"))
          (command (cl-destructuring-bind
