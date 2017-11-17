@@ -32,7 +32,8 @@ backend using it.  Libraries using request.el automatically can
 use these backend without modifying their code.
 
 Request.el also patches url.el dynamically, to fix bugs in url.el.
-See `monkey patches for url.el`_ for the bugs fixed by request.el.
+See `monkey patches for url.el <http://tkf.github.io/emacs-request/#monkey-patches-for-url-el>`_
+for the bugs fixed by request.el.
 
 
 Installation
