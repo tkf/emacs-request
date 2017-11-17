@@ -5,6 +5,7 @@
 ;;   Free Software Foundation, Inc.
 
 ;; Author: Takafumi Arakaki <aka.tkf at gmail.com>
+;; URL: https://github.com/tkf/emacs-request
 ;; Package-Requires: ((emacs "24.4"))
 ;; Version: 0.3.0
 
