@@ -64,6 +64,10 @@
   "Directory to store data related to request.el."
   :type 'directory)
 
+(defcustom request-conding-system 'binary
+  "coding-system for request."
+  :type 'symbol)
+
 (defcustom request-curl "curl"
   "Executable for curl command."
   :type 'string)
@@ -919,10 +923,11 @@ Currently it is used only for testing.")
      (let ((tempfile (request--make-temp-file)))
        (push tempfile (request-response--tempfiles response))
        (let ((file-coding-system-alist nil)
-             (coding-system-for-write 'binary))
+             (coding-system-for-write request-conding-system))
          (with-temp-file tempfile
-           (setq buffer-file-coding-system 'binary)
-           (set-buffer-multibyte nil)
+           (setq buffer-file-coding-system request-conding-system)
+           (if (eq request-conding-system 'binary)
+               (set-buffer-multibyte nil))
            (insert data)))
        (list "--data-binary" (concat  "@" (request-untrampify-filename tempfile)))))
    (when type (list "--request" type))
@@ -1042,7 +1047,7 @@ removed from the buffer before it is shown to the parser function.
     (request-log 'debug "Run: %s" (mapconcat 'identity command " "))
     (setf (request-response--buffer response) buffer)
     (process-put proc :request-response response)
-    (set-process-coding-system proc 'binary 'binary)
+    (set-process-coding-system proc request-conding-system request-conding-system)
     (set-process-query-on-exit-flag proc nil)
     (set-process-sentinel proc #'request--curl-callback)))
 
