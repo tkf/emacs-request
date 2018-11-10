@@ -129,8 +129,8 @@ arguments (i.e., it&#8217;s better to use <tt class="xref el el-symbol docutils 
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
 <tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td><tt class="xref el el-symbol docutils literal"><span class="pre">&amp;allow-other-keys</span></tt> is a special &#8220;markers&#8221; available in macros
-in the CL library for function definition such as <tt class="xref el el-symbol docutils literal"><span class="pre">defun*</span></tt> and
-<tt class="xref el el-symbol docutils literal"><span class="pre">function*</span></tt>.  Without this marker, you need to specify all arguments
+in the CL library for function definition such as <tt class="xref el el-symbol docutils literal"><span class="pre">cl-defun</span></tt> and
+<tt class="xref el el-symbol docutils literal"><span class="pre">cl-function</span></tt>.  Without this marker, you need to specify all arguments
 to be passed.  This becomes problem when request.el adds new arguments
 when calling callback functions.  If you use <tt class="xref el el-symbol docutils literal"><span class="pre">&amp;allow-other-keys</span></tt>
 (or manually ignore other arguments), your code is free from this
