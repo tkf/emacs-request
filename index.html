@@ -82,8 +82,8 @@ See <a class="reference internal" href="#monkey-patches-for-url-el">monkey patch
  <span class="s">&quot;http://httpbin.org/get&quot;</span>
  <span class="ss">:params</span> <span class="o">&#39;</span><span class="p">((</span><span class="s">&quot;key&quot;</span> <span class="o">.</span> <span class="s">&quot;value&quot;</span><span class="p">)</span> <span class="p">(</span><span class="s">&quot;key2&quot;</span> <span class="o">.</span> <span class="s">&quot;value2&quot;</span><span class="p">))</span>
  <span class="ss">:parser</span> <span class="ss">&#39;json-read</span>
- <span class="ss">:success</span> <span class="p">(</span><span class="nv">function*</span>
-           <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="k">&amp;key</span> <span class="nv">data</span> <span class="k">&amp;allow-other-keys</span><span class="p">)</span>
+ <span class="ss">:success</span> <span class="p">(</span><span class="nv">cl-function</span>
+ <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="k">&amp;key</span> <span class="nv">data</span> <span class="k">&amp;allow-other-keys</span><span class="p">)</span>
              <span class="p">(</span><span class="nv">message</span> <span class="s">&quot;I sent: %S&quot;</span> <span class="p">(</span><span class="nv">assoc-default</span> <span class="ss">&#39;args</span> <span class="nv">data</span><span class="p">)))))</span>
 </pre></div>
 </div>
@@ -94,8 +94,8 @@ See <a class="reference internal" href="#monkey-patches-for-url-el">monkey patch
  <span class="ss">:data</span> <span class="o">&#39;</span><span class="p">((</span><span class="s">&quot;key&quot;</span> <span class="o">.</span> <span class="s">&quot;value&quot;</span><span class="p">)</span> <span class="p">(</span><span class="s">&quot;key2&quot;</span> <span class="o">.</span> <span class="s">&quot;value2&quot;</span><span class="p">))</span>
  <span class="c1">;; :data &quot;key=value&amp;key2=value2&quot;  ; this is equivalent</span>
  <span class="ss">:parser</span> <span class="ss">&#39;json-read</span>
- <span class="ss">:success</span> <span class="p">(</span><span class="nv">function*</span>
-           <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="k">&amp;key</span> <span class="nv">data</span> <span class="k">&amp;allow-other-keys</span><span class="p">)</span>
+ <span class="ss">:success</span> <span class="p">(</span><span class="nv">cl-function</span>
+ <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="k">&amp;key</span> <span class="nv">data</span> <span class="k">&amp;allow-other-keys</span><span class="p">)</span>
              <span class="p">(</span><span class="nv">message</span> <span class="s">&quot;I sent: %S&quot;</span> <span class="p">(</span><span class="nv">assoc-default</span> <span class="ss">&#39;form</span> <span class="nv">data</span><span class="p">)))))</span>
 </pre></div>
 </div>
@@ -106,8 +106,8 @@ See <a class="reference internal" href="#monkey-patches-for-url-el">monkey patch
  <span class="ss">:files</span> <span class="o">`</span><span class="p">((</span><span class="s">&quot;current buffer&quot;</span> <span class="o">.</span> <span class="o">,</span><span class="p">(</span><span class="nv">current-buffer</span><span class="p">))</span>
           <span class="p">(</span><span class="s">&quot;data&quot;</span> <span class="o">.</span> <span class="p">(</span><span class="s">&quot;data.csv&quot;</span> <span class="ss">:data</span> <span class="s">&quot;1,2,3\n4,5,6\n&quot;</span><span class="p">)))</span>
  <span class="ss">:parser</span> <span class="ss">&#39;json-read</span>
- <span class="ss">:success</span> <span class="p">(</span><span class="nv">function*</span>
-           <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="k">&amp;key</span> <span class="nv">data</span> <span class="k">&amp;allow-other-keys</span><span class="p">)</span>
+ <span class="ss">:success</span> <span class="p">(</span><span class="nv">cl-function</span>
+ <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="k">&amp;key</span> <span class="nv">data</span> <span class="k">&amp;allow-other-keys</span><span class="p">)</span>
              <span class="p">(</span><span class="nv">message</span> <span class="s">&quot;I sent: %S&quot;</span> <span class="p">(</span><span class="nv">assoc-default</span> <span class="ss">&#39;files</span> <span class="nv">data</span><span class="p">)))))</span>
 </pre></div>
 </div>
@@ -118,15 +118,15 @@ See <a class="reference internal" href="#monkey-patches-for-url-el">monkey patch
  <span class="c1">;; &quot;http://httpbin.org/status/400&quot;  ; you will see &quot;Got 400.&quot;</span>
  <span class="ss">:parser</span> <span class="ss">&#39;buffer-string</span>
  <span class="ss">:success</span>
- <span class="p">(</span><span class="nv">function*</span> <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="k">&amp;key</span> <span class="nv">data</span> <span class="k">&amp;allow-other-keys</span><span class="p">)</span>
-              <span class="p">(</span><span class="nb">when</span> <span class="nv">data</span>
+ <span class="p">(</span><span class="nv">cl-function</span> <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="k">&amp;key</span> <span class="nv">data</span> <span class="k">&amp;allow-other-keys</span><span class="p">)</span>
+ <span class="p">(</span><span class="nb">when</span> <span class="nv">data</span>
                 <span class="p">(</span><span class="nv">with-current-buffer</span> <span class="p">(</span><span class="nv">get-buffer-create</span> <span class="s">&quot;*request demo*&quot;</span><span class="p">)</span>
                   <span class="p">(</span><span class="nv">erase-buffer</span><span class="p">)</span>
                   <span class="p">(</span><span class="nv">insert</span> <span class="nv">data</span><span class="p">)</span>
                   <span class="p">(</span><span class="nv">pop-to-buffer</span> <span class="p">(</span><span class="nv">current-buffer</span><span class="p">))))))</span>
  <span class="ss">:error</span>
- <span class="p">(</span><span class="nv">function*</span> <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="k">&amp;key</span> <span class="nv">error-thrown</span> <span class="nv">&amp;allow-other-keys&amp;rest</span> <span class="nv">_</span><span class="p">)</span>
-              <span class="p">(</span><span class="nv">message</span> <span class="s">&quot;Got error: %S&quot;</span> <span class="nv">error-thrown</span><span class="p">)))</span>
+ <span class="p">(</span><span class="nv">cl-function</span> <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="k">&amp;key</span> <span class="nv">error-thrown</span> <span class="nv">&amp;allow-other-keys&amp;rest</span> <span class="nv">_</span><span class="p">)</span>
+ <span class="p">(</span><span class="nv">message</span> <span class="s">&quot;Got error: %S&quot;</span> <span class="nv">error-thrown</span><span class="p">)))</span>
  <span class="ss">:complete</span> <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="k">&amp;rest</span> <span class="nv">_</span><span class="p">)</span> <span class="p">(</span><span class="nv">message</span> <span class="s">&quot;Finished!&quot;</span><span class="p">))</span>
  <span class="ss">:status-code</span> <span class="o">&#39;</span><span class="p">((</span><span class="mi">400</span> <span class="o">.</span> <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="k">&amp;rest</span> <span class="nv">_</span><span class="p">)</span> <span class="p">(</span><span class="nv">message</span> <span class="s">&quot;Got 400.&quot;</span><span class="p">)))</span>
                 <span class="p">(</span><span class="mi">418</span> <span class="o">.</span> <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="k">&amp;rest</span> <span class="nv">_</span><span class="p">)</span> <span class="p">(</span><span class="nv">message</span> <span class="s">&quot;Got 418.&quot;</span><span class="p">)))))</span>
@@ -137,8 +137,8 @@ See <a class="reference internal" href="#monkey-patches-for-url-el">monkey patch
  <span class="s">&quot;https://github.com/tkf/emacs-request/commits/master.atom&quot;</span>
  <span class="c1">;; Parse XML in response body:</span>
  <span class="ss">:parser</span> <span class="p">(</span><span class="k">lambda</span> <span class="p">()</span> <span class="p">(</span><span class="nv">libxml-parse-xml-region</span> <span class="p">(</span><span class="nv">point</span><span class="p">)</span> <span class="p">(</span><span class="nv">point-max</span><span class="p">)))</span>
- <span class="ss">:success</span> <span class="p">(</span><span class="nv">function*</span>
-           <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="k">&amp;key</span> <span class="nv">data</span> <span class="k">&amp;allow-other-keys</span><span class="p">)</span>
+ <span class="ss">:success</span> <span class="p">(</span><span class="nv">cl-function</span>
+ <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="k">&amp;key</span> <span class="nv">data</span> <span class="k">&amp;allow-other-keys</span><span class="p">)</span>
              <span class="c1">;; Just don&#39;t look at this function....</span>
              <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nb">get</span> <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="nv">node</span> <span class="k">&amp;rest</span> <span class="nv">names</span><span class="p">)</span>
                           <span class="p">(</span><span class="k">if</span> <span class="nv">names</span>
@@ -159,8 +159,8 @@ See <a class="reference internal" href="#monkey-patches-for-url-el">monkey patch
  <span class="ss">:data</span> <span class="p">(</span><span class="nv">json-encode</span> <span class="o">&#39;</span><span class="p">((</span><span class="s">&quot;key&quot;</span> <span class="o">.</span> <span class="s">&quot;value&quot;</span><span class="p">)</span> <span class="p">(</span><span class="s">&quot;key2&quot;</span> <span class="o">.</span> <span class="s">&quot;value2&quot;</span><span class="p">)))</span>
  <span class="ss">:headers</span> <span class="o">&#39;</span><span class="p">((</span><span class="s">&quot;Content-Type&quot;</span> <span class="o">.</span> <span class="s">&quot;application/json&quot;</span><span class="p">))</span>
  <span class="ss">:parser</span> <span class="ss">&#39;json-read</span>
- <span class="ss">:success</span> <span class="p">(</span><span class="nv">function*</span>
-           <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="k">&amp;key</span> <span class="nv">data</span> <span class="k">&amp;allow-other-keys</span><span class="p">)</span>
+ <span class="ss">:success</span> <span class="p">(</span><span class="nv">cl-function</span>
+ <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="k">&amp;key</span> <span class="nv">data</span> <span class="k">&amp;allow-other-keys</span><span class="p">)</span>
              <span class="p">(</span><span class="nv">message</span> <span class="s">&quot;I sent: %S&quot;</span> <span class="p">(</span><span class="nv">assoc-default</span> <span class="ss">&#39;json</span> <span class="nv">data</span><span class="p">)))))</span>
 </pre></div>
 </div>
