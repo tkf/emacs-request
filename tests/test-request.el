@@ -373,7 +373,7 @@ To check that, run test with:
 
 (request-deftest request-simple-post-multibyte-json ()
    :backends (curl)
-   (setq request-conding-system 'utf-8)
+   (setq request-coding-system 'utf-8)
    (request-testing-with-response-slots
       (request-testing-sync "report/some-path"
                             :type "POST" :data "{\"鍵\": \"値\"}"
