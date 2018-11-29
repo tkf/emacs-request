@@ -52,13 +52,6 @@ Recommended usage is to set a variable equal to the response, and then access th
   )
 ```
 
-## Known Bugs
-
-- Synchronous requests can be affected by a [suspected race condition](https://github.com/tkf/emacs-request/issues/92). Please see the bug report for possible workarounds. 
-- Multibyte characters can cause the request to fail.  See [this pull request](https://github.com/tkf/emacs-request/pull/85) for one of several solutions to this problem. Fix expected soon. 
-
-
-
 ## Examples
 
 GET:
@@ -194,9 +187,58 @@ GET with Unix domain socket data:
              (message "Got: %s" data))))
 ```
 
+## Known Bugs
+
+- Synchronous requests can be affected by a [suspected race condition](https://github.com/tkf/emacs-request/issues/92). Please see the bug report for possible workarounds. 
+- Multibyte characters can cause the request to fail.  See [this pull request](https://github.com/tkf/emacs-request/pull/85) for one of several solutions to this problem. Fix expected soon. 
+
+## Development
+
+To help in the development, please submit Issues and Pull Requests on Github.  
+
+Documentation assistance is particularly welcome!/
+
+### Debugging
+
+Debugging levels are set om two places, `request-log-level` and `request-message-level`.
+
+``` lisp
+(defcustom request-log-level -1
+  "Logging level for request.
+One of `error'/`warn'/`info'/`verbose'/`debug'.
+-1 means no logging."
+  :group 'request)
+
+(defcustom request-message-level 'warn
+  "Logging level for request.
+See `request-log-level'."
+  :group 'request)
+```
+
+Here are the detailed possible levels:
+
+``` lisp
+(defconst request--log-level-def
+  '(;; debugging
+    (blather . 60) (trace . 50) (debug . 40)
+    ;; information
+    (verbose . 30) (info . 20)
+    ;; errors
+    (warn . 10) (error . 0))
+  "Named logging levels.")
+```
+
+So, to make reques to be ultra verbose this should do: 
+
+``` lisp
+(custom-set-variables '(request-log-level 'blather)
+                                   '(request-message-level 'blather))
+```
+
+
 ## Compatibility / backends
 
-Supported Emacs versions:
+Supported Emacs versions (**status confirmation is in progress**):
 
 | Emacs version           | Does request.el work?        | Tested on Travis CI     |
 | ----------------------- | ---------------------------- | ----------------------- |
