@@ -93,7 +93,6 @@ def page_set_cookies():
         resp.set_cookie(name, value)
     return resp
 
-
 # Runner
 
 
@@ -113,7 +112,7 @@ def run(port, server, **kwds):
     # Pass port number to child process via envvar.  This is required
     # when using Flask's reloader.
     os.environ['EL_REQUEST_TEST_PORT'] = str(port)
-    print port
+    print(port)
     sys.stdout.flush()
 
     if server == 'flask':
@@ -125,7 +124,7 @@ def run(port, server, **kwds):
         from tornado.ioloop import IOLoop
         http_server = HTTPServer(WSGIContainer(app))
         http_server.listen(port)
-        print " * Running on", port
+        print(" * Running on", port)
         IOLoop.instance().start()
 
 
