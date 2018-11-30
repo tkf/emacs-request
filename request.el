@@ -1004,7 +1004,7 @@ temporary file paths."
         files))
 
 (cl-defun request--curl (url &rest settings
-                             &key type data files headers timeout response
+                             &key type data files headers timeout response semaphore
                              &allow-other-keys)
   "cURL-based request backend.
 
@@ -1048,7 +1048,9 @@ removed from the buffer before it is shown to the parser function.
     (process-put proc :request-response response)
     (set-process-coding-system proc 'binary 'binary)
     (set-process-query-on-exit-flag proc nil)
-    (set-process-sentinel proc #'request--curl-callback)))
+    (set-process-sentinel proc #'request--curl-callback)
+    (when semaphore
+      (add-function :after (process-sentinel proc) semaphore))))
 
 (defun request--curl-read-and-delete-tail-info ()
   "Read a sexp at the end of buffer and remove it and preceding character.
@@ -1169,11 +1171,14 @@ START-URL is the URL requested."
   ;; `call-process'.
   (let (finished)
     (prog1 (apply #'request--curl url
-                  :complete (lambda (&rest _) (setq finished t))
+                  :semaphore (lambda (&rest _) (setq finished t))
                   settings)
       (let ((proc (get-buffer-process (request-response--buffer response))))
-        (while (and (not finished) (request--process-live-p proc))
-          (accept-process-output proc))))))
+        (with-local-quit
+          (while (not finished) 
+            (if (request--process-live-p proc)
+                (accept-process-output proc)
+              (sleep-for 0 300))))))))
 
 (defun request--curl-get-cookies (host localpart secure)
   (request--netscape-get-cookies (request--curl-cookie-jar)
