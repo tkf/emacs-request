@@ -194,9 +194,11 @@ GET with Unix domain socket data:
 
 ## Development
 
-To help in the development, please submit Issues and Pull Requests on Github.  
+To help in the development, please submit Issues and Pull Requests on Github. emacs-request uses [cask](https://github.com/cask/cask) and [ERT](https://www.gnu.org/software/emacs/manual/html_node/ert/index.html) as a testing framework. Tests run against a simple python server that uses [flask](http://flask.pocoo.org/) and [tornado](https://www.tornadoweb.org/en/stable/), and requres the **python2** versions of these libraries.
 
-Documentation assistance is particularly welcome!/
+To run tests, first install python2, flask, and tornado, and then run `cask install` to retrieve the Emacs dependencies. If your systme uses python3 by default, you may also need to edit `Makefile` at line 97 to ensure that your system copy of python2 is being called.
+
+Documentation assistance is particularly welcome!
 
 ### Debugging
 
