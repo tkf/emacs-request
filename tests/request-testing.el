@@ -94,7 +94,8 @@ The symbols other than `response' is bound using `cl-symbol-macrolet'."
   (interactive)
   (unless request-testing-server--port
     (let ((process (start-process "request-testing" " *request-testing*"
-                                  "python"
+				  (or (executable-find "python2")
+				      (executable-find "python"))
                                   (expand-file-name
                                    "testserver.py"
                                    request-testing-source-dir))))
