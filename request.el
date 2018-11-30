@@ -394,7 +394,7 @@ Example::
                        (files nil)
                        (parser nil)
                        (headers nil)
-                       (coding-system 'utf-8)
+                       (encoding 'utf-8)
                        (success nil)
                        (error nil)
                        (complete nil)
@@ -416,7 +416,7 @@ DATA    (string/alist)   data to be sent to the server
 FILES          (alist)   files to be sent to the server (see below)
 PARSER        (symbol)   a function that reads current buffer and return data
 HEADERS        (alist)   additional headers to send with the request
-CODING-SYSTEM (symbol)   coding system for tempfiles ('utf by default)
+ENCODING      (symbol)   coding system for tempfiles ('utf by default)
 SUCCESS     (function)   called on success
 ERROR       (function)   called on error
 COMPLETE    (function)   called on both success and error
@@ -572,7 +572,7 @@ and requests.request_ (Python).
                       (request--urlencode-alist params))))
   (setq settings (plist-put settings :url url))
   (setq settings (plist-put settings :response response))
-  (setq settings (plist-put settings :coding-system coding-system))
+  (setq settings (plist-put settings :encoding encoding))
   (setf (request-response-settings response) settings)
   (setf (request-response-url      response) url)
   (setf (request-response--backend response) request-backend)
@@ -899,7 +899,7 @@ Currently it is used only for testing.")
     (make-directory (file-name-directory (request--curl-cookie-jar)) t)))
 
 (cl-defun request--curl-command
-    (url &key type data headers timeout response files* unix-socket coding-system
+    (url &key type data headers timeout response files* unix-socket encoding
          &allow-other-keys
          &aux
          (cookie-jar (convert-standard-filename
@@ -926,10 +926,10 @@ Currently it is used only for testing.")
      (let ((tempfile (request--make-temp-file)))
        (push tempfile (request-response--tempfiles response))
        (let ((file-coding-system-alist nil)
-             (coding-system-for-write coding-system))
+             (coding-system-for-write encoding))
          (with-temp-file tempfile
-           (setq buffer-file-coding-system coding-system)
-           (if (eq coding-system 'binary)
+           (setq buffer-file-coding-system encoding)
+           (if (eq encoding 'binary)
                (set-buffer-multibyte nil))
            (insert data)))
        (list "--data-binary" (concat  "@" (request-untrampify-filename tempfile)))))
@@ -1008,7 +1008,7 @@ temporary file paths."
         files))
 
 (cl-defun request--curl (url &rest settings
-                             &key type data files headers timeout response coding-system
+                             &key type data files headers timeout response encoding
                              &allow-other-keys)
   "cURL-based request backend.
 
@@ -1045,12 +1045,12 @@ removed from the buffer before it is shown to the parser function.
                       (request--curl-normalize-files files)
                     (setf (request-response--tempfiles response) tempfiles)
                     (apply #'request--curl-command url :files* files*
-                           :response response :coding-system coding-system settings)))
+                           :response response :encoding encoding settings)))
          (proc (apply #'start-file-process "request curl" buffer command)))
     (request-log 'debug "Run: %s" (mapconcat 'identity command " "))
     (setf (request-response--buffer response) buffer)
     (process-put proc :request-response response)
-    (set-process-coding-system proc coding-system coding-system)
+    (set-process-coding-system proc encoding encoding)
     (set-process-query-on-exit-flag proc nil)
     (set-process-sentinel proc #'request--curl-callback)))
 
