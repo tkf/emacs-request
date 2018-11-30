@@ -377,7 +377,7 @@ To check that, run test with:
       (request-testing-sync "report/some-path"
                             :type "POST" :data "{\"鍵\": \"値\"}"
                             :headers '(("Content-Type" . "application/json"))
-                            :coding-system 'utf-8
+                            :encoding 'utf-8
                             :parser 'json-read)
     (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))

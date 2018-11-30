@@ -156,7 +156,7 @@ PUT JSON data including non-ascii strings:
    :data (json-encode '(("key" . "値1") ("key2" . "値2")))
    :headers '(("Content-Type" . "application/json"))
    :parser 'json-read
-   :coding-system 'utf-8
+   :encoding 'utf-8
    :success (cl-function
              (lambda (&key data &allow-other-keys)
                (message "I sent: %S" (assoc-default 'json data)))))
