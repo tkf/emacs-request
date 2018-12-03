@@ -149,7 +149,7 @@ PUT JSON data including non-ascii strings:
 
 .. code:: emacs-lisp
 
-  (setq request-conding-system 'utf-8)
+  (setq request-coding-system 'utf-8)
   (request
    "http://httpbin.org/put"
    :type "PUT"
