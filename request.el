@@ -722,28 +722,21 @@ then kill the current buffer."
   (setf (request-response-error-thrown response)  '(error . ("Timeout")))
   (let* ((buffer (request-response--buffer response))
          (proc (and (buffer-live-p buffer) (get-buffer-process buffer))))
-    (when proc
-      ;; This will call `request--callback':
-      (funcall (request--choose-backend 'terminate-process) proc))
-
-    (cl-symbol-macrolet ((done-p (request-response-done-p response)))
-      (unless done-p
-        ;; This code should never be executed.  However, it occurs
-        ;; sometimes with `url-retrieve' backend.
-        ;; FIXME: In Emacs 24.3.50 or later, this is always executed in
-        ;;        request-get-timeout test.  Find out if it is fine.
-        (request-log 'error "Callback is not called when stopping process! \
-Explicitly calling from timer.")
-        (when (buffer-live-p buffer)
-          (cl-destructuring-bind (&key code &allow-other-keys)
-              (with-current-buffer buffer
-                (goto-char (point-min))
-                (request--parse-response-at-point))
-            (setf (request-response-status-code response) code)))
-        (apply #'request--callback
-               buffer
-               (request-response-settings response))
-        (setq done-p t)))))
+    (if proc
+        ;; This will call `request--callback':
+        (funcall (request--choose-backend 'terminate-process) proc)
+      (cl-symbol-macrolet ((done-p (request-response-done-p response)))
+        (unless done-p
+          (when (buffer-live-p buffer)
+            (cl-destructuring-bind (&key code &allow-other-keys)
+                (with-current-buffer buffer
+                  (goto-char (point-min))
+                  (request--parse-response-at-point))
+              (setf (request-response-status-code response) code)))
+          (apply #'request--callback
+                 buffer
+                 (request-response-settings response))
+          (setq done-p t))))))
 
 (defun request-response--cancel-timer (response)
   (request-log 'debug "REQUEST-RESPONSE--CANCEL-TIMER")
