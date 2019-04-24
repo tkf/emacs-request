@@ -797,14 +797,13 @@ associated process is exited."
 (cl-defun request--url-retrieve-callback (status &rest settings
                                                  &key response url
                                                  &allow-other-keys)
-  (declare (special url-http-method
-                    url-http-response-status))
   (request-log 'debug "-URL-RETRIEVE-CALLBACK")
   (request-log 'debug "status = %S" status)
-  (request-log 'debug "url-http-method = %s" url-http-method)
-  (request-log 'debug "url-http-response-status = %s" url-http-response-status)
-
-  (setf (request-response-status-code response) url-http-response-status)
+  (when (featurep 'url-http)
+    (request-log 'debug "url-http-method = %s" url-http-method)
+    (request-log 'debug "url-http-response-status = %s" url-http-response-status)
+    (setf (request-response-status-code response) url-http-response-status))
+  
   (let ((redirect (plist-get status :redirect)))
     (when redirect
       (setf (request-response-url response) redirect)))
