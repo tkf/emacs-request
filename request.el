@@ -123,7 +123,8 @@ See `request-log-level'."
 ;;; Utilities
 
 (defun request--safe-apply (function &rest arguments)
-  (condition-case err
+  "Apply FUNCTION with ARGUMENTS, suppressing any errors."
+  (condition-case nil
       (apply #'apply function arguments)
     ((debug error))))
 
