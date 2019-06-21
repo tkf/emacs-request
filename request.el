@@ -417,7 +417,7 @@ DATA    (string/alist)   data to be sent to the server
 FILES          (alist)   files to be sent to the server (see below)
 PARSER        (symbol)   a function that reads current buffer and return data
 HEADERS        (alist)   additional headers to send with the request
-ENCODING      (symbol)   coding system for tempfiles ('utf by default)
+ENCODING      (symbol)   encoding for request body (utf-8 by default)
 SUCCESS     (function)   called on success
 ERROR       (function)   called on error
 COMPLETE    (function)   called on both success and error
@@ -804,7 +804,7 @@ associated process is exited."
     (request-log 'debug "url-http-method = %s" url-http-method)
     (request-log 'debug "url-http-response-status = %s" url-http-response-status)
     (setf (request-response-status-code response) url-http-response-status))
-  
+
   (let ((redirect (plist-get status :redirect)))
     (when redirect
       (setf (request-response-url response) redirect)))
@@ -918,13 +918,9 @@ Currently it is used only for testing.")
    (when data
      (let ((tempfile (request--make-temp-file)))
        (push tempfile (request-response--tempfiles response))
-       (let ((file-coding-system-alist nil)
-             (coding-system-for-write encoding))
-         (with-temp-file tempfile
-           (setq buffer-file-coding-system encoding)
-           (if (eq encoding 'binary)
-               (set-buffer-multibyte nil))
-           (insert data)))
+       (with-temp-file tempfile
+         (setq-local buffer-file-coding-system encoding)
+         (insert data))
        (list "--data-binary" (concat  "@" (request-untrampify-filename tempfile)))))
    (when type (list "--request" type))
    (cl-loop for (k . v) in headers
@@ -1159,7 +1155,7 @@ START-URL is the URL requested."
                   settings)
       (let ((proc (get-buffer-process (request-response--buffer response))))
         (with-local-quit
-          (while (not finished) 
+          (while (not finished)
             (if (request--process-live-p proc)
                 (accept-process-output proc)
               (sleep-for 0 300))))))))

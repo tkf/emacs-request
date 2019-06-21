@@ -514,11 +514,7 @@ To check that, run test with:
                             :parser 'json-read)
     (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "from-logout"))
-    ;; flapper: perhaps werkzeug does not reply with username on logout
-    (unless (equal (assoc-default 'username data) nil)
-      (message "request-session-cookie: username=%s in %s"
-               (assoc-default 'username data)
-               data))
+    (should (equal (assoc-default 'username data) nil))
     (should (equal (assoc-default 'method data) "GET")))
   ;; check login state
   (request-testing-assert-username-is nil))
