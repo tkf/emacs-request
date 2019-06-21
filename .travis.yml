@@ -1,4 +1,5 @@
 language: python
+python: 2.7
 sudo: false
 env:
   - EVM_EMACS=emacs-24.4-travis
@@ -11,7 +12,9 @@ env:
 allow_failures:
   - EVM_EMACS=emacs-git-snapshot-travis
 before_install:
-  - pip install -q flask tornado
+  - pip install -q Flask==1.0.2 tornado==5.1.1
+  - pip uninstall -y Werkzeug
+  - pip install -q Werkzeug==0.14.1
   - curl -fsSkL https://gist.github.com/rejeep/ebcd57c3af83b049833b/raw > x.sh && source ./x.sh
   - evm install $EVM_EMACS --use --skip
   - make before-test

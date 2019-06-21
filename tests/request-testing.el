@@ -127,19 +127,21 @@ The symbols other than `response' is bound using `cl-symbol-macrolet'."
   (apply #'request (request-testing-url url) args))
 
 (defun request-testing-sync (url &rest args)
-  (let (err timeout)
-    (let ((result
-           (deferred:sync!
-             (deferred:timeout
-               request-testing-timeout
-               (setq timeout t)
-               (deferred:try
-                 (apply #'request-deferred (request-testing-url url) args)
-                 :catch
-                 (lambda (x) (setq err x)))))))
-      (if timeout
-          (error "Timeout.")
-        (or result err)))))
+  (let* (err
+         timeout
+         (testing-url (request-testing-url url))
+         (result
+          (deferred:sync!
+            (deferred:timeout
+              request-testing-timeout
+              (setq timeout t)
+              (deferred:try
+                (apply #'request-deferred testing-url args)
+                :catch
+                (lambda (x) (setq err x)))))))
+    (cond (timeout (error "request-testing-sync: %s timed out" testing-url))
+          (err (error "request-testing-sync: %s %s") testing-url err)
+          (t result))))
 
 (defun request-testing-sort-alist (alist)
   (sort alist (lambda (x y)

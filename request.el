@@ -123,7 +123,8 @@ See `request-log-level'."
 ;;; Utilities
 
 (defun request--safe-apply (function &rest arguments)
-  (condition-case err
+  "Apply FUNCTION with ARGUMENTS, suppressing any errors."
+  (condition-case nil
       (apply #'apply function arguments)
     ((debug error))))
 
@@ -394,6 +395,7 @@ Example::
                        (files nil)
                        (parser nil)
                        (headers nil)
+                       (encoding 'utf-8)
                        (success nil)
                        (error nil)
                        (complete nil)
@@ -409,18 +411,19 @@ Request.el has a single entry point.  It is `request'.
 ==================== ========================================================
 Keyword argument      Explanation
 ==================== ========================================================
-TYPE       (string)   type of request to make: POST/GET/PUT/DELETE
-PARAMS      (alist)   set \"?key=val\" part in URL
-DATA (string/alist)   data to be sent to the server
-FILES       (alist)   files to be sent to the server (see below)
-PARSER     (symbol)   a function that reads current buffer and return data
-HEADERS     (alist)   additional headers to send with the request
-SUCCESS  (function)   called on success
-ERROR    (function)   called on error
-COMPLETE (function)   called on both success and error
-TIMEOUT    (number)   timeout in second
-STATUS-CODE (alist)   map status code (int) to callback
-SYNC         (bool)   If `t', wait until request is done.  Default is `nil'.
+TYPE          (string)   type of request to make: POST/GET/PUT/DELETE
+PARAMS         (alist)   set \"?key=val\" part in URL
+DATA    (string/alist)   data to be sent to the server
+FILES          (alist)   files to be sent to the server (see below)
+PARSER        (symbol)   a function that reads current buffer and return data
+HEADERS        (alist)   additional headers to send with the request
+ENCODING      (symbol)   encoding for request body (utf-8 by default)
+SUCCESS     (function)   called on success
+ERROR       (function)   called on error
+COMPLETE    (function)   called on both success and error
+TIMEOUT       (number)   timeout in second
+STATUS-CODE    (alist)   map status code (int) to callback
+SYNC            (bool)   If `t', wait until request is done.  Default is `nil'.
 ==================== ========================================================
 
 
@@ -570,6 +573,7 @@ and requests.request_ (Python).
                       (request--urlencode-alist params))))
   (setq settings (plist-put settings :url url))
   (setq settings (plist-put settings :response response))
+  (setq settings (plist-put settings :encoding encoding))
   (setf (request-response-settings response) settings)
   (setf (request-response-url      response) url)
   (setf (request-response--backend response) request-backend)
@@ -719,28 +723,21 @@ then kill the current buffer."
   (setf (request-response-error-thrown response)  '(error . ("Timeout")))
   (let* ((buffer (request-response--buffer response))
          (proc (and (buffer-live-p buffer) (get-buffer-process buffer))))
-    (when proc
-      ;; This will call `request--callback':
-      (funcall (request--choose-backend 'terminate-process) proc))
-
-    (cl-symbol-macrolet ((done-p (request-response-done-p response)))
-      (unless done-p
-        ;; This code should never be executed.  However, it occurs
-        ;; sometimes with `url-retrieve' backend.
-        ;; FIXME: In Emacs 24.3.50 or later, this is always executed in
-        ;;        request-get-timeout test.  Find out if it is fine.
-        (request-log 'error "Callback is not called when stopping process! \
-Explicitly calling from timer.")
-        (when (buffer-live-p buffer)
-          (cl-destructuring-bind (&key code &allow-other-keys)
-              (with-current-buffer buffer
-                (goto-char (point-min))
-                (request--parse-response-at-point))
-            (setf (request-response-status-code response) code)))
-        (apply #'request--callback
-               buffer
-               (request-response-settings response))
-        (setq done-p t)))))
+    (if proc
+        ;; This will call `request--callback':
+        (funcall (request--choose-backend 'terminate-process) proc)
+      (cl-symbol-macrolet ((done-p (request-response-done-p response)))
+        (unless done-p
+          (when (buffer-live-p buffer)
+            (cl-destructuring-bind (&key code &allow-other-keys)
+                (with-current-buffer buffer
+                  (goto-char (point-min))
+                  (request--parse-response-at-point))
+              (setf (request-response-status-code response) code)))
+          (apply #'request--callback
+                 buffer
+                 (request-response-settings response))
+          (setq done-p t))))))
 
 (defun request-response--cancel-timer (response)
   (request-log 'debug "REQUEST-RESPONSE--CANCEL-TIMER")
@@ -801,14 +798,13 @@ associated process is exited."
 (cl-defun request--url-retrieve-callback (status &rest settings
                                                  &key response url
                                                  &allow-other-keys)
-  (declare (special url-http-method
-                    url-http-response-status))
   (request-log 'debug "-URL-RETRIEVE-CALLBACK")
   (request-log 'debug "status = %S" status)
-  (request-log 'debug "url-http-method = %s" url-http-method)
-  (request-log 'debug "url-http-response-status = %s" url-http-response-status)
+  (when (featurep 'url-http)
+    (request-log 'debug "url-http-method = %s" url-http-method)
+    (request-log 'debug "url-http-response-status = %s" url-http-response-status)
+    (setf (request-response-status-code response) url-http-response-status))
 
-  (setf (request-response-status-code response) url-http-response-status)
   (let ((redirect (plist-get status :redirect)))
     (when redirect
       (setf (request-response-url response) redirect)))
@@ -896,7 +892,7 @@ Currently it is used only for testing.")
     (make-directory (file-name-directory (request--curl-cookie-jar)) t)))
 
 (cl-defun request--curl-command
-    (url &key type data headers timeout response files* unix-socket
+    (url &key type data headers timeout response files* unix-socket encoding
          &allow-other-keys
          &aux
          (cookie-jar (convert-standard-filename
@@ -922,12 +918,9 @@ Currently it is used only for testing.")
    (when data
      (let ((tempfile (request--make-temp-file)))
        (push tempfile (request-response--tempfiles response))
-       (let ((file-coding-system-alist nil)
-             (coding-system-for-write 'binary))
-         (with-temp-file tempfile
-           (setq buffer-file-coding-system 'binary)
-           (set-buffer-multibyte nil)
-           (insert data)))
+       (with-temp-file tempfile
+         (setq-local buffer-file-coding-system encoding)
+         (insert data))
        (list "--data-binary" (concat  "@" (request-untrampify-filename tempfile)))))
    (when type (list "--request" type))
    (cl-loop for (k . v) in headers
@@ -966,14 +959,9 @@ Currently it is used only for testing.")
 (defun request--make-temp-file ()
   "Create a temporary file."
   (if (file-remote-p default-directory)
-      (let ((tramp-temp-name-prefix request-temp-prefix)
-            (vec (tramp-dissect-file-name default-directory)))
-        (tramp-make-tramp-file-name
-         (tramp-file-name-method vec)
-         (tramp-file-name-user vec)
-         (tramp-file-name-host vec)
-         (tramp-make-tramp-temp-file vec)
-         (tramp-file-name-hop vec)))
+      (let ((temporary-file-directory
+	     (tramp-get-remote-tmpdir (tramp-dissect-file-name default-directory))))
+	(make-temp-file request-temp-prefix))
     (make-temp-file request-temp-prefix)))
 
 (defun request--curl-normalize-files (files)
@@ -1004,7 +992,7 @@ temporary file paths."
         files))
 
 (cl-defun request--curl (url &rest settings
-                             &key type data files headers timeout response
+                             &key type data files headers timeout response encoding semaphore
                              &allow-other-keys)
   "cURL-based request backend.
 
@@ -1025,15 +1013,7 @@ removed from the buffer before it is shown to the parser function.
   (let* (;; Use pipe instead of pty.  Otherwise, curl process hangs.
          (process-connection-type nil)
          ;; Avoid starting program in non-existing directory.
-         (home-directory (if (file-remote-p default-directory)
-                             (let ((vec (tramp-dissect-file-name default-directory)))
-                               (tramp-make-tramp-file-name
-                                (tramp-file-name-method vec)
-                                (tramp-file-name-user vec)
-                                (tramp-file-name-host vec)
-                                "~/"
-                                (tramp-file-name-hop vec)))
-                           "~/"))
+         (home-directory (or (file-remote-p default-directory) "~/"))
          (default-directory (expand-file-name home-directory))
          (buffer (generate-new-buffer " *request curl*"))
          (command (cl-destructuring-bind
@@ -1041,14 +1021,16 @@ removed from the buffer before it is shown to the parser function.
                       (request--curl-normalize-files files)
                     (setf (request-response--tempfiles response) tempfiles)
                     (apply #'request--curl-command url :files* files*
-                           :response response settings)))
+                           :response response :encoding encoding settings)))
          (proc (apply #'start-file-process "request curl" buffer command)))
     (request-log 'debug "Run: %s" (mapconcat 'identity command " "))
     (setf (request-response--buffer response) buffer)
     (process-put proc :request-response response)
-    (set-process-coding-system proc 'binary 'binary)
+    (set-process-coding-system proc encoding encoding)
     (set-process-query-on-exit-flag proc nil)
-    (set-process-sentinel proc #'request--curl-callback)))
+    (set-process-sentinel proc #'request--curl-callback)
+    (when semaphore
+      (add-function :after (process-sentinel proc) semaphore))))
 
 (defun request--curl-read-and-delete-tail-info ()
   "Read a sexp at the end of buffer and remove it and preceding character.
@@ -1169,11 +1151,14 @@ START-URL is the URL requested."
   ;; `call-process'.
   (let (finished)
     (prog1 (apply #'request--curl url
-                  :complete (lambda (&rest _) (setq finished t))
+                  :semaphore (lambda (&rest _) (setq finished t))
                   settings)
       (let ((proc (get-buffer-process (request-response--buffer response))))
-        (while (and (not finished) (request--process-live-p proc))
-          (accept-process-output proc))))))
+        (with-local-quit
+          (while (not finished)
+            (if (request--process-live-p proc)
+                (accept-process-output proc)
+              (sleep-for 0 300))))))))
 
 (defun request--curl-get-cookies (host localpart secure)
   (request--netscape-get-cookies (request--curl-cookie-jar)

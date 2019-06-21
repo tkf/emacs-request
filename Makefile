@@ -1,5 +1,5 @@
 CASK ?= cask
-EMACS ?= emacs
+EMACS ?= $(shell which emacs)
 VIRTUAL_EMACS = ${CASK} exec ${EMACS}
 
 ELPA_DIR = $(shell EMACS=$(EMACS) $(CASK) package-directory)

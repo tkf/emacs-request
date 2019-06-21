@@ -146,6 +146,21 @@ PUT JSON data:
              (lambda (&key data &allow-other-keys)
                (message "I sent: %S" (assoc-default 'json data)))))
 
+PUT JSON data including non-ascii strings:
+
+.. code:: emacs-lisp
+
+  (request
+   "http://httpbin.org/put"
+   :type "PUT"
+   :data (json-encode '(("key" . "値1") ("key2" . "値2")))
+   :headers '(("Content-Type" . "application/json"))
+   :parser 'json-read
+   :encoding 'utf-8
+   :success (cl-function
+             (lambda (&key data &allow-other-keys)
+               (message "I sent: %S" (assoc-default 'json data)))))
+
 Another PUT JSON example (nested JSON using alist structure, how to represent a boolean & how to selectively evaluate lisp):
 
 .. code:: emacs-lisp
