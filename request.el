@@ -918,9 +918,15 @@ Currently it is used only for testing.")
    (when data
      (let ((tempfile (request--make-temp-file)))
        (push tempfile (request-response--tempfiles response))
-       (with-temp-file tempfile
-         (setq-local buffer-file-coding-system encoding)
-         (insert data))
+       ;; We dynamic-let the global `buffer-file-coding-system' to `no-conversion'
+       ;; in case the user-configured `encoding' doesn't fly.
+       ;; If we do not dynamic-let the global, `select-safe-coding-system' would
+       ;; plunge us into an undesirable interactive dialogue.
+       (let ((buffer-file-coding-system 'no-conversion)
+             (select-safe-coding-system-accept-default-p (lambda (&rest _) t)))
+         (with-temp-file tempfile
+           (setq-local buffer-file-coding-system encoding)
+           (insert data)))
        (list "--data-binary" (concat  "@" (request-untrampify-filename tempfile)))))
    (when type (list "--request" type))
    (cl-loop for (k . v) in headers
