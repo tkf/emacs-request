@@ -568,6 +568,17 @@ based backends (e.g., `curl') should avoid this problem."
                    '(("key with space" . "*evil* !values!"))))
                  "key%20with%20space=%2aevil%2a%20%21values%21")))
 
+(ert-deftest request--file-url ()
+  "What happens when url is not HTTP."
+  (let ((tempfile (request--make-temp-file))
+        (body "hello, world\r\n"))
+    (with-temp-file tempfile
+      (insert body))
+    (let ((got (request (format "file://%s" tempfile) :parser #'buffer-string :sync t)))
+      (should (string= body (request-response-data got)))
+      (if (eq request-backend 'curl)
+          (should-not (request-response--raw-header got))))))
+
 (ert-deftest request--curl-command ()
   "construct curl command"
   (let ((options '("--noproxy" "--cacert")))

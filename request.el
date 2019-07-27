@@ -662,17 +662,19 @@ then kill the current buffer."
        (data (request-response-data response))
        (done-p (request-response-done-p response)))
 
-    ;; Curl only adds a response header when using http: or https:.
-    (when (or (not (eq (request-response--backend response) 'curl))
-              (string-match-p "\\`https?:" (request-response-url response))
-              (not (string-match-p "\\`[[:alpha:]][-+.[:alnum:]]+://" (request-response-url response))))
-      ;; Parse response header
-      (request--clean-header response)
-      (request--cut-header response)
-      ;; Note: Try to do this even `error-thrown' is set.  For example,
-      ;; timeout error can occur while downloading response body and
-      ;; header is there in that case.
-      )
+    ;; Parse response header
+    ;; Note: Try to do this even `error-thrown' is set.  For example,
+    ;; timeout error can occur while downloading response body and
+    ;; header is there in that case.
+    (let* ((scheme (url-type (url-generic-parse-url
+                              (request-response-url response))))
+           (curl-file-p (and (stringp scheme)
+                            (not (string-match-p "^http" scheme))
+                            (eq (request-response--backend response) 'curl))))
+      ;; curl does not add a header for say file:///foo/bar
+      (unless curl-file-p
+        (request--clean-header response)
+        (request--cut-header response)))
 
     ;; Parse response body
     (request-log 'debug "error-thrown = %S" error-thrown)
@@ -1154,7 +1156,7 @@ START-URL is the URL requested."
         (setf (request-response-url          response) url-effective)
         (setf (request-response-history      response) history)
         (setf (request-response-error-thrown response)
-              (or error (when (and code (>= code 400)) `(error . (http ,code)))))
+              (or error (and (numberp code) (>= code 400) `(error . (http ,code)))))
         (apply #'request--callback buffer settings))))))
 
 (cl-defun request--curl-sync (url &rest settings &key response &allow-other-keys)
