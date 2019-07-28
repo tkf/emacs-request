@@ -193,6 +193,19 @@ GET with Unix domain socket data:
              (lambda (&key data &allow-other-keys)
                (message "Got: %s" data))))
 
+Synchronous blocking
+====================
+
+Add the ``:sync t`` attribute to block until completion.
+
+.. code:: emacs-lisp
+
+  (request
+   "http://httpbin.org/get"
+   :sync t
+   :complete (cl-function
+             (lambda (&key response &allow-other-keys)
+               (message "Done: %s" (request-response-status-code response)))))
 
 Compatibility / backends
 ========================
