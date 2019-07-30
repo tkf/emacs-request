@@ -666,11 +666,12 @@ then kill the current buffer."
     ;; Note: Try to do this even `error-thrown' is set.  For example,
     ;; timeout error can occur while downloading response body and
     ;; header is there in that case.
-    (let* ((scheme (url-type (url-generic-parse-url
-                              (request-response-url response))))
+    (let* ((response-url (request-response-url response))
+           (scheme (and (stringp response-url)
+                        (url-type (url-generic-parse-url response-url))))
            (curl-file-p (and (stringp scheme)
-                            (not (string-match-p "^http" scheme))
-                            (eq (request-response--backend response) 'curl))))
+                             (not (string-match-p "^http" scheme))
+                             (eq (request-response--backend response) 'curl))))
       ;; curl does not add a header for say file:///foo/bar
       (unless curl-file-p
         (request--clean-header response)
