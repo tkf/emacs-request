@@ -1047,9 +1047,11 @@ removed from the buffer before it is shown to the parser function.
     (process-put proc :request-response response)
     (set-process-coding-system proc encoding encoding)
     (set-process-query-on-exit-flag proc nil)
-    (set-process-sentinel proc #'request--curl-callback)
+    (set-process-sentinel proc 'request--curl-callback)
     (when semaphore
-      (add-function :after (process-sentinel proc) semaphore))))
+      (set-process-sentinel proc (lambda (&rest args)
+                                   (apply #'request--curl-callback args)
+                                   (apply semaphore args))))))
 
 (defun request--curl-read-and-delete-tail-info ()
   "Read a sexp at the end of buffer and remove it and preceding character.
