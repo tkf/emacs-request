@@ -1,5 +1,6 @@
 language: python
 python: 2.7
+dist: trusty
 sudo: false
 env:
   - EVM_EMACS=emacs-24.4-travis

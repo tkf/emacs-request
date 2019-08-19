@@ -582,11 +582,6 @@ and requests.request_ (Python).
              (request--choose-backend 'request-sync)
            (request--choose-backend 'request))
          url settings)
-  (when timeout
-    (request-log 'debug "Start timer: timeout=%s sec" timeout)
-    (setf (request-response--timer response)
-          (run-at-time timeout nil
-                       #'request-response--timeout-callback response)))
   response)
 
 (defun request--clean-header (response)
@@ -798,6 +793,7 @@ associated process is exited."
          (buffer (url-retrieve url #'request--url-retrieve-callback
                                (nconc (list :response response) settings)))
          (proc (get-buffer-process buffer)))
+    (request--install-timeout timeout response)
     (setf (request-response--buffer response) buffer)
     (process-put proc :request-response response)
     (request-log 'debug "Start querying: %s" url)
@@ -1005,6 +1001,14 @@ temporary file paths."
                                "Failed delete file %s. Got: %S" f err))))
         files))
 
+(defun request--install-timeout (timeout response)
+  "Out-of-band trigger after TIMEOUT seconds to prevent hangs."
+  (when (numberp timeout)
+    (request-log 'debug "Start timer: timeout=%s sec" timeout)
+    (setf (request-response--timer response)
+          (run-at-time timeout nil
+                       #'request-response--timeout-callback response))))
+
 (cl-defun request--curl (url &rest settings
                              &key type data files headers timeout response encoding semaphore
                              &allow-other-keys)
@@ -1037,14 +1041,17 @@ removed from the buffer before it is shown to the parser function.
                     (apply #'request--curl-command url :files* files*
                            :response response :encoding encoding settings)))
          (proc (apply #'start-file-process "request curl" buffer command)))
+    (request--install-timeout timeout response)
     (request-log 'debug "Run: %s" (mapconcat 'identity command " "))
     (setf (request-response--buffer response) buffer)
     (process-put proc :request-response response)
     (set-process-coding-system proc encoding encoding)
     (set-process-query-on-exit-flag proc nil)
-    (set-process-sentinel proc #'request--curl-callback)
+    (set-process-sentinel proc 'request--curl-callback)
     (when semaphore
-      (add-function :after (process-sentinel proc) semaphore))))
+      (set-process-sentinel proc (lambda (&rest args)
+                                   (apply #'request--curl-callback args)
+                                   (apply semaphore args))))))
 
 (defun request--curl-read-and-delete-tail-info ()
   "Read a sexp at the end of buffer and remove it and preceding character.
@@ -1161,18 +1168,23 @@ START-URL is the URL requested."
         (apply #'request--callback buffer settings))))))
 
 (cl-defun request--curl-sync (url &rest settings &key response &allow-other-keys)
-  ;; To make timeout work, use polling approach rather than using
-  ;; `call-process'.
   (let (finished)
     (prog1 (apply #'request--curl url
                   :semaphore (lambda (&rest _) (setq finished t))
                   settings)
       (let ((proc (get-buffer-process (request-response--buffer response))))
         (with-local-quit
-          (while (not finished)
-            (if (request--process-live-p proc)
-                (accept-process-output proc)
-              (sleep-for 0 300))))))))
+          (cl-loop with iter = 0
+                   until (or (>= iter 10) finished)
+                   if (request--process-live-p proc)
+                     do (accept-process-output proc 0.3)
+                   else
+                     do (cl-incf iter) and
+                     do (sleep-for 0 300)
+                   end
+                   finally (when (>= iter 10)
+                             (request-log 'verbose
+                               "request--curl-sync: semaphore never called"))))))))
 
 (defun request--curl-get-cookies (host localpart secure)
   (request--netscape-get-cookies (request--curl-cookie-jar)
