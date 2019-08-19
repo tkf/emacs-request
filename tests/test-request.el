@@ -185,6 +185,32 @@ See also:
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "GET"))))
 
+(request-deftest request-get-sync-process-persists ()
+  (request-testing-with-response-slots
+   (cl-letf (((symbol-function 'request--curl-command)
+              (lambda (&rest args) (list "sleep" "1000")))
+             ((symbol-function 'url-retrieve-synchronously)
+              (lambda (&rest args) (sleep-for 1000))))
+     (request (request-testing-url "report/some-path")
+              :sync t :timeout 3 :parser 'json-read))
+   (should done-p)
+   (should (eq symbol-status 'timeout))))
+
+(request-deftest request-get-sync-semaphore-failure ()
+  (request-testing-with-response-slots
+   (let ((remove-semaphore
+          (lambda (args)
+            (cons (car args) (plist-put (cdr args) :semaphore nil)))))
+     (add-function :filter-args (symbol-function 'request--curl)
+                   remove-semaphore)
+     (prog1 (request (request-testing-url "report/some-path")
+                     :sync t :parser 'json-read)
+       (remove-function (symbol-function 'request--curl) remove-semaphore)))
+   (should done-p)
+   (should (equal status-code 200))
+   (should (equal (assoc-default 'path data) "some-path"))
+   (should (equal (assoc-default 'method data) "GET"))))
+
 
 ;;; POST
 

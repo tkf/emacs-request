@@ -6,7 +6,7 @@ ELPA_DIR = $(shell EMACS=$(EMACS) $(CASK) package-directory)
 
 # See: cask-elpa-dir
 
-TEST_1 = ${MAKE} EMACS=${EMACS} CASK=${CASK} test-1
+TEST_1 = EL_REQUEST_NO_CAPTURE_MESSAGE=${EL_REQUEST_NO_CAPTURE_MESSAGE} EL_REQUEST_MESSAGE_LEVEL=${EL_REQUEST_MESSAGE_LEVEL} ${MAKE} EMACS=${EMACS} CASK=${CASK} test-1
 
 .PHONY : test test-all test-1 compile elpa clean clean-elpa clean-elc \
 	print-deps before-test travis-ci
