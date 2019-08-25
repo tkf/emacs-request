@@ -18,30 +18,15 @@
 What is it?
 ===========
 
-Request.el is a HTTP request library with multiple backends.  It
-supports url.el which is shipped with Emacs and curl command line
-program.  User can use curl when s/he has it, as curl is more reliable
-than url.el.  Library author can use request.el to avoid imposing
-external dependencies such as curl to users while giving richer
-experience for users who have curl.
+``request.el`` is an elisp interface to HTTP requests.  It uses ``curl`` as its backend or emacs's native ``url.el`` library if ``curl`` is not found.
 
-As request.el is implemented in extensible manner, it is possible to
-implement other backend such as wget.  Also, if future version of
-Emacs support linking with libcurl, it is possible to implement a
-backend using it.  Libraries using request.el automatically can
-use these backend without modifying their code.
-
-Request.el also patches url.el dynamically, to fix bugs in url.el.
-See `monkey patches for url.el <http://tkf.github.io/emacs-request/#monkey-patches-for-url-el>`_
-for the bugs fixed by request.el.
+The default encoding for requests is ``utf-8``.  Please explicitly specify ``:encoding 'binary`` for binary data.
 
 
 Installation
 ============
 
-request.el is available on `MELPA <https://melpa.org/>`_ and `MELPA stable <https://stable.melpa.org>`_.
-
-You can install request.el by package.el
+``request.el`` is available on `MELPA <https://melpa.org/>`_ and `MELPA stable <https://stable.melpa.org>`_.
 
 
 Examples
@@ -72,6 +57,28 @@ POST:
    :success (cl-function
              (lambda (&key data &allow-other-keys)
                (message "I sent: %S" (assoc-default 'form data)))))
+
+Block until completion:
+
+.. code:: emacs-lisp
+
+  (request
+   "http://httpbin.org/get"
+   :sync t
+   :complete (cl-function
+             (lambda (&key response &allow-other-keys)
+               (message "Done: %s" (request-response-status-code response)))))
+
+Request binary data:
+
+.. code:: emacs-lisp
+
+  (request
+   "http://httpbin.org/get"
+   :encoding 'binary
+   :complete (cl-function
+             (lambda (&key response &allow-other-keys)
+               (message "Done: %s" (request-response-status-code response)))))
 
 POST file (**WARNING**: it will send the contents of the current buffer!):
 
@@ -192,58 +199,6 @@ GET with Unix domain socket data:
    :success (cl-function
              (lambda (&key data &allow-other-keys)
                (message "Got: %s" data))))
-
-Synchronous blocking
-====================
-
-Add the ``:sync t`` attribute to block until completion.
-
-.. code:: emacs-lisp
-
-  (request
-   "http://httpbin.org/get"
-   :sync t
-   :complete (cl-function
-             (lambda (&key response &allow-other-keys)
-               (message "Done: %s" (request-response-status-code response)))))
-
-Compatibility / backends
-========================
-
-Supported Emacs versions:
-
-====================== ========================== =====================
- Emacs version          Does request.el work?      Tested on Travis CI
-                                                   |build-status|
-====================== ========================== =====================
- GNU Emacs 25.1         yes (as of this writing)   yes
- GNU Emacs 24.5         yes (as of this writing)   yes
- GNU Emacs 24.4         yes (as of this writing)   yes
-====================== ========================== =====================
-
-
-Supported backends:
-
-========== ==================== ================ ========================= =============
- Backends   Remarks              Multipart Form   Automatic Decompression   Unix Socket
-========== ==================== ================ ========================= =============
- url.el     Included in Emacs
- curl       Reliable             ✔               ✔                         ✔
-========== ==================== ================ ========================= =============
-
-
-Related projects
-================
-
-`leathekd/grapnel · GitHub <https://github.com/leathekd/grapnel>`_:
-  "HTTP request for Emacs lib built on curl with flexible callback dispatch"
-
-`cinsk/emacs-curl · GitHub <https://github.com/cinsk/emacs-curl>`_:
-  "CURL wrapper for Emacs"
-
-`furl-el - Google Project Hosting <http://code.google.com/p/furl-el/>`_:
-  "A wrapper for url.el that adds a nicer API and the ability to make
-  multipart POST requests."
 
 
 License
