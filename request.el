@@ -926,11 +926,16 @@ Currently it is used only for testing.")
        ;; in case the user-configured `encoding' doesn't fly.
        ;; If we do not dynamic-let the global, `select-safe-coding-system' would
        ;; plunge us into an undesirable interactive dialogue.
-       (let ((buffer-file-coding-system 'no-conversion)
-             (select-safe-coding-system-accept-default-p (lambda (&rest _) t)))
+       (let ((buffer-file-coding-system-orig
+              (default-value 'buffer-file-coding-system))
+             (select-safe-coding-system-accept-default-p
+              (lambda (&rest _) t)))
+         (setf (default-value 'buffer-file-coding-system) 'no-conversion)
          (with-temp-file tempfile
            (setq-local buffer-file-coding-system encoding)
-           (insert data)))
+           (insert data))
+         (setf (default-value 'buffer-file-coding-system)
+               buffer-file-coding-system-orig))
        (list "--data-binary" (concat  "@" (request-untrampify-filename tempfile)))))
    (when type (list "--request" type))
    (cl-loop for (k . v) in headers
