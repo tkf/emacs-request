@@ -1045,7 +1045,7 @@ removed from the buffer before it is shown to the parser function.
                     (setf (request-response--tempfiles response) tempfiles)
                     (apply #'request--curl-command url :files* files*
                            :response response :encoding encoding settings)))
-         (proc (apply #'start-file-process "request curl" buffer command)))
+         (proc (apply #'start-process "request curl" buffer command)))
     (request--install-timeout timeout response)
     (request-log 'debug "Run: %s" (mapconcat 'identity command " "))
     (setf (request-response--buffer response) buffer)
