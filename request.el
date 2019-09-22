@@ -1180,14 +1180,21 @@ START-URL is the URL requested."
       (let ((proc (get-buffer-process (request-response--buffer response))))
         (with-local-quit
           (cl-loop with iter = 0
-                   until (or (>= iter 10) finished)
+                   until (or (>= iter 20) finished)
                    do (accept-process-output nil 0.3)
                    unless (request--process-live-p proc)
-                     do (cl-incf iter)
+                     do (cl-incf iter) and
+                     if (>= iter 10)
+                       do (let ((m "request--curl-sync: killing inotify"))
+                            (princ (format "%s\n" m) #'external-debugging-output)
+                            (request-log 'warn m)
+                            (auto-revert-notify-rm-watch))
+                     end
                    end
-                   finally (when (>= iter 10)
-                             (request-log 'verbose
-                               "request--curl-sync: semaphore never called"))))))))
+                   finally (when (>= iter 20)
+                             (let ((m "request--curl-sync: semaphore never called"))
+                               (princ (format "%s\n" m) #'external-debugging-output)
+                               (request-log 'error m)))))))))
 
 (defun request--curl-get-cookies (host localpart secure)
   (request--netscape-get-cookies (request--curl-cookie-jar)
