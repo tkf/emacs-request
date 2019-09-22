@@ -9,9 +9,13 @@ env:
   - EVM_EMACS=emacs-25.2-travis
   - EVM_EMACS=emacs-25.3-travis
   - EVM_EMACS=emacs-26.1-travis
+  - EVM_EMACS=emacs-26.2-travis
   - EVM_EMACS=emacs-git-snapshot-travis
-allow_failures:
-  - EVM_EMACS=emacs-git-snapshot-travis
+
+matrix:
+  allow_failures:
+    - env: EVM_EMACS=emacs-git-snapshot-travis
+
 before_install:
   - pip install -q Flask==1.0.2 tornado==5.1.1
   - pip uninstall -y Werkzeug
