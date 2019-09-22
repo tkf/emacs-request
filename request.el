@@ -48,7 +48,7 @@
 (require 'cl-lib)
 (require 'url)
 (require 'mail-utils)
-(declare-function auto-revert-notify-rm-watch "autorevert")
+(require 'autorevert)
 
 (defgroup request nil
   "Compatible layer for URL request in Emacs."
@@ -1187,7 +1187,6 @@ START-URL is the URL requested."
                      do (cl-incf iter) and
                      if (>= iter 10)
                        do (let ((m "request--curl-sync: killing inotify"))
-                            (princ (format "%s\n" m) #'external-debugging-output)
                             (request-log 'warn m)
                             (auto-revert-notify-rm-watch))
                      end
