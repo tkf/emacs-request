@@ -48,6 +48,7 @@
 (require 'cl-lib)
 (require 'url)
 (require 'mail-utils)
+(declare-function auto-revert-notify-rm-watch "autorevert")
 
 (defgroup request nil
   "Compatible layer for URL request in Emacs."
