@@ -69,6 +69,8 @@ Block until completion:
              (lambda (&key response &allow-other-keys)
                (message "Done: %s" (request-response-status-code response)))))
 
+** BUGGY ** Under ``global-auto-revert-mode`` (a very common setting), the ``inotify`` mechanism sporadically impedes block-until-completion.  Upon detecting this condition, the request module deletes the inotify descriptor potentially deactivating auto-revert for the file buffer.
+
 Request binary data:
 
 .. code:: emacs-lisp
