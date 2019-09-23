@@ -1174,27 +1174,27 @@ START-URL is the URL requested."
         (apply #'request--callback buffer settings))))))
 
 (cl-defun request--curl-sync (url &rest settings &key response &allow-other-keys)
-  (let (finished)
+  (let (finished
+        (restore-p auto-revert-notify-watch-descriptor))
     (prog1 (apply #'request--curl url
                   :semaphore (lambda (&rest _) (setq finished t))
                   settings)
       (let ((proc (get-buffer-process (request-response--buffer response))))
+        (when restore-p
+          (auto-revert-notify-rm-watch))
         (with-local-quit
           (cl-loop with iter = 0
-                   until (or (>= iter 20) finished)
+                   until (or (>= iter 10) finished)
                    do (accept-process-output nil 0.3)
                    unless (request--process-live-p proc)
-                     do (cl-incf iter) and
-                     if (>= iter 10)
-                       do (let ((m "request--curl-sync: killing inotify"))
-                            (request-log 'warn m)
-                            (auto-revert-notify-rm-watch))
-                     end
+                     do (cl-incf iter)
                    end
-                   finally (when (>= iter 20)
+                   finally (when (>= iter 10)
                              (let ((m "request--curl-sync: semaphore never called"))
                                (princ (format "%s\n" m) #'external-debugging-output)
-                               (request-log 'error m)))))))))
+                               (request-log 'error m)))))
+        (when restore-p
+          (auto-revert-notify-add-watch))))))
 
 (defun request--curl-get-cookies (host localpart secure)
   (request--netscape-get-cookies (request--curl-cookie-jar)

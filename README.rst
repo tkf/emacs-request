@@ -58,8 +58,7 @@ POST:
              (lambda (&key data &allow-other-keys)
                (message "I sent: %S" (assoc-default 'form data)))))
 
-| Block until completion:
-| **BUGGY** Under ``global-auto-revert-mode`` (a very common setting), the ``inotify`` mechanism sporadically impedes block-until-completion.  Upon detecting this condition, the request module deletes the inotify descriptor potentially cancelling auto-revert for the file buffer (auto-revert will restore the inotify in time).
+Block until completion:
 
 .. code:: emacs-lisp
 
