@@ -188,9 +188,9 @@ See also:
 (request-deftest request-get-sync-process-persists ()
   (request-testing-with-response-slots
    (cl-letf (((symbol-function 'request--curl-command)
-              (lambda (&rest args) (list "sleep" "1000")))
+              (lambda (&rest _) (list "sleep" "1000")))
              ((symbol-function 'url-retrieve-synchronously)
-              (lambda (&rest args) (sleep-for 1000))))
+              (lambda (&rest _) (sleep-for 1000))))
      (request (request-testing-url "report/some-path")
               :sync t :timeout 3 :parser 'json-read))
    (should done-p)
