@@ -50,6 +50,7 @@
 (require 'mail-utils)
 (require 'autorevert)
 
+
 (defgroup request nil
   "Compatible layer for URL request in Emacs."
   :group 'comm
@@ -995,6 +996,10 @@ Currently it is used only for testing.")
                    (insert data)
                    (write-region (point-min) (point-max) tf nil 'silent))
                  (list name filename tf mime-type)))))))
+
+
+(declare-function tramp-get-remote-tmpdir "tramp")
+(declare-function tramp-dissect-file-name "tramp")
 
 (defun request--make-temp-file ()
   "Create a temporary file."
