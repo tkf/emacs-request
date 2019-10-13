@@ -888,29 +888,30 @@ Currently it is used only for testing.")
   (or request--curl-cookie-jar
       (expand-file-name "curl-cookie-jar" request-storage-directory)))
 
-(defvar request--curl-capabilities
+(defvar request--curl-capabilities-cache
   (make-hash-table :test 'eq :weakness 'key)
-  "Cache table for capabilities plist of the curl at `request-curl'.
-:version     -- cURL's version string
-:compression -- non-nil if --compressed is supported")
+  "Used to avoid invoking curl more than once for version info.  By skeeto/elfeed.")
 
 (defun request--curl-capabilities ()
-  "Return `request-curl' capabilites plist."
-  (let ((cache (gethash request-curl request--curl-capabilities)))
-    (if cache cache
+  "Return capabilities plist for curl.  By skeeto/elfeed.
+:version     -- cURL's version string
+:compression -- non-nil if --compressed is supported."
+  (let ((cache-value (gethash request-curl request--curl-capabilities-cache)))
+    (if cache-value
+        cache-value
       (with-temp-buffer
-        (call-process "curl" nil t nil "--version")
+        (call-process request-curl nil t nil "--version")
         (let ((version
                (progn
-                 (goto-char (point-min))
+                 (setf (point) (point-min))
                  (when (re-search-forward "[.0-9]+" nil t)
                    (match-string 0))))
               (compression
                (progn
-                 (goto-char (point-min))
+                 (setf (point) (point-min))
                  (not (null (re-search-forward "libz\\>" nil t))))))
-          (puthash request-curl `(:version ,version :compression ,compression)
-                   request--curl-capabilities))))))
+          (setf (gethash request-curl request--curl-capabilities-cache)
+                `(:version ,version :compression ,compression)))))))
 
 (defconst request--curl-write-out-template
   (if (eq system-type 'windows-nt)
@@ -927,16 +928,16 @@ Currently it is used only for testing.")
          &aux
          (cookie-jar (convert-standard-filename
                       (expand-file-name (request--curl-cookie-jar)))))
+  "BUG: Simultaneous requests are a known cause of cookie-jar corruption."
   (append
    (list request-curl "--silent" "--include"
          "--location"
-         ;; FIMXE: this way of using cookie might be problem when
-         ;;        running multiple requests.
          "--cookie" cookie-jar "--cookie-jar" cookie-jar
          "--write-out" request--curl-write-out-template)
    (when (plist-get (request--curl-capabilities) :compression)
      '("--compressed"))
    request-curl-options
+   (when (plist-get (request--curl-capabilities) :compression) (list "--compressed"))
    (when unix-socket (list "--unix-socket" unix-socket))
    (cl-loop for (name filename path mime-type) in files*
             collect "--form"
