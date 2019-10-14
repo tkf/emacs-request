@@ -1,37 +1,28 @@
-================================================
- Request.el -- Easy HTTP request for Emacs Lisp
-================================================
+|build-status| |melpa-badge| |melpa-stable-badge|
 
-.. sidebar:: Links
+====================================
+ request.el -- an elisp HTTP library
+====================================
 
-   * `Documentation <http://tkf.github.com/emacs-request/>`_ (at GitHub Pages)
-
-     * `Manual <http://tkf.github.com/emacs-request/manual.html>`_
-
-   * `Repository <https://github.com/tkf/emacs-request>`_ (at GitHub)
-   * `Issue tracker <https://github.com/tkf/emacs-request/issues>`_ (at GitHub)
-   * `Travis CI <https://travis-ci.org/#!/tkf/emacs-request>`_ |build-status|
-   * `MELPA <https://melpa.org/#/request>`_ |melpa-badge|
-   * `MELPA Stable <https://stable.melpa.org/#/request>`_ |melpa-stable-badge|
-
-
-What is it?
-===========
-
-``request.el`` is an elisp interface to HTTP requests.  It uses ``curl`` as its backend or emacs's native ``url.el`` library if ``curl`` is not found.
+Uses ``curl`` as its backend or emacs's native ``url.el`` library if ``curl`` is not found.
 
 The default encoding for requests is ``utf-8``.  Please explicitly specify ``:encoding 'binary`` for binary data.
 
+Install
+=======
+As described in `Getting started`_, ensure melpa's whereabouts in ``init.el`` or ``.emacs``::
 
-Installation
-============
+   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
 
-``request.el`` is available on `MELPA <https://melpa.org/>`_ and `MELPA stable <https://stable.melpa.org>`_.
+Then
 
+::
+
+   M-x package-refresh-contents RET
+   M-x package-install RET request RET
 
 Examples
 ========
-
 GET:
 
 .. code:: emacs-lisp
@@ -201,12 +192,9 @@ GET with Unix domain socket data:
                (message "Got: %s" data))))
 
 
-License
-=======
-
-Request.el is free software under GPL v3.
-See COPYING file for details.
-
+Legacy documentation
+====================
+* `Github Pages <http://tkf.github.com/emacs-request/>`
 
 .. |build-status|
    image:: https://secure.travis-ci.org/tkf/emacs-request.svg
@@ -221,3 +209,4 @@ See COPYING file for details.
    image:: http://stable.melpa.org/packages/request-badge.svg
    :target: http://stable.melpa.org/#/request
    :alt: MELPA Stable Badge
+.. _Getting started: http://melpa.org/#/getting-started
