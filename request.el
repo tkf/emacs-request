@@ -934,8 +934,6 @@ Currently it is used only for testing.")
          "--location"
          "--cookie" cookie-jar "--cookie-jar" cookie-jar
          "--write-out" request--curl-write-out-template)
-   (when (plist-get (request--curl-capabilities) :compression)
-     '("--compressed"))
    request-curl-options
    (when (plist-get (request--curl-capabilities) :compression) (list "--compressed"))
    (when unix-socket (list "--unix-socket" unix-socket))
