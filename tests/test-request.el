@@ -795,6 +795,24 @@ RESPONSE-BODY"))
                   '("/a" "/b"))
                  '("http://localhost:8000/a" "http://localhost:8000/b"))))
 
+(ert-deftest request--curl-capabilities ()
+  (let* ((libz-f (lambda (plst) (plist-get plst :compression)))
+         (capabilities-f (lambda (advice*)
+                           (unwind-protect
+                               (progn (add-function
+                                       :filter-args
+                                       (symbol-function 'call-process)
+                                       advice*)
+                                      (request--curl-capabilities))
+                             (remove-function (symbol-function 'call-process) advice*))))
+         (request-curl "echo"))
+    (let ((advice (lambda (args) (setf (nthcdr 4 args) (list "7.47" "libz")) args)))
+      (should (funcall libz-f (funcall capabilities-f advice))))
+    (let ((advice (lambda (args) (append args (list "7.47")))))
+      (should (funcall libz-f (funcall capabilities-f advice)))
+      (let ((request--curl-capabilities-cache (make-hash-table :test 'eq :weakness 'key)))
+        (should-not (funcall libz-f (funcall capabilities-f advice)))))))
+
 (ert-deftest request-abort-killed-buffer ()
   (request-testing-with-response-slots
       (make-request-response
