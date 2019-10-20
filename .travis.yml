@@ -2,17 +2,45 @@ language: python
 python: 2.7
 dist: trusty
 sudo: false
+
+addons:
+  apt:
+    packages:
+    - gnutls-bin
+    - sharutils
+    - git
+    - gnupg2
+    - dirmngr
+
+cache:
+  directories:
+  - $HOME/nix.store
+  - $HOME/local
+  - $HOME/.cask
+  - $HOME/node_modules
+  - $HOME/.cache/pip
+  - $HOME/.evm
+  - $HOME/.emacs.d
+  - $HOME/Library/Caches/Homebrew
+  - $HOME/.pyenv
+  - $HOME/Library/Caches/pip
+
 env:
-  - EVM_EMACS=emacs-24.4-travis
-  - EVM_EMACS=emacs-24.5-travis
-  - EVM_EMACS=emacs-25.1-travis
-  - EVM_EMACS=emacs-25.2-travis
-  - EVM_EMACS=emacs-25.3-travis
-  - EVM_EMACS=emacs-26.1-travis
-  - EVM_EMACS=emacs-26.2-travis
-  - EVM_EMACS=emacs-git-snapshot-travis
+  global:
+    - PATH=$HOME/local/bin:$HOME/local/evm/bin:$HOME/local/cask/bin:$PATH
 
 matrix:
+  include:
+    - env: EVM_EMACS=emacs-24.4-travis
+    - env: EVM_EMACS=emacs-24.5-travis
+    - env: EVM_EMACS=emacs-25.1-travis
+    - env: EVM_EMACS=emacs-25.2-travis
+    - env: EVM_EMACS=emacs-25.3-travis
+    - env: EVM_EMACS=emacs-26.1-travis
+    - env: EVM_EMACS=emacs-26.2-travis
+    - env: EVM_EMACS=emacs-26.3-travis
+    - env: EVM_EMACS=emacs-git-snapshot-travis
+
   allow_failures:
     - env: EVM_EMACS=emacs-git-snapshot-travis
 
@@ -20,9 +48,14 @@ before_install:
   - pip install -q Flask==1.0.2 tornado==5.1.1
   - pip uninstall -y Werkzeug
   - pip install -q Werkzeug==0.14.1
-  - curl -fsSkL https://gist.github.com/rejeep/ebcd57c3af83b049833b/raw > x.sh && source ./x.sh
+  - sh tools/install-evm.sh
+  - evm config path /tmp
   - evm install $EVM_EMACS --use --skip
-  - make before-test
-script:
+  - sh tools/install-cask.sh
+  - cask --version
   - emacs --version
-  - make travis-ci
+  - curl --version
+
+script:
+  - make test-install
+  - make test
