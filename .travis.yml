@@ -10,7 +10,6 @@ addons:
     - sharutils
     - git
     - gnupg2
-    - dirmngr
 
 cache:
   directories:
