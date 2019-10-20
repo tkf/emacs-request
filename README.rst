@@ -21,6 +21,8 @@ Then
    M-x package-refresh-contents RET
    M-x package-install RET request RET
 
+Alternatively, directly clone this repo and ``make install``.
+
 Examples
 ========
 GET:

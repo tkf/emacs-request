@@ -10,6 +10,7 @@ env:
   - EVM_EMACS=emacs-25.3-travis
   - EVM_EMACS=emacs-26.1-travis
   - EVM_EMACS=emacs-26.2-travis
+  - EVM_EMACS=emacs-26.3-travis
   - EVM_EMACS=emacs-git-snapshot-travis
 
 matrix:
@@ -25,4 +26,4 @@ before_install:
   - make before-test
 script:
   - emacs --version
-  - make travis-ci
+  - make test

@@ -1,117 +1,89 @@
-CASK ?= cask
-EMACS ?= $(shell which emacs)
-VIRTUAL_EMACS = ${CASK} exec ${EMACS}
+export CASK ?= cask
+export EMACS ?= $(shell which emacs)
+export CASK_DIR := $(shell EMACS=$(EMACS) $(CASK) package-directory)
 
-ELPA_DIR = $(shell EMACS=$(EMACS) $(CASK) package-directory)
+.DEFAULT_GOAL := compile
 
-# See: cask-elpa-dir
+.PHONY: test
+test: cask test-3
 
-TEST_1 = EL_REQUEST_NO_CAPTURE_MESSAGE=${EL_REQUEST_NO_CAPTURE_MESSAGE} EL_REQUEST_MESSAGE_LEVEL=${EL_REQUEST_MESSAGE_LEVEL} ${MAKE} EMACS=${EMACS} CASK=${CASK} test-1
-
-.PHONY : test test-all test-1 compile elpa clean clean-elpa clean-elc \
-	print-deps before-test travis-ci
-
-test: elpa
-	${MAKE} test-3
-
+.PHONY: test-3
 test-3: test-3-tornado test-3-flask
 
+.PHONY: test-3-tornado
 test-3-tornado:
-	EL_REQUEST_TEST_SERVER=tornado ${MAKE} test-2
+	EL_REQUEST_TEST_SERVER=tornado $(MAKE) test-2
 
+.PHONY: test-3-flask
 test-3-flask:
-	EL_REQUEST_TEST_SERVER=flask ${MAKE} test-2
+	EL_REQUEST_TEST_SERVER=flask $(MAKE) test-2
 
-# Run test for different backends, for one server.
+.PHONY: test-2
 test-2: test-2-url-retrieve test-2-curl
 
+.PHONY: test-2-url-retrieve
 test-2-url-retrieve:
-	EL_REQUEST_BACKEND=url-retrieve ${TEST_1}
+	EL_REQUEST_BACKEND=url-retrieve $(MAKE) test-1
 
+.PHONY: test-2-curl
 test-2-curl:
-	EL_REQUEST_BACKEND=curl ${TEST_1}
+	EL_REQUEST_BACKEND=curl $(MAKE) test-1
 
-# Run test without checking elpa directory.
 test-1:
-	${VIRTUAL_EMACS} -Q -batch \
-		-L . -L tests -l tests/test-request.el \
-		-f ert-run-tests-batch-and-exit
+	EL_REQUEST_NO_CAPTURE_MESSAGE=$(EL_REQUEST_NO_CAPTURE_MESSAGE) EL_REQUEST_MESSAGE_LEVEL=$(EL_REQUEST_MESSAGE_LEVEL) $(CASK) emacs -Q --batch -L . -L tests -l test-request.el -f ert-run-tests-batch-and-exit
 
-elpa: ${ELPA_DIR}
-${ELPA_DIR}: Cask
-	${CASK} install
-	touch $@
+.PHONY: cask
+cask: $(CASK_DIR)
+$(CASK_DIR): Cask
+	$(CASK) install
 
-clean-elpa:
-	rm -rf ${ELPA_DIR}
+.PHONY: compile
+compile: cask
+	! (cask eval "(let ((byte-compile-error-on-warn t)) (cask-cli/build))" 2>&1 | egrep -a "(Warning|Error):")
+	$(CASK) clean-elc
 
-compile: clean-elc elpa
-	${VIRTUAL_EMACS} -Q -batch -L . -L tests \
-		-f batch-byte-compile *.el */*.el
+.PHONY: clean
+clean:
+	$(CASK) clean-elc
+	make -C doc clean
 
-clean-elc:
-	rm -f *.elc */*.elc
-
-clean: clean-elpa clean-elc
-
-print-deps: elpa
-	@echo "----------------------- Dependencies -----------------------"
-	$(EMACS) --version
-	curl --version
-	@echo "------------------------------------------------------------"
-
-before-test: elpa
-
-travis-ci: print-deps test
-
-
-
-# Run test against Emacs listed in ${EMACS_LIST}.
-# This is for running tests for multiple Emacs versions.
-# This is not used in Travis CI.  Usage::
-#
-#     make EMACS_LIST="emacs emacs-snapshot emacs23" test-all
-#
-# See: http://stackoverflow.com/a/12110773/727827
-#
-# Use ${MET_MAKEFLAGS} to do the tests in parallel.
-#
-#    MET_MAKEFLAGS=-j4
-#
-# Use ${MET_PRE_TARGETS} to set additional jobs to do before tests.
-#
-#    MET_PRE_TARGETS=compile
-
-JOBS := $(addprefix job-,${EMACS_LIST})
-.PHONY: ${JOBS}
-
-${JOBS}: job-%:
-	${MAKE} EMACS=$* clean-elc ${MET_PRE_TARGETS}
-	${MAKE} EMACS=$* ${MET_MAKEFLAGS} test
-
-test-all: ${JOBS}
-
-
-
-### Package installation
-PACKAGE = request.el
-PACKAGE_USER_DIR =
-TEST_PACKAGE_DIR = dist/test
-TEST_INSTALL = ${MAKE} install-dist PACKAGE_USER_DIR=${TEST_PACKAGE_DIR}
-
-install-dist:
-	test -d '${PACKAGE_USER_DIR}'
-	${EMACS} --batch -Q \
-	-l package \
-        --eval " \
-        (add-to-list 'package-archives \
-             '(\"marmalade\" . \"http://marmalade-repo.org/packages/\") t)" \
-	--eval '(setq package-user-dir "${PWD}/${PACKAGE_USER_DIR}")' \
-	--eval '(package-list-packages)' \
-	--eval '(package-install-file "${PWD}/${PACKAGE}")'
-
+.PHONY: test-install
 test-install:
-	rm -rf ${TEST_PACKAGE_DIR}
-	mkdir -p ${TEST_PACKAGE_DIR}
-	${TEST_INSTALL}
-	${TEST_INSTALL} PACKAGE=request-deferred.el
+	mkdir -p tests/test-install
+	if [ ! -s "tests/test-install/$(PKBUILD).tar.gz" ] ; then \
+	  cd tests/test-install ; curl -sLOk https://github.com/melpa/package-build/archive/$(PKBUILD).tar.gz ; fi
+	cd tests/test-install ; tar xfz $(PKBUILD).tar.gz
+	cd tests/test-install ; rm -f $(PKBUILD).tar.gz
+	cd tests/test-install/package-build-$(PKBUILD) ; make -s loaddefs
+	mkdir -p tests/test-install/recipes
+	cd tests/test-install/recipes ; curl -sfLOk https://raw.githubusercontent.com/melpa/melpa/master/recipes/request || cp -f ../../../tools/recipe ./request
+	! ( $(EMACS) -Q --batch -L tests/test-install/package-build-$(PKBUILD) \
+	--eval "(require 'package-build)" \
+	--eval "(require 'subr-x)" \
+	--eval "(package-initialize)" \
+	--eval "(add-to-list 'package-archives '(\"melpa\" . \"http://melpa.org/packages/\"))" \
+	--eval "(package-refresh-contents)" \
+	--eval "(setq rcp (package-recipe-lookup \"request\"))" \
+	--eval "(unless (file-exists-p package-build-archive-dir) \
+	           (make-directory package-build-archive-dir))" \
+	--eval "(let* ((my-repo \"$(TRAVIS_REPO_SLUG)\") \
+	               (my-branch \"$(TRAVIS_PULL_REQUEST_BRANCH)\") \
+	               (my-commit \"$(TRAVIS_PULL_REQUEST_SHA)\")) \
+	           (oset rcp :repo my-repo) \
+	           (oset rcp :branch my-branch) \
+	           (oset rcp :commit my-commit))" \
+	--eval "(package-build--package rcp (package-build--checkout rcp))" \
+	--eval "(package-install-file (concat package-build-archive-dir \"request.el\"))" 2>&1 | egrep -ia "error: |fatal" )
+
+.PHONY: dist-clean
+dist-clean:
+	rm -rf dist
+
+.PHONY: dist
+dist: dist-clean
+	cask package
+
+.PHONY: install
+install: compile dist
+	$(EMACS) -Q --batch --eval "(package-initialize)" \
+	  --eval "(package-install-file \"dist/request-$(shell $(CASK) version).tar\")"

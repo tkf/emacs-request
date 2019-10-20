@@ -7,7 +7,7 @@
 ;; Author: Takafumi Arakaki <aka.tkf at gmail.com>
 ;; URL: https://github.com/tkf/emacs-request
 ;; Package-Requires: ((emacs "24.4"))
-;; Version: 0.3.0
+;; Version: 0.3.2
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -391,21 +391,14 @@ Example::
 
 (cl-defun request (url &rest settings
                        &key
-                       (type "GET")
                        (params nil)
                        (data nil)
-                       (files nil)
-                       (parser nil)
                        (headers nil)
                        (encoding 'utf-8)
-                       (success nil)
                        (error nil)
-                       (complete nil)
-                       (timeout request-timeout)
-                       (status-code nil)
                        (sync nil)
                        (response (make-request-response))
-                       (unix-socket nil))
+                       &allow-other-keys)
   "Send request to URL.
 
 Request.el has a single entry point.  It is `request'.
@@ -640,8 +633,7 @@ then kill the current buffer."
           (goto-char (point-min))
           (setf (request-response-data response) (funcall parser)))))))
 
-(cl-defun request--callback (buffer &key parser success error complete
-                                    timeout status-code response
+(cl-defun request--callback (buffer &key parser success error complete status-code response
                                     &allow-other-keys)
   (request-log 'debug "REQUEST--CALLBACK")
   (request-log 'debug "(buffer-string) =\n%s"
@@ -864,7 +856,7 @@ associated process is exited."
       ;; Fetch HTTP response code
       (with-current-buffer buffer
         (goto-char (point-min))
-        (cl-destructuring-bind (&key version code)
+        (cl-destructuring-bind (&key code &allow-other-keys)
             (request--parse-response-at-point)
           (setf (request-response-status-code response) code)))
       ;; Parse response body, etc.
@@ -923,7 +915,7 @@ Currently it is used only for testing.")
     (make-directory (file-name-directory (request--curl-cookie-jar)) t)))
 
 (cl-defun request--curl-command
-    (url &key type data headers timeout response files* unix-socket encoding
+    (url &key type data headers response files* unix-socket encoding
          &allow-other-keys
          &aux
          (cookie-jar (convert-standard-filename
@@ -1044,7 +1036,7 @@ temporary file paths."
                        #'request-response--timeout-callback response))))
 
 (cl-defun request--curl (url &rest settings
-                             &key type data files headers timeout response encoding semaphore
+                             &key files timeout response encoding semaphore
                              &allow-other-keys)
   "cURL-based request backend.
 
@@ -1185,8 +1177,7 @@ START-URL is the URL requested."
       (setf (request-response-error-thrown response) (cons 'error event))
       (apply #'request--callback buffer settings))
      ((equal event "finished\n")
-      (cl-destructuring-bind (&key version code num-redirects history error
-                                   url-effective)
+      (cl-destructuring-bind (&key code history error url-effective &allow-other-keys)
           (condition-case err
               (with-current-buffer buffer
                 (request--curl-preprocess))
@@ -1257,7 +1248,7 @@ START-URL is the URL requested."
                            value))))
 
 (defun request--netscape-filter-cookies (cookies host localpart secure)
-  (cl-loop for (domain flag path secure-1 http-only expiration name value) in cookies
+  (cl-loop for (domain _flag path secure-1 _http-only _expiration name value) in cookies
            when (and (equal domain host)
                      (equal path localpart)
                      (or secure (not secure-1)))
