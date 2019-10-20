@@ -2,6 +2,17 @@ export CASK ?= cask
 export EMACS ?= $(shell which emacs)
 export CASK_DIR := $(shell EMACS=$(EMACS) $(CASK) package-directory)
 
+PKBUILD=2.3
+ifeq ($(TRAVIS_PULL_REQUEST_SLUG),)
+TRAVIS_PULL_REQUEST_SLUG := $(shell git config --global user.name)/$(shell basename `git rev-parse --show-toplevel`)
+endif
+ifeq ($(TRAVIS_PULL_REQUEST_BRANCH),)
+TRAVIS_PULL_REQUEST_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
+endif
+ifeq ($(TRAVIS_PULL_REQUEST_SHA),)
+TRAVIS_PULL_REQUEST_SHA := $(shell git rev-parse origin/$(TRAVIS_PULL_REQUEST_BRANCH))
+endif
+
 .DEFAULT_GOAL := compile
 
 .PHONY: test
@@ -66,14 +77,14 @@ test-install:
 	--eval "(setq rcp (package-recipe-lookup \"request\"))" \
 	--eval "(unless (file-exists-p package-build-archive-dir) \
 	           (make-directory package-build-archive-dir))" \
-	--eval "(let* ((my-repo \"$(TRAVIS_REPO_SLUG)\") \
+	--eval "(let* ((my-repo \"$(TRAVIS_PULL_REQUEST_SLUG)\") \
 	               (my-branch \"$(TRAVIS_PULL_REQUEST_BRANCH)\") \
 	               (my-commit \"$(TRAVIS_PULL_REQUEST_SHA)\")) \
 	           (oset rcp :repo my-repo) \
 	           (oset rcp :branch my-branch) \
 	           (oset rcp :commit my-commit))" \
 	--eval "(package-build--package rcp (package-build--checkout rcp))" \
-	--eval "(package-install-file (concat package-build-archive-dir \"request.el\"))" 2>&1 | egrep -ia "error: |fatal" )
+	--eval "(package-install-file (concat package-build-archive-dir \"request.el\"))" 2>&1 | egrep -ia "error: |warning: |fatal" )
 
 .PHONY: dist-clean
 dist-clean:
