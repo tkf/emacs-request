@@ -1192,6 +1192,25 @@ START-URL is the URL requested."
               (or error (and (numberp code) (>= code 400) `(error . (http ,code)))))
         (apply #'request--callback buffer settings))))))
 
+(defun my-auto-revert-notify-rm-watch ()
+  "Disable file notification for current buffer's associated file."
+  (when auto-revert-notify-watch-descriptor
+    (let ((copy (copy-hash-table auto-revert-notify-watch-descriptor-hash-list)))
+      (maphash
+      (lambda (key value)
+        (when (equal key auto-revert-notify-watch-descriptor)
+	  (setq value (delete (current-buffer) value))
+	  (if value
+	      (puthash key value auto-revert-notify-watch-descriptor-hash-list)
+	    (remhash key auto-revert-notify-watch-descriptor-hash-list))
+          (condition-case nil
+            (file-notify-rm-watch auto-revert-notify-watch-descriptor)
+            (error))))
+      copy))
+    (remove-hook 'kill-buffer-hook #'auto-revert-notify-rm-watch))
+  (setq auto-revert-notify-watch-descriptor nil
+	auto-revert-notify-modified-p nil))
+
 (cl-defun request--curl-sync (url &rest settings &key response &allow-other-keys)
   (let (finished)
     (prog1 (apply #'request--curl url
@@ -1201,7 +1220,7 @@ START-URL is the URL requested."
         (auto-revert-set-timer)
         (dolist (buf (buffer-list))
           (with-current-buffer buf
-            (when auto-revert-use-notify (auto-revert-notify-rm-watch))))
+            (when auto-revert-use-notify (my-auto-revert-notify-rm-watch))))
         (with-local-quit
           (cl-loop with iter = 0
                    until (or (>= iter 10) finished)
