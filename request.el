@@ -1195,7 +1195,9 @@ START-URL is the URL requested."
 (defun engdegard-auto-revert-notify-rm-watch ()
   "Disable file notification for current buffer's associated file."
   (let ((desc auto-revert-notify-watch-descriptor)
-        (table auto-revert-notify-watch-descriptor-hash-list))
+        (table (if (boundp 'auto-revert--buffers-by-watch-descriptors)
+                   auto-revert--buffers-by-watch-descriptors
+                 auto-revert-notify-watch-descriptor-hash-list)))
     (when desc
       (let ((buffers (delq (current-buffer) (gethash desc table))))
         (if buffers
