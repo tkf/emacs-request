@@ -13,8 +13,10 @@ else
 TRAVIS_PULL_REQUEST_SLUG := $(shell git config --global user.name)/$(shell basename `git rev-parse --show-toplevel`)
 endif
 endif
+ifeq ($(TRAVIS),true)
 ifeq ($(TRAVIS_PULL_REQUEST_SHA),)
 TRAVIS_PULL_REQUEST_SHA := $(shell git rev-parse origin/$(TRAVIS_PULL_REQUEST_BRANCH))
+endif
 endif
 
 .DEFAULT_GOAL := compile

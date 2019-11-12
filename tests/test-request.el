@@ -366,9 +366,7 @@ See also:
                    :type "GET"
                    :parser 'buffer-string
                    :headers '(("Expect" . "100-continue")))
-                  (should (equal status-code 200))
-                  (should (equal (length data) 18000))
-                  (should (string-prefix-p "111111" data))))
+                  (should (equal status-code 200))))
 
 
 ;;; PUT

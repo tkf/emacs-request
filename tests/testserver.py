@@ -36,7 +36,6 @@ def page_report(path):
 def get_longline():
     return Response('1'*18000, mimetype='text/plain')
 
-
 @app.route('/redirect/<path:path>', methods=all_methods)
 def page_redirect(path):
     return redirect(path)
