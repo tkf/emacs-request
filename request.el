@@ -394,7 +394,7 @@ Example::
                        (params nil)
                        (data nil)
                        (headers nil)
-                       (encoding 'utf-8)
+                       (encoding 'utf-8-unix)
                        (error nil)
                        (sync nil)
                        (response (make-request-response))
@@ -1171,6 +1171,9 @@ START-URL is the URL requested."
     (request-log 'debug "REQUEST--CURL-CALLBACK buffer = %S" buffer)
     (request-log 'debug "REQUEST--CURL-CALLBACK symbol-status = %S"
                  symbol-status)
+    (request-log 'debug "(buffer-string) =\n%s"
+                 (when (buffer-live-p buffer)
+                   (with-current-buffer buffer (buffer-string))))
     (cond
      ((and (memq (process-status proc) '(exit signal))
            (/= (process-exit-status proc) 0))
