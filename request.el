@@ -1071,7 +1071,7 @@ removed from the buffer before it is shown to the parser function.
     (request-log 'debug "Run: %s" (mapconcat 'identity command " "))
     (setf (request-response--buffer response) buffer)
     (process-put proc :request-response response)
-    (set-process-coding-system proc encoding encoding)
+    (set-process-coding-system proc 'binary encoding)
     (set-process-query-on-exit-flag proc nil)
     (set-process-sentinel proc 'request--curl-callback)
     (when semaphore
@@ -1171,6 +1171,9 @@ START-URL is the URL requested."
     (request-log 'debug "REQUEST--CURL-CALLBACK buffer = %S" buffer)
     (request-log 'debug "REQUEST--CURL-CALLBACK symbol-status = %S"
                  symbol-status)
+    (request-log 'trace "REQUEST--CURL-CALLBACK raw-bytes=\n%s"
+                 (when (buffer-live-p buffer)
+                   (with-current-buffer buffer (buffer-string))))
     (cond
      ((and (memq (process-status proc) '(exit signal))
            (/= (process-exit-status proc) 0))

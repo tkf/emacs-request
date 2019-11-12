@@ -358,6 +358,16 @@ See also:
                (filename . "data.csv")
                (name . "name"))))))
 
+(request-deftest request-post-files/expect-100-header-with-long-body ()
+                 :backends (curl)
+                 (request-testing-with-response-slots
+                  (request-testing-sync
+                   "longtextline"
+                   :type "GET"
+                   :parser 'buffer-string
+                   :headers '(("Expect" . "100-continue")))
+                  (should (equal status-code 200))))
+
 
 ;;; PUT
 

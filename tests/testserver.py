@@ -1,7 +1,7 @@
 import os
 
 from flask import (
-    Flask, request, session, redirect, abort, jsonify)
+    Flask, Response, request, session, redirect, abort, jsonify)
 from werkzeug.http import HTTP_STATUS_CODES
 
 app = Flask(__name__)
@@ -32,6 +32,9 @@ def page_report(path):
         username=session.get('username'),
     ))
 
+@app.route('/longtextline', methods=['GET'])
+def get_longline():
+    return Response('1'*18000, mimetype='text/plain')
 
 @app.route('/redirect/<path:path>', methods=all_methods)
 def page_redirect(path):
