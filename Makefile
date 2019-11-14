@@ -56,8 +56,7 @@ $(CASK_DIR): Cask
 
 .PHONY: compile
 compile: cask
-	! (cask eval "(let ((byte-compile-error-on-warn t)) (cask-cli/build))" 2>&1 | egrep -a "(Warning|Error):")
-	$(CASK) clean-elc
+	! ($(CASK) eval "(let ((byte-compile-error-on-warn t)) (cask-cli/build))" 2>&1 | egrep -a "(Warning|Error):") ; (ret=$$? ; $(CASK) clean-elc && exit $$ret)
 
 .PHONY: clean
 clean:
@@ -98,7 +97,7 @@ dist-clean:
 
 .PHONY: dist
 dist: dist-clean
-	cask package
+	$(CASK) package
 
 .PHONY: install
 install: compile dist

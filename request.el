@@ -198,7 +198,7 @@ FSF holds the copyright of this function:
                (goto-char (point-max))
                (insert msg "\n"))))
          (when (<= level msg-level)
-           (message "REQUEST %s" msg))))))
+           (message "%s" msg))))))
 
 
 ;;; HTTP specific utilities
@@ -231,8 +231,8 @@ for older Emacs versions.")
     (list :version (match-string 1)
           :code (string-to-number (match-string 2)))))
 
-(defun request--goto-next-body ()
-  (re-search-forward "^\r\n"))
+(defun request--goto-next-body (&optional noerror)
+  (re-search-forward "^\r\n" nil noerror))
 
 
 ;;; Response object
@@ -387,7 +387,7 @@ Example::
 (cl-defun request-default-error-callback (url &key symbol-status
                                               &allow-other-keys)
   (request-log 'error
-    "Error (%s) while connecting to %s." symbol-status url))
+    "request-default-error-callback: %s %s" url symbol-status))
 
 (cl-defun request (url &rest settings
                        &key
@@ -550,7 +550,6 @@ and requests.request_ (Python).
 .. _jQuery.ajax: http://api.jquery.com/jQuery.ajax/
 .. _requests.request: http://docs.python-requests.org
 "
-  (request-log 'debug "REQUEST")
   ;; FIXME: support CACHE argument (if possible)
   ;; (unless cache
   ;;   (setq url (request--url-no-cache url)))
@@ -581,31 +580,28 @@ and requests.request_ (Python).
 
 (defun request--clean-header (response)
   "Strip off carriage returns in the header of REQUEST."
-  (request-log 'debug "-CLEAN-HEADER")
-  (let ((buffer       (request-response--buffer      response))
-        (backend      (request-response--backend     response))
-        sep-regexp)
-    (if (eq backend 'url-retrieve)
-        ;; FIXME: make this workaround optional.
-        ;; But it looks like sometimes `url-http-clean-headers'
-        ;; fails to cleanup.  So, let's be bit permissive here...
-        (setq sep-regexp "^\r?$")
-      (setq sep-regexp "^\r$"))
+  (let* ((buffer (request-response--buffer response))
+         (backend (request-response--backend response))
+         ;; FIXME: a workaround when `url-http-clean-headers' fails...
+         (sep-regexp (if (eq backend 'url-retrieve) "^\r?$" "^\r$")))
     (when (buffer-live-p buffer)
       (with-current-buffer buffer
-        (request-log 'trace
-          "(buffer-string) at %S =\n%s" buffer (buffer-string))
         (goto-char (point-min))
         (when (and (re-search-forward sep-regexp nil t)
-                   ;; Are \r characters stripped off already?:
                    (not (equal (match-string 0) "")))
+          (request-log 'trace "request--clean-header: cleaning\n%s"
+                       (buffer-substring (save-excursion
+                                           (forward-line -1)
+                                           (line-beginning-position))
+                                         (save-excursion
+                                           (forward-line 1)
+                                           (line-end-position))))
           (while (re-search-backward "\r$" (point-min) t)
             (replace-match "")))))))
 
 (defun request--cut-header (response)
   "Cut the first header part in the buffer of RESPONSE and move it to
 raw-header slot."
-  (request-log 'debug "-CUT-HEADER")
   (let ((buffer (request-response--buffer response)))
     (when (buffer-live-p buffer)
       (with-current-buffer buffer
@@ -613,6 +609,8 @@ raw-header slot."
         (when (re-search-forward "^$" nil t)
           (setf (request-response--raw-header response)
                 (buffer-substring (point-min) (point)))
+          (request-log 'trace "request--cut-header: cutting\n%s"
+                       (buffer-substring (point-min) (min (1+ (point)) (point-max))))
           (delete-region (point-min) (min (1+ (point)) (point-max))))))))
 
 (defun request-untrampify-filename (file)
@@ -622,21 +620,20 @@ raw-header slot."
 (defun request--parse-data (response parser)
   "Run PARSER in current buffer if ERROR-THROWN is nil,
 then kill the current buffer."
-  (request-log 'debug "-PARSE-DATA")
   (let ((buffer (request-response--buffer response)))
-    (request-log 'debug "parser = %s" parser)
     (when (and (buffer-live-p buffer) parser)
       (with-current-buffer buffer
-        (request-log 'trace
-          "(buffer-string) at %S =\n%s" buffer (buffer-string))
+        (request-log 'trace "request--parse-data: %s" (buffer-string))
         (unless (equal (request-response-status-code response) 204)
           (goto-char (point-min))
           (setf (request-response-data response) (funcall parser)))))))
 
-(cl-defun request--callback (buffer &key parser success error complete status-code response
-                                    &allow-other-keys)
-  (request-log 'debug "REQUEST--CALLBACK")
-  (request-log 'debug "(buffer-string) =\n%s"
+(cl-defun request--callback (buffer
+                             &key
+                             parser success error complete
+                             status-code response
+                             &allow-other-keys)
+  (request-log 'debug "request--callback: UNPARSED\n%s"
                (when (buffer-live-p buffer)
                  (with-current-buffer buffer (buffer-string))))
 
@@ -650,11 +647,6 @@ then kill the current buffer."
        (symbol-status (request-response-symbol-status response))
        (data (request-response-data response))
        (done-p (request-response-done-p response)))
-
-    ;; Parse response header
-    ;; Note: Try to do this even `error-thrown' is set.  For example,
-    ;; timeout error can occur while downloading response body and
-    ;; header is there in that case.
     (let* ((response-url (request-response-url response))
            (scheme (and (stringp response-url)
                         (url-type (url-generic-parse-url response-url))))
@@ -666,26 +658,24 @@ then kill the current buffer."
         (request--clean-header response)
         (request--cut-header response)))
 
-    ;; Parse response body
-    (request-log 'debug "error-thrown = %S" error-thrown)
+    ;; Parse response even if `error-thrown' is set, e.g., timeout
     (condition-case err
         (request--parse-data response parser)
-      (error
-       ;; If there was already an error (e.g. server timeout) do not set the
-       ;; status to `parse-error'.
-       (unless error-thrown
-         (setq symbol-status 'parse-error)
-         (setq error-thrown err)
-         (request-log 'error "Error from parser %S: %S" parser err))))
+      (error (unless error-thrown (setq error-thrown err))
+             (unless symbol-status (setq symbol-status 'parse-error))))
     (kill-buffer buffer)
-    (request-log 'debug "data = %s" data)
 
-    ;; Determine `symbol-status'
-    (unless symbol-status
-      (setq symbol-status (if error-thrown 'error 'success)))
-    (request-log 'debug "symbol-status = %s" symbol-status)
+    ;; Ensuring `symbol-status' and `error-thrown' are consistent
+    ;; is why we should get rid of `symbol-status'
+    ;; (but downstream apps might ill-advisedly rely on it).
+    (if error-thrown
+        (progn
+          (request-log 'error "request--callback: %s"
+                       (error-message-string error-thrown))
+          (unless symbol-status (setq symbol-status 'error)))
+      (unless symbol-status (setq symbol-status 'success))
+      (request-log 'debug "request--callback: PARSED\n%s" data))
 
-    ;; Call callbacks
     (let ((args (list :data data
                       :symbol-status symbol-status
                       :error-thrown error-thrown
@@ -694,17 +684,17 @@ then kill the current buffer."
              (cb (if success-p success error))
              (name (if success-p "success" "error")))
         (when cb
-          (request-log 'debug "Executing %s callback." name)
+          (request-log 'debug "request--callback: executing %s" name)
           (request--safe-apply cb args)))
 
       (let ((cb (cdr (assq (request-response-status-code response)
                            status-code))))
         (when cb
-          (request-log 'debug "Executing status-code callback.")
+          (request-log 'debug "request--callback: executing status-code")
           (request--safe-apply cb args)))
 
       (when complete
-        (request-log 'debug "Executing complete callback.")
+        (request-log 'debug "request--callback: executing complete")
         (request--safe-apply complete args)))
 
     (setq done-p t)
@@ -715,7 +705,6 @@ then kill the current buffer."
     (request--safe-delete-files (request-response--tempfiles response))))
 
 (cl-defun request-response--timeout-callback (response)
-  (request-log 'debug "-TIMEOUT-CALLBACK")
   (setf (request-response-symbol-status response) 'timeout)
   (setf (request-response-error-thrown response)  '(error . ("Timeout")))
   (let* ((buffer (request-response--buffer response))
@@ -737,7 +726,6 @@ then kill the current buffer."
           (setq done-p t))))))
 
 (defun request-response--cancel-timer (response)
-  (request-log 'debug "REQUEST-RESPONSE--CANCEL-TIMER")
   (cl-symbol-macrolet ((timer (request-response--timer response)))
     (when timer
       (cancel-timer timer)
@@ -790,19 +778,13 @@ associated process is exited."
     (request--install-timeout timeout response)
     (setf (request-response--buffer response) buffer)
     (process-put proc :request-response response)
-    (request-log 'debug "Start querying: %s" url)
     (set-process-query-on-exit-flag proc nil)))
 
 (cl-defun request--url-retrieve-callback (status &rest settings
                                                  &key response url
                                                  &allow-other-keys)
-  (request-log 'debug "-URL-RETRIEVE-CALLBACK")
-  (request-log 'debug "status = %S" status)
   (when (featurep 'url-http)
-    (request-log 'debug "url-http-method = %s" url-http-method)
-    (request-log 'debug "url-http-response-status = %s" url-http-response-status)
     (setf (request-response-status-code response) url-http-response-status))
-
   (let ((redirect (plist-get status :redirect)))
     (when redirect
       (setf (request-response-url response) redirect)))
@@ -823,12 +805,10 @@ associated process is exited."
 
   (cl-symbol-macrolet ((error-thrown (request-response-error-thrown response))
                        (status-error (plist-get status :error)))
-    (when (and error-thrown status-error)
-      (request-log 'warn
-        "Error %S thrown already but got another error %S from \
-`url-retrieve'.  Ignoring it..." error-thrown status-error))
-    (unless error-thrown
-      (setq error-thrown status-error)))
+    (when status-error
+      (request-log 'warn "request--url-retrieve-callback: %s" status-error)
+      (unless error-thrown
+        (setq error-thrown status-error))))
 
   (apply #'request--callback (current-buffer) settings))
 
@@ -1024,13 +1004,13 @@ temporary file paths."
   (mapc (lambda (f) (condition-case err
                         (delete-file f)
                       (error (request-log 'error
-                               "Failed delete file %s. Got: %S" f err))))
+                               "request--safe-delete-files: %s %s"
+                               f (error-message-string err)))))
         files))
 
 (defun request--install-timeout (timeout response)
   "Out-of-band trigger after TIMEOUT seconds to prevent hangs."
   (when (numberp timeout)
-    (request-log 'debug "Start timer: timeout=%s sec" timeout)
     (setf (request-response--timer response)
           (run-at-time timeout nil
                        #'request-response--timeout-callback response))))
@@ -1068,10 +1048,9 @@ removed from the buffer before it is shown to the parser function.
                            :response response :encoding encoding settings)))
          (proc (apply #'start-process "request curl" buffer command)))
     (request--install-timeout timeout response)
-    (request-log 'debug "Run: %s" (mapconcat 'identity command " "))
+    (request-log 'debug "request--curl: %s" (mapconcat 'identity command " "))
     (setf (request-response--buffer response) buffer)
     (process-put proc :request-response response)
-    (set-process-coding-system proc 'binary encoding)
     (set-process-query-on-exit-flag proc nil)
     (set-process-sentinel proc 'request--curl-callback)
     (when semaphore
@@ -1105,6 +1084,11 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
   (cl-destructuring-bind (&key code &allow-other-keys)
       (save-excursion (request--parse-response-at-point))
     (when (equal code 100)
+      (request-log 'debug "request--consume-100-continue: consuming\n%s"
+                   (buffer-substring (point)
+                                     (save-excursion
+                                       (request--goto-next-body t)
+                                       (point))))
       (delete-region (point) (progn (request--goto-next-body) (point)))
       ;; FIXME: Does this make sense?  Is it possible to have multiple 100?
       (request--consume-100-continue))))
@@ -1164,14 +1148,9 @@ START-URL is the URL requested."
 (defun request--curl-callback (proc event)
   (let* ((buffer (process-buffer proc))
          (response (process-get proc :request-response))
-         (symbol-status (request-response-symbol-status response))
          (settings (request-response-settings response)))
-    (request-log 'debug "REQUEST--CURL-CALLBACK event = %s" event)
-    (request-log 'debug "REQUEST--CURL-CALLBACK proc = %S" proc)
-    (request-log 'debug "REQUEST--CURL-CALLBACK buffer = %S" buffer)
-    (request-log 'debug "REQUEST--CURL-CALLBACK symbol-status = %S"
-                 symbol-status)
-    (request-log 'trace "REQUEST--CURL-CALLBACK raw-bytes=\n%s"
+    (request-log 'debug "request--curl-callback: event %s" event)
+    (request-log 'trace "request--curl-callback: raw-bytes=\n%s"
                  (when (buffer-live-p buffer)
                    (with-current-buffer buffer (buffer-string))))
     (cond
@@ -1179,7 +1158,7 @@ START-URL is the URL requested."
            (/= (process-exit-status proc) 0))
       (setf (request-response-error-thrown response) (cons 'error event))
       (apply #'request--callback buffer settings))
-     ((equal event "finished\n")
+     ((cl-search "finished" event)
       (cl-destructuring-bind (&key code history error url-effective &allow-other-keys)
           (condition-case err
               (with-current-buffer buffer
