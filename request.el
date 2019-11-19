@@ -75,11 +75,12 @@ List of strings that will be passed to every curl invocation. You can pass
 extra options here, like setting the proxy."
   :type '(repeat string))
 
-(defcustom request-backend (if (executable-find request-curl)
+(defcustom request-backend (if (and (executable-find request-curl)
+				    (not (string-equal system-type "windows-nt")))
                                'curl
                              'url-retrieve)
   "Backend to be used for HTTP request.
-Automatically set to `curl' if curl command is found."
+Automatically set to `curl' on non-Windows systems if curl command is found."
   :type '(choice (const :tag "cURL backend" curl)
                  (const :tag "url-retrieve backend" url-retrieve)))
 
