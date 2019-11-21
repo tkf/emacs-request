@@ -550,6 +550,7 @@ and requests.request_ (Python).
 .. _jQuery.ajax: http://api.jquery.com/jQuery.ajax/
 .. _requests.request: http://docs.python-requests.org
 "
+  (declare (indent defun))
   ;; FIXME: support CACHE argument (if possible)
   ;; (unless cache
   ;;   (setq url (request--url-no-cache url)))
