@@ -49,7 +49,7 @@ if [ ! -d $CASKDIR ] ; then
     git clone https://github.com/cask/cask.git $CASKDIR
 fi
 
-# Install dependencies for cider as descriped in ./Cask
+# Install dependencies for cider as described in ./Cask
 # Effect is identical to "make elpa", but here we can retry
 # in the event of network failures.
 update_elpa_keys

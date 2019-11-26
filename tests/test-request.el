@@ -565,7 +565,7 @@ based backends (e.g., `curl') should avoid this problem."
   (let* ((prefix (expand-file-name "non-existing-" temporary-file-directory))
          (default-directory (file-name-as-directory (make-temp-name prefix))))
     (should-not (file-exists-p default-directory))
-    ;; Should not faile:
+    ;; Should not fail:
     (request-testing-sync "report/some-path" :parser 'json-read)))
 
 
