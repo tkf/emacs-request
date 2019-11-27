@@ -1052,6 +1052,7 @@ removed from the buffer before it is shown to the parser function.
     (request-log 'debug "request--curl: %s" (mapconcat 'identity command " "))
     (setf (request-response--buffer response) buffer)
     (process-put proc :request-response response)
+    (set-process-coding-system proc 'no-conversion 'no-conversion)
     (set-process-query-on-exit-flag proc nil)
     (set-process-sentinel proc 'request--curl-callback)
     (when semaphore
