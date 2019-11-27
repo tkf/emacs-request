@@ -607,13 +607,21 @@ based backends (e.g., `curl') should avoid this problem."
 (ert-deftest request--file-url ()
   "What happens when url is not HTTP."
   (let ((tempfile (request--make-temp-file))
-        (body "hello, world\r\n"))
+        (body "hello, world\r\n")
+        (utf-8-body "hello, world\n")
+        (no-conversion-body "hello, world\r\n"))
     (with-temp-file tempfile
       (insert body))
-    (let ((got (request (format "file://%s" tempfile) :parser #'buffer-string :sync t)))
-      (should (string= body (request-response-data got)))
+    (let ((utf-8-got
+           (request (format "file://%s" tempfile)
+             :parser #'buffer-string :sync t))
+          (no-conversion-got
+           (request (format "file://%s" tempfile)
+             :encoding 'binary :parser #'buffer-string :sync t)))
+      (should (string= utf-8-body (request-response-data utf-8-got)))
+      (should (string= no-conversion-body (request-response-data no-conversion-got)))
       (if (eq request-backend 'curl)
-          (should-not (request-response--raw-header got))))))
+          (should-not (request-response--raw-header utf-8-got))))))
 
 (ert-deftest request--curl-command ()
   "construct curl command"

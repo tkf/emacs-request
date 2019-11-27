@@ -619,13 +619,13 @@ raw-header slot."
   (or (file-remote-p file 'localname) file))
 
 (defun request--parse-data (response encoding parser)
-  "Run PARSER in current buffer if ERROR-THROWN is nil,
-then kill the current buffer."
+  "For buffer held by RESPONSE, first decode via user's ENCODING elective,
+then send to PARSER."
   (let ((buffer (request-response--buffer response)))
-    (when (and (buffer-live-p buffer) parser)
+    (when (buffer-live-p buffer)
       (with-current-buffer buffer
         (request-log 'trace "request--parse-data: %s" (buffer-string))
-        (unless (equal (request-response-status-code response) 204)
+        (unless (eq (request-response-status-code response) 204)
           (recode-region (point-min) (point-max) encoding 'no-conversion)
           (goto-char (point-min))
           (setf (request-response-data response) (funcall parser)))))))
