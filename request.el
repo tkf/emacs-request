@@ -628,8 +628,8 @@ then send to PARSER."
         (unless (eq (request-response-status-code response) 204)
           (recode-region (point-min) (point-max) encoding 'no-conversion)
           (goto-char (point-min))
-          (when parser
-            (setf (request-response-data response) (funcall parser))))))))
+          (setf (request-response-data response)
+                (if parser (funcall parser) (buffer-string))))))))
 
 (cl-defun request--callback (buffer
                              &key
