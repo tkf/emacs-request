@@ -618,21 +618,24 @@ raw-header slot."
   "Return FILE as the local file name."
   (or (file-remote-p file 'localname) file))
 
-(defun request--parse-data (response parser)
-  "Run PARSER in current buffer if ERROR-THROWN is nil,
-then kill the current buffer."
+(defun request--parse-data (response encoding parser)
+  "For buffer held by RESPONSE, first decode via user's ENCODING elective,
+then send to PARSER."
   (let ((buffer (request-response--buffer response)))
-    (when (and (buffer-live-p buffer) parser)
+    (when (buffer-live-p buffer)
       (with-current-buffer buffer
         (request-log 'trace "request--parse-data: %s" (buffer-string))
-        (unless (equal (request-response-status-code response) 204)
+        (unless (eq (request-response-status-code response) 204)
+          (recode-region (point-min) (point-max) encoding 'no-conversion)
           (goto-char (point-min))
-          (setf (request-response-data response) (funcall parser)))))))
+          (when parser
+            (setf (request-response-data response) (funcall parser))))))))
 
 (cl-defun request--callback (buffer
                              &key
                              parser success error complete
                              status-code response
+                             encoding
                              &allow-other-keys)
   (request-log 'debug "request--callback: UNPARSED\n%s"
                (when (buffer-live-p buffer)
@@ -661,7 +664,7 @@ then kill the current buffer."
 
     ;; Parse response even if `error-thrown' is set, e.g., timeout
     (condition-case err
-        (request--parse-data response parser)
+        (request--parse-data response encoding parser)
       (error (unless error-thrown (setq error-thrown err))
              (unless symbol-status (setq symbol-status 'parse-error))))
     (kill-buffer buffer)
