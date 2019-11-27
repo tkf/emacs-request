@@ -1096,7 +1096,7 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
 
 (defun request--consume-200-connection-established ()
   "Remove \"HTTP/* 200 Connection established\" header at the point."
-  (when (looking-at-p "HTTP/1\\.[0-1] 200 Connection established")
+  (when (looking-at-p "HTTP/1\\.[0-1] 200 \\(Connection\\|Tunnel\\) established")
     (delete-region (point) (progn (request--goto-next-body) (point)))))
 
 (defun request--curl-preprocess ()
