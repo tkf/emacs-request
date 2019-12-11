@@ -633,9 +633,9 @@ then send to PARSER."
 
 (defsubst request-url-file-p (url)
   "Return non-nil if URL looks like a file URL."
-  (when-let ((scheme (and (stringp url) (url-type (url-generic-parse-url url)))))
-    (and (stringp scheme)
-         (not (string-match-p "^http" scheme)))))
+  (if-let ((scheme (and (stringp url) (url-type (url-generic-parse-url url)))))
+      (and (stringp scheme)
+           (not (string-match-p "^http" scheme)))))
 
 (cl-defun request--callback (buffer
                              &key
