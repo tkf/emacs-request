@@ -41,11 +41,6 @@
 (unless (fboundp 'string-prefix-p)      ; not defined in Emacs 23.1
   (fset 'string-prefix-p (symbol-function 'request-testing-string-prefix-p)))
 
-(global-auto-revert-mode) ;; see github issue #132
-
-
-;;;
-
 (defvar request-testing-source-dir
   (file-name-directory (or load-file-name (buffer-file-name))))
 

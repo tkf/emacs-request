@@ -47,7 +47,8 @@ test-2-curl:
 	EL_REQUEST_BACKEND=curl $(MAKE) test-1
 
 test-1:
-	EL_REQUEST_NO_CAPTURE_MESSAGE=$(EL_REQUEST_NO_CAPTURE_MESSAGE) EL_REQUEST_MESSAGE_LEVEL=$(EL_REQUEST_MESSAGE_LEVEL) $(CASK) emacs -Q --batch -L . -L tests -l test-request.el -f ert-run-tests-batch-and-exit
+#  global-auto-revert-mode [github #132]
+	EL_REQUEST_NO_CAPTURE_MESSAGE=$(EL_REQUEST_NO_CAPTURE_MESSAGE) EL_REQUEST_MESSAGE_LEVEL=$(EL_REQUEST_MESSAGE_LEVEL) $(CASK) emacs -Q --batch -L . -L tests -l test-request.el --eval "(global-auto-revert-mode)" -f ert-run-tests-batch-and-exit
 
 .PHONY: cask
 cask: $(CASK_DIR)
