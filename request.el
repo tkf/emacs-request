@@ -50,8 +50,6 @@
 (require 'mail-utils)
 (require 'autorevert)
 (require 'auth-source)
-(require 'url-parse)
-
 
 (defgroup request nil
   "Compatible layer for URL request in Emacs."
@@ -902,42 +900,6 @@ Currently it is used only for testing.")
   (ignore-errors
     (make-directory (file-name-directory (request--curl-cookie-jar)) t)))
 
-(defun request--auth (auth url)
-  "Return list of command line arguments for curl authentication.
-AUTH must be a plist that contains at least :user. It may also
-contain :type and :password. If :password is not provided, the
-host and port are extracted from the URL. The user, host, and
-port are used to ask `auth-source' for the password. If a
-password is found, the :type is used to construct the
-authentication type for curl (`--digest', `--basic', or the
-default `--anyauth') and the user and password are passed
-as the `--user' option."
-  (if auth
-      (let ((type (concat "--" (or (plist-get auth :type) "anyauth")))
-            (user (plist-get auth :user))
-            (pass (plist-get auth :password)))
-        (cl-assert user t "At least a :user is required for :auth")
-        (cond
-         ((and user pass)
-          (list type "--user" (concat user ":" pass)))
-         (t
-          (let* ((urlobj (url-generic-parse-url url))
-                 (host (url-host urlobj))
-                 (port (url-port urlobj))
-                 (cred (car (auth-source-search
-                             :host host :port port :user user :max 1))))
-            (cl-assert
-             cred t
-             (format "Failed to find credential for %s" user))
-            (cl-assert
-             (plist-get cred :secret) t
-             (format "Auth-source did not provide password for %s" user))
-            (let* ((secret (plist-get cred :secret))
-                   (pass (if (functionp secret)
-                             (funcall secret)
-                           secret)))
-              (list type "--user" (concat user ":" pass)))))))))
-
 (cl-defun request--curl-command
     (url &key type data headers response files* unix-socket encoding auth
          &allow-other-keys
@@ -948,7 +910,20 @@ as the `--user' option."
    (list request-curl
          "--silent" "--location"
          "--cookie" cookie-jar "--cookie-jar" cookie-jar)
-   (request--auth auth url)
+   (when auth
+     (let* ((host (url-host (url-generic-parse-url url)))
+            (auth-source-do-cache nil)
+            (auth-source-creation-prompts '((user . (format "%s user: " host))
+                                            (secret . "Password for %u: ")))
+            (cred (car (auth-source-search
+                        :host host :require '(:user :secret) :create t :max 1))))
+       (split-string (format "--%s --user %s:%s"
+                             auth
+                             (plist-get cred :user)
+                             (let ((secret (plist-get cred :secret)))
+                               (if (functionp secret)
+                                   (funcall secret)
+                                 secret))))))
    (unless (request-url-file-p url)
      (list "--include" "--write-out" request--curl-write-out-template))
    request-curl-options
@@ -1060,6 +1035,14 @@ temporary file paths."
           (run-at-time timeout nil
                        #'request-response--timeout-callback response))))
 
+(defun request--curl-occlude-secret (command)
+  "Simple regex filter on anything looking like a secret."
+  (if-let ((matched
+            (string-match (concat (regexp-quote "--user") "\\s-*\\(\\S-+\\)")
+                          command)))
+      (replace-match "elided" nil nil command 1)
+    command))
+
 (cl-defun request--curl (url &rest settings
                              &key files timeout response encoding semaphore
                              &allow-other-keys)
@@ -1093,7 +1076,8 @@ removed from the buffer before it is shown to the parser function.
                            :response response :encoding encoding settings)))
          (proc (apply #'start-process "request curl" buffer command)))
     (request--install-timeout timeout response)
-    (request-log 'debug "request--curl: %s" (mapconcat 'identity command " "))
+    (request-log 'debug "request--curl: %s"
+                 (request--curl-occlude-secret (mapconcat 'identity command " ")))
     (setf (request-response--buffer response) buffer)
     (process-put proc :request-response response)
     (set-process-coding-system proc 'no-conversion 'no-conversion)
@@ -1177,7 +1161,7 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
 START-URL is the URL requested."
   (cl-loop for prev-url = start-url then url
            for url in redirects
-           unless (and url (string-match url-nonrelative-link url))
+           unless (string-match url-nonrelative-link url)
            do (setq url (url-expand-file-name url prev-url))
            collect url))
 
