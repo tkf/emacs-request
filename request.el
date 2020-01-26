@@ -1176,7 +1176,7 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
 START-URL is the URL requested."
   (cl-loop for prev-url = start-url then url
            for url in redirects
-           unless (string-match url-nonrelative-link url)
+           unless (and url (string-match url-nonrelative-link url))
            do (setq url (url-expand-file-name url prev-url))
            collect url))
 
