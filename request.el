@@ -49,6 +49,8 @@
 (require 'url)
 (require 'mail-utils)
 (require 'autorevert)
+(require 'auth-source)
+(require 'url-parse)
 
 
 (defgroup request nil
@@ -900,8 +902,43 @@ Currently it is used only for testing.")
   (ignore-errors
     (make-directory (file-name-directory (request--curl-cookie-jar)) t)))
 
+(defun request--auth (auth url)
+  "Return list of command line arguments for curl authentication.
+AUTH must be a plist that contains at least :user. It may also
+contain :type and :password. If :password is not provided, the
+host and port are extracted from the URL. The user, host, and
+port are used to ask `auth-source' for the password. If a
+password is found, the :type is used to construct the
+authentication type for curl (`--digest', `--basic', or the
+default `--anyauth') and the user and password are passed
+as the `--user' option."
+  (let ((type (concat "--" (or (plist-get auth :type) "anyauth")))
+        (user (plist-get auth :user))
+        (pass (plist-get auth :password)))
+    (cl-assert user t "At least a :user is required for :auth")
+    (cond
+     ((and user pass)
+      (list type "--user" (concat user ":" pass)))
+     (t
+      (let* ((urlobj (url-generic-parse-url url))
+             (host (url-host urlobj))
+             (port (url-port urlobj))
+             (cred (car (auth-source-search
+                         :host host :port port :user user :max 1))))
+        (cl-assert
+         cred t
+         (format "Failed to find credential for %s" user))
+        (cl-assert
+         (plist-get cred :secret) t
+         (format "Auth-source did not provide password for %s" user))
+        (let* ((secret (plist-get cred :secret))
+               (pass (if (functionp secret)
+                         (funcall secret)
+                       secret)))
+          (list type "--user" (concat user ":" pass))))))))
+
 (cl-defun request--curl-command
-    (url &key type data headers response files* unix-socket encoding
+    (url &key type data headers response files* unix-socket encoding auth
          &allow-other-keys
          &aux (cookie-jar (convert-standard-filename
                            (expand-file-name (request--curl-cookie-jar)))))
@@ -910,6 +947,7 @@ Currently it is used only for testing.")
    (list request-curl
          "--silent" "--location"
          "--cookie" cookie-jar "--cookie-jar" cookie-jar)
+   (request--auth auth url)
    (unless (request-url-file-p url)
      (list "--include" "--write-out" request--curl-write-out-template))
    request-curl-options
