@@ -912,30 +912,31 @@ password is found, the :type is used to construct the
 authentication type for curl (`--digest', `--basic', or the
 default `--anyauth') and the user and password are passed
 as the `--user' option."
-  (let ((type (concat "--" (or (plist-get auth :type) "anyauth")))
-        (user (plist-get auth :user))
-        (pass (plist-get auth :password)))
-    (cl-assert user t "At least a :user is required for :auth")
-    (cond
-     ((and user pass)
-      (list type "--user" (concat user ":" pass)))
-     (t
-      (let* ((urlobj (url-generic-parse-url url))
-             (host (url-host urlobj))
-             (port (url-port urlobj))
-             (cred (car (auth-source-search
-                         :host host :port port :user user :max 1))))
-        (cl-assert
-         cred t
-         (format "Failed to find credential for %s" user))
-        (cl-assert
-         (plist-get cred :secret) t
-         (format "Auth-source did not provide password for %s" user))
-        (let* ((secret (plist-get cred :secret))
-               (pass (if (functionp secret)
-                         (funcall secret)
-                       secret)))
-          (list type "--user" (concat user ":" pass))))))))
+  (if auth
+      (let ((type (concat "--" (or (plist-get auth :type) "anyauth")))
+            (user (plist-get auth :user))
+            (pass (plist-get auth :password)))
+        (cl-assert user t "At least a :user is required for :auth")
+        (cond
+         ((and user pass)
+          (list type "--user" (concat user ":" pass)))
+         (t
+          (let* ((urlobj (url-generic-parse-url url))
+                 (host (url-host urlobj))
+                 (port (url-port urlobj))
+                 (cred (car (auth-source-search
+                             :host host :port port :user user :max 1))))
+            (cl-assert
+             cred t
+             (format "Failed to find credential for %s" user))
+            (cl-assert
+             (plist-get cred :secret) t
+             (format "Auth-source did not provide password for %s" user))
+            (let* ((secret (plist-get cred :secret))
+                   (pass (if (functionp secret)
+                             (funcall secret)
+                           secret)))
+              (list type "--user" (concat user ":" pass)))))))))
 
 (cl-defun request--curl-command
     (url &key type data headers response files* unix-socket encoding auth
