@@ -912,8 +912,7 @@ Currently it is used only for testing.")
          "--cookie" cookie-jar "--cookie-jar" cookie-jar)
    (when auth
      (let* ((host (url-host (url-generic-parse-url url)))
-            (auth-source-do-cache nil)
-            (auth-source-creation-prompts '((user . (format "%s user: " host))
+            (auth-source-creation-prompts `((user . ,(format "%s user: " host))
                                             (secret . "Password for %u: ")))
             (cred (car (auth-source-search
                         :host host :require '(:user :secret) :create t :max 1))))
@@ -1037,11 +1036,11 @@ temporary file paths."
 
 (defun request--curl-occlude-secret (command)
   "Simple regex filter on anything looking like a secret."
-  (if-let ((matched
-            (string-match (concat (regexp-quote "--user") "\\s-*\\(\\S-+\\)")
-                          command)))
-      (replace-match "elided" nil nil command 1)
-    command))
+  (let ((matched
+         (string-match (concat (regexp-quote "--user") "\\s-*\\(\\S-+\\)") command)))
+    (if matched
+        (replace-match "elided" nil nil command 1)
+      command)))
 
 (cl-defun request--curl (url &rest settings
                              &key files timeout response encoding semaphore
@@ -1173,7 +1172,8 @@ START-URL is the URL requested."
   (cl-loop for url in (request--curl-absolutify-redirects
                        start-url
                        (mapcar (lambda (response)
-                                 (request-response-header response "location"))
+                                 (or (request-response-header response "location")
+                                     (request-response-url response)))
                                history))
            for response in (cdr history)
            do (setf (request-response-url response) url)))

@@ -836,12 +836,11 @@ RESPONSE-BODY"))
   (request-testing-with-response-slots
       (cl-letf (((symbol-function 'auth-source-search)
                  (lambda (&rest _args) '((:user "daniel" :secret (lambda () "secret")) nil))))
-        (let* ((request-log-level 'debug))
-          (request-testing-sync "report/some-path"
-                                :auth "digest")
+        (let ((request-log-level 'debug))
+          (request-testing-sync "report/some-path" :auth "digest")
           (with-current-buffer request-log-buffer-name
             (save-excursion
-              (search-backward "request--curl:")
+              (should (search-backward "request--curl:" nil t))
               (should (search-forward "--user elided" nil t))))))))
 
 (ert-deftest request-abort-killed-buffer ()
