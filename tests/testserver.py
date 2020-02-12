@@ -38,7 +38,7 @@ def get_longline():
 
 @app.route('/redirect/<path:path>', methods=all_methods)
 def page_redirect(path):
-    return redirect(path)
+    return redirect('/' + path)
 
 
 @app.route('/broken_redirect/<path:path>', methods=all_methods)
