@@ -64,7 +64,7 @@ def page_code(code):
 def page_sleep(sleep):
     import time
     time.sleep(sleep)
-    return redirect('report/from-sleep')
+    return redirect('/report/from-sleep')
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -78,20 +78,20 @@ def page_login():
             error = 'Invalid password'
         else:
             session['username'] = username
-            return redirect('report/from-login')
+            return redirect('/report/from-login')
     return error
 
 
 @app.route('/logout')
 def page_logout():
     session.pop('username', None)
-    return redirect('report/from-logout')
+    return redirect('/report/from-logout')
 
 
 @app.route('/cookies/set')
 def page_set_cookies():
     # see: http://flask.pocoo.org/docs/quickstart/#cookies
-    resp = redirect('report/from-cookies')
+    resp = redirect('/report/from-cookies')
     for (name, value) in request.args.items():
         resp.set_cookie(name, value)
     return resp
