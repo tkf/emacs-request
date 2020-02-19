@@ -19,6 +19,8 @@ TRAVIS_PULL_REQUEST_SHA := $(shell git rev-parse origin/$(TRAVIS_PULL_REQUEST_BR
 endif
 endif
 
+TESTSSRC = $(shell ls tests/*.el)
+ELCTESTS = $(TESTSSRC:.el=.elc)
 .DEFAULT_GOAL := compile
 
 .PHONY: test
@@ -57,6 +59,9 @@ $(CASK_DIR): Cask
 
 .PHONY: compile
 compile: cask
+	! ($(CASK) eval \
+	      "(cl-letf (((symbol-function (quote cask-files)) (lambda (&rest _args) (mapcar (function symbol-name) (quote ($(TESTSSRC))))))) \
+	          (let ((byte-compile-error-on-warn t)) (cask-cli/build)))" 2>&1 | egrep -a "(Warning|Error):") ; (ret=$$? ; rm -f $(ELCTESTS) && exit $$ret)
 	! ($(CASK) eval "(let ((byte-compile-error-on-warn t)) (cask-cli/build))" 2>&1 | egrep -a "(Warning|Error):") ; (ret=$$? ; $(CASK) clean-elc && exit $$ret)
 
 .PHONY: clean
