@@ -138,7 +138,7 @@ The symbols other than `response' is bound using `cl-symbol-macrolet'."
                 :catch
                 (lambda (x) (setq err x)))))))
     (cond (timeout (error "request-testing-sync: %s timed out" testing-url))
-          (err (error "request-testing-sync: %s %s") testing-url err)
+          (err (error "request-testing-sync: %s %s" testing-url err))
           (t result))))
 
 (defun request-testing-sort-alist (alist)
