@@ -946,12 +946,14 @@ Currently it is used only for testing.")
               (default-value 'buffer-file-coding-system))
              (select-safe-coding-system-accept-default-p
               (lambda (&rest _) t)))
-         (setf (default-value 'buffer-file-coding-system) 'no-conversion)
-         (with-temp-file tempfile
-           (setq-local buffer-file-coding-system encoding)
-           (insert data))
-         (setf (default-value 'buffer-file-coding-system)
-               buffer-file-coding-system-orig))
+         (unwind-protect
+             (progn
+               (setf (default-value 'buffer-file-coding-system) 'no-conversion)
+               (with-temp-file tempfile
+                 (setq-local buffer-file-coding-system encoding)
+                 (insert data)))
+           (setf (default-value 'buffer-file-coding-system)
+                 buffer-file-coding-system-orig)))
        (list "--data-binary" (concat  "@" (request-untrampify-filename tempfile)))))
    (when type (list "--request" type))
    (cl-loop for (k . v) in headers
