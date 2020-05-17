@@ -779,7 +779,7 @@ associated process is exited."
          (url-request-method type)
          (url-request-data data)
          (buffer (url-retrieve url #'request--url-retrieve-callback
-                               (nconc (list :response response) settings)))
+                               (nconc (list :response response) settings) t))
          (proc (get-buffer-process buffer)))
     (request--install-timeout timeout response)
     (setf (request-response--buffer response) buffer)
@@ -834,8 +834,8 @@ associated process is exited."
                                 'timeout)
                           (setf (request-response-done-p response) t)
                           nil)
-                       (url-retrieve-synchronously url))
-                   (url-retrieve-synchronously url))))
+                       (url-retrieve-synchronously url t))
+                   (url-retrieve-synchronously url t))))
     (setf (request-response--buffer response) buffer)
     ;; It seems there is no way to get redirects and URL here...
     (when buffer
