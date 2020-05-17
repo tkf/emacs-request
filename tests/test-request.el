@@ -265,11 +265,22 @@ See also:
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "POST"))
     (should (= (length (assoc-default 'files data)) 1))
-    (should (equal
-             (request-testing-sort-alist (elt (assoc-default 'files data) 0))
-             '((data . "BUFFER CONTENTS")
-               (filename . " *request-test-temp*")
-               (name . "name"))))))
+    ;; tornado appears to have started stripping spaces
+    (let ((normalized (request-testing-sort-alist
+		       (elt (assoc-default 'files data) 0))))
+      ;; Eager macroexpansion under emacs24 disallows even mentioning this
+      ;; (setf (alist-get 'filename normalized)
+      ;; 	    (string-trim (alist-get 'filename normalized)))
+      (setq normalized
+	    (let (result)
+	      (dolist (pair normalized (nreverse result))
+		(setcdr pair (string-trim (cdr pair)))
+		(push pair result))))
+      (should (equal
+	       normalized
+	       '((data . "BUFFER CONTENTS")
+		 (filename . "*request-test-temp*")
+		 (name . "name")))))))
 
 (request-deftest request-post-files/simple-file ()
   :backends (curl)
