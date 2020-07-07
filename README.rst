@@ -62,6 +62,17 @@ Block until completion:
              (lambda (&key response &allow-other-keys)
                (message "Done: %s" (request-response-status-code response)))))
 
+Curl authentication:
+
+.. code:: emacs-lisp
+
+  (request
+   "http://httpbin.org/get"
+   :auth "digest" ;; or "basic", "anyauth", etc., which see curl(1)
+   :complete (cl-function
+              (lambda (&key response &allow-other-keys)
+                (message "Done: %s" (request-response-status-code response)))))
+
 Request binary data:
 
 .. code:: emacs-lisp
@@ -70,8 +81,8 @@ Request binary data:
    "http://httpbin.org/get"
    :encoding 'binary
    :complete (cl-function
-             (lambda (&key response &allow-other-keys)
-               (message "Done: %s" (request-response-status-code response)))))
+              (lambda (&key response &allow-other-keys)
+                (message "Done: %s" (request-response-status-code response)))))
 
 POST file (**WARNING**: it will send the contents of the current buffer!):
 
