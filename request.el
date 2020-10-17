@@ -955,7 +955,9 @@ Currently it is used only for testing.")
            (setf (default-value 'buffer-file-coding-system)
                  buffer-file-coding-system-orig)))
        (list "--data-binary" (concat  "@" (request-untrampify-filename tempfile)))))
-   (when type (list "--request" type))
+   (when type (if (equal "head" (downcase type))
+		  (list "--head")
+		(list "--request" type)))
    (cl-loop for (k . v) in headers
             collect "--header"
             collect (format "%s: %s" k v))
