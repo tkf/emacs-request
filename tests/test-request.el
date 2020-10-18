@@ -488,11 +488,13 @@ To check that, run test with:
 (request-deftest request-simple-head ()
   (request-testing-with-response-slots
    (request-testing-sync "longtextline"
-                            :type "HEAD"
-                            :parser 'buffer-string)
-    (should done-p)
-    (should (equal status-code 200))
-    (should (string= "" data))))
+                         :type "HEAD"
+                         :parser 'buffer-string)
+   (should done-p)
+   (should (equal status-code 200))
+   (should (string= "" data))
+   (let ((server (request-response-header response "server")))
+     (should (string-prefix-p request-testing-server-name (downcase server))))))
 
 
 ;;; Parse error
