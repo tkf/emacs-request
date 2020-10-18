@@ -483,6 +483,18 @@ To check that, run test with:
       (should response))))
 
 
+;;; HEAD
+
+(request-deftest request-simple-head ()
+  (request-testing-with-response-slots
+   (request-testing-sync "longtextline"
+                            :type "HEAD"
+                            :parser 'buffer-string)
+    (should done-p)
+    (should (equal status-code 200))
+    (should (string= "" data))))
+
+
 ;;; Parse error
 
 (request-deftest request-parse-error-simple ()
