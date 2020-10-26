@@ -44,6 +44,14 @@
   (when (and no-capture (not (equal no-capture "")))
     (setq request-testing-capture-message nil)))
 
+(defvar request-testing-server-name
+  (let ((server (getenv "EL_REQUEST_TEST_SERVER")))
+    (if (member server '(nil "" "flask"))
+        "werkzeug"
+      server)))
+
+(message "Using test server: %s" request-testing-server-name)
+
 ;; Quick snippets for interactive testing:
 ;;   (setq request-backend 'curl)
 ;;   (setq request-backend 'url-retrieve)
@@ -595,14 +603,6 @@ based backends (e.g., `curl') should avoid this problem."
 
 
 ;;; Testing framework
-
-(defvar request-testing-server-name
-  (let ((server (getenv "EL_REQUEST_TEST_SERVER")))
-    (if (member server '(nil "" "flask"))
-        "werkzeug"
-      server)))
-
-(message "Using test server: %s" request-testing-server-name)
 
 (request-deftest request-tfw-server ()
   (let* ((response (request-testing-sync "report/some-path"))
