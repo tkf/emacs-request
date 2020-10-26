@@ -132,7 +132,7 @@ The symbols other than `response' is bound using `cl-symbol-macrolet'."
           (deferred:sync!
             (deferred:timeout
               request-testing-timeout
-              (setq timeout t)
+              (progn (ignore x) (setq timeout t))
               (deferred:try
                 (apply #'request-deferred testing-url args)
                 :catch

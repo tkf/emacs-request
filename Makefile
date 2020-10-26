@@ -24,7 +24,7 @@ ELCTESTS = $(TESTSSRC:.el=.elc)
 .DEFAULT_GOAL := compile
 
 .PHONY: test
-test: cask test-3
+test: cask compile test-3
 
 .PHONY: test-3
 test-3: test-3-tornado test-3-flask
