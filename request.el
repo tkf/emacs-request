@@ -1218,13 +1218,13 @@ START-URL is the URL requested."
                    auto-revert--buffers-by-watch-descriptor
                  (when (boundp 'auto-revert-notify-watch-descriptor-hash-list)
                    auto-revert-notify-watch-descriptor-hash-list))))
-    (when desc
+    (when (and desc table)
       (let ((buffers (delq (current-buffer) (gethash desc table))))
         (if buffers
             (puthash desc buffers table)
           (remhash desc table)))
       (condition-case nil ;; ignore-errors doesn't work for me, sorry
-	(file-notify-rm-watch desc)
+	  (file-notify-rm-watch desc)
         (error))
       (remove-hook 'kill-buffer-hook #'auto-revert-notify-rm-watch t)))
   (setq auto-revert-notify-watch-descriptor nil
