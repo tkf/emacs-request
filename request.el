@@ -58,6 +58,8 @@
 
 (defconst request-version "0.3.0")
 
+(defconst request--curl-form-stdin "--data-binary @-")
+
 
 ;;; Customize variables
 
@@ -901,7 +903,7 @@ Currently it is used only for testing.")
     (make-directory (file-name-directory (request--curl-cookie-jar)) t)))
 
 (cl-defun request--curl-command
-    (url &key type data headers response files* unix-socket encoding auth
+    (url &key type data headers files* unix-socket auth
          &allow-other-keys
          &aux (cookie-jar (convert-standard-filename
                            (expand-file-name (request--curl-cookie-jar)))))
@@ -936,25 +938,7 @@ Currently it is used only for testing.")
                                 (format ";type=%s" mime-type)
                               "")))
    (when data
-     (let ((tempfile (request--make-temp-file)))
-       (push tempfile (request-response--tempfiles response))
-       ;; We dynamic-let the global `buffer-file-coding-system' to `no-conversion'
-       ;; in case the user-configured `encoding' doesn't fly.
-       ;; If we do not dynamic-let the global, `select-safe-coding-system' would
-       ;; plunge us into an undesirable interactive dialogue.
-       (let ((buffer-file-coding-system-orig
-              (default-value 'buffer-file-coding-system))
-             (select-safe-coding-system-accept-default-p
-              (lambda (&rest _) t)))
-         (unwind-protect
-             (progn
-               (setf (default-value 'buffer-file-coding-system) 'no-conversion)
-               (with-temp-file tempfile
-                 (setq-local buffer-file-coding-system encoding)
-                 (insert data)))
-           (setf (default-value 'buffer-file-coding-system)
-                 buffer-file-coding-system-orig)))
-       (list "--data-binary" (concat  "@" (request-untrampify-filename tempfile)))))
+     (split-string request--curl-form-stdin))
    (when type (if (equal "head" (downcase type))
 		  (list "--head")
 		(list "--request" type)))
@@ -1047,7 +1031,7 @@ temporary file paths."
       command)))
 
 (cl-defun request--curl (url &rest settings
-                             &key files timeout response encoding semaphore
+                             &key data files timeout response encoding semaphore
                              &allow-other-keys)
   "cURL-based request backend.
 
@@ -1077,14 +1061,34 @@ removed from the buffer before it is shown to the parser function.
                     (setf (request-response--tempfiles response) tempfiles)
                     (apply #'request--curl-command url :files* files*
                            :response response :encoding encoding settings)))
-         (proc (apply #'start-process "request curl" buffer command)))
+         (proc (apply #'start-process "request curl" buffer command))
+         (scommand (mapconcat 'identity command " ")))
     (request--install-timeout timeout response)
     (request-log 'debug "request--curl: %s"
-                 (request--curl-occlude-secret (mapconcat 'identity command " ")))
+                 (request--curl-occlude-secret scommand))
     (setf (request-response--buffer response) buffer)
     (process-put proc :request-response response)
     (set-process-coding-system proc 'no-conversion 'no-conversion)
     (set-process-query-on-exit-flag proc nil)
+    (when (and data (cl-search request--curl-form-stdin scommand))
+      ;; We dynamic-let the global `buffer-file-coding-system' to `no-conversion'
+      ;; in case the user-configured `encoding' doesn't fly.
+      ;; If we do not dynamic-let the global, `select-safe-coding-system' would
+      ;; plunge us into an undesirable interactive dialogue.
+      (let ((buffer-file-coding-system-orig
+             (default-value 'buffer-file-coding-system))
+            (select-safe-coding-system-accept-default-p
+             (lambda (&rest _) t)))
+        (unwind-protect
+            (progn
+              (setf (default-value 'buffer-file-coding-system) 'no-conversion)
+              (with-temp-buffer
+                (setq-local buffer-file-coding-system encoding)
+                (save-excursion (insert data))
+                (process-send-region proc (point-min) (point-max))
+                (process-send-eof proc)))
+          (setf (default-value 'buffer-file-coding-system)
+                buffer-file-coding-system-orig))))
     (let ((callback-2 (apply-partially #'request--curl-callback url)))
       (if semaphore
           (set-process-sentinel proc (lambda (&rest args)
