@@ -67,10 +67,14 @@ install: compile dist
 	$(EMACS) -Q --batch --eval "(package-initialize)" \
 	  --eval "(package-install-file \"dist/request-$(shell $(CASK) version).tar\")"
 
-define SET_GITHUB_REPOSITORY =
-ifeq ($(GITHUB_REPOSITORY),)
-	GITHUB_REPOSITORY := $(shell git config user.name)/$(shell basename `git rev-parse --show-toplevel`)
+define SET_GITHUB_ACTOR =
+ifeq ($(GITHUB_ACTOR),)
+GITHUB_ACTOR := $(shell git config user.name)
 endif
+endef
+
+define SET_GITHUB_ACTOR_REPOSITORY =
+GITHUB_ACTOR_REPOSITORY := $(GITHUB_ACTOR)/$(shell basename `git rev-parse --show-toplevel`)
 endef
 
 define SET_GITHUB_HEAD_REF =
@@ -91,7 +95,8 @@ endef
 
 .PHONY: test-install-vars
 test-install-vars:
-	$(eval $(call SET_GITHUB_REPOSITORY))
+	$(eval $(call SET_GITHUB_ACTOR))
+	$(eval $(call SET_GITHUB_ACTOR_REPOSITORY))
 	$(eval $(call SET_GITHUB_HEAD_REF))
 	$(eval $(call SET_GITHUB_SHA))
 	$(eval $(call SET_GITHUB_COMMIT))
@@ -118,7 +123,7 @@ test-install: test-install-vars
 	--eval "(setq rcp (package-recipe-lookup \"request\"))" \
 	--eval "(unless (file-exists-p package-build-archive-dir) \
 	           (make-directory package-build-archive-dir))" \
-	--eval "(let* ((my-repo \"$(GITHUB_REPOSITORY)\") \
+	--eval "(let* ((my-repo \"$(GITHUB_ACTOR_REPOSITORY)\") \
 	               (my-branch \"$(GITHUB_HEAD_REF)\") \
 	               (my-commit \"$(GITHUB_COMMIT)\")) \
 	           (oset rcp :repo my-repo) \
