@@ -43,7 +43,7 @@ POST:
   (request "http://httpbin.org/post"
     :type "POST"
     :data '(("key" . "value") ("key2" . "value2"))
-    ;; :data "key=value&key2=value2"  ; this is equivalent
+    ;; :data "key=value&key2=value2"  ;; this is equivalent
     :parser 'json-read
     :success (cl-function
               (lambda (&key data &allow-other-keys)
@@ -63,8 +63,7 @@ Curl authentication:
 
 .. code:: emacs-lisp
 
-  (request
-   "http://httpbin.org/get"
+  (request "http://httpbin.org/get"
    :auth "digest" ;; or "basic", "anyauth", etc., which see curl(1)
    :complete (cl-function
               (lambda (&key response &allow-other-keys)
@@ -96,9 +95,9 @@ Rich callback dispatch (like `jQuery.ajax`):
 
 .. code:: emacs-lisp
 
-  (request "http://httpbin.org/status/418"     ; try other codes, for example:
-    ;; "http://httpbin.org/status/200"  ; success callback will be called.
-    ;; "http://httpbin.org/status/400"  ; you will see "Got 400."
+  (request "http://httpbin.org/status/418"
+    ;; "http://httpbin.org/status/200"  ;; success callback will be called.
+    ;; "http://httpbin.org/status/400"  ;; you will see "Got 400."
     :parser 'buffer-string
     :success
     (cl-function (lambda (&key data &allow-other-keys)
@@ -198,9 +197,8 @@ Legacy documentation
 * `Github Pages <http://tkf.github.com/emacs-request/>`
 
 .. |build-status|
-   image:: https://secure.travis-ci.org/tkf/emacs-request.svg
-           ?branch=master
-   :target: http://travis-ci.org/tkf/emacs-request
+   image:: https://github.com/tkf/emacs-request/workflows/CI/badge.svg
+   :target: https://github.com/tkf/emacs-request/actions
    :alt: Build Status
 .. |melpa-badge|
    image:: http://melpa.org/packages/request-badge.svg
