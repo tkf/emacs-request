@@ -96,8 +96,11 @@ jobs:
         sh tools/install-cask.sh
         cask link list
 
+    - name: test-install
+      if: startsWith(runner.os, 'Linux')
+      run: make test-install
+      continue-on-error: ${{ matrix.emacs_version == 'snapshot' }}
+
     - name: test
-      run: |
-        make test-install
-        make test
+      run: make test
       continue-on-error: ${{ matrix.emacs_version == 'snapshot' }}

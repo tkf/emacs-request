@@ -81,8 +81,12 @@ endef
 
 define SET_GITHUB_SHA =
 ifeq ($(GITHUB_SHA),)
-GITHUB_SHA := $(shell if git show-ref --quiet --verify origin/$(GITHUB_HEAD_REF) ; then git rev-parse origin/$(GITHUB_HEAD_REF) ; fi)
+GITHUB_SHA := $(shell git rev-parse HEAD)
 endif
+endef
+
+define SET_GITHUB_COMMIT =
+GITHUB_COMMIT := $(shell if git show -s --format=%s "${GITHUB_SHA}" | egrep -q "^Merge .* into" ; then git show -s --format=%s "${GITHUB_SHA}" | cut -d " " -f2 ; else echo "${GITHUB_SHA}" ; fi)
 endef
 
 .PHONY: test-install-vars
@@ -90,6 +94,9 @@ test-install-vars:
 	$(eval $(call SET_GITHUB_REPOSITORY))
 	$(eval $(call SET_GITHUB_HEAD_REF))
 	$(eval $(call SET_GITHUB_SHA))
+	$(eval $(call SET_GITHUB_COMMIT))
+	git show -s --format=%s $(GITHUB_COMMIT)
+	git show -s --format=%s $(GITHUB_SHA)
 	@true
 
 .PHONY: test-install
@@ -113,7 +120,7 @@ test-install: test-install-vars
 	           (make-directory package-build-archive-dir))" \
 	--eval "(let* ((my-repo \"$(GITHUB_REPOSITORY)\") \
 	               (my-branch \"$(GITHUB_HEAD_REF)\") \
-	               (my-commit \"$(GITHUB_SHA)\")) \
+	               (my-commit \"$(GITHUB_COMMIT)\")) \
 	           (oset rcp :repo my-repo) \
 	           (oset rcp :branch my-branch) \
 	           (oset rcp :commit my-commit))" \
