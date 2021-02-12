@@ -91,8 +91,7 @@ POST file (**WARNING**: it will send the contents of the current buffer!):
   (request
    "http://httpbin.org/post"
    :type "POST"
-   :files `(("current buffer" . ,(current-buffer))
-            ("data" . ("data.csv" :data "1,2,3\n4,5,6\n")))
+   :files `(("current buffer" . ,(current-buffer)))
    :parser 'json-read
    :success (cl-function
              (lambda (&key data &allow-other-keys)

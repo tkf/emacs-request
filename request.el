@@ -993,7 +993,6 @@ removed from the buffer before it is shown to the parser function.
          (buffer (generate-new-buffer " *request curl*"))
          (command (apply #'request--curl-command url settings))
          (proc (apply #'start-process "request curl" buffer command))
-         (scommand (mapconcat 'identity command " "))
          (file-items (mapcar #'cdr files))
          (file-buffer (or (cl-some (lambda (item)
                                      (when (bufferp item) item))
@@ -1008,7 +1007,7 @@ removed from the buffer before it is shown to the parser function.
                              file-items)))
     (request--install-timeout timeout response)
     (request-log 'debug "request--curl: %s"
-                 (request--curl-occlude-secret scommand))
+                 (request--curl-occlude-secret (mapconcat 'identity command " ")))
     (setf (request-response--buffer response) buffer)
     (process-put proc :request-response response)
     (set-process-coding-system proc 'no-conversion 'no-conversion)
