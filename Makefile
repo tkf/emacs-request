@@ -3,22 +3,6 @@ export EMACS ?= $(shell which emacs)
 export CASK_DIR := $(shell EMACS=$(EMACS) $(CASK) package-directory)
 
 PKBUILD=2.3
-ifeq ($(TRAVIS_PULL_REQUEST_BRANCH),)
-TRAVIS_PULL_REQUEST_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
-endif
-ifeq ($(TRAVIS_PULL_REQUEST_SLUG),)
-ifeq ($(TRAVIS_PULL_REQUEST_BRANCH),HEAD)
-TRAVIS_PULL_REQUEST_SLUG := $(TRAVIS_REPO_SLUG)
-else
-TRAVIS_PULL_REQUEST_SLUG := $(shell git config --global user.name)/$(shell basename `git rev-parse --show-toplevel`)
-endif
-endif
-ifeq ($(TRAVIS),true)
-ifeq ($(TRAVIS_PULL_REQUEST_SHA),)
-TRAVIS_PULL_REQUEST_SHA := $(shell git rev-parse origin/$(TRAVIS_PULL_REQUEST_BRANCH))
-endif
-endif
-
 TESTSSRC = $(shell ls tests/*.el)
 ELCTESTS = $(TESTSSRC:.el=.elc)
 .DEFAULT_GOAL := compile
@@ -69,8 +53,47 @@ clean:
 	$(CASK) clean-elc
 	make -C doc clean
 
+
+.PHONY: dist-clean
+dist-clean:
+	rm -rf dist
+
+.PHONY: dist
+dist: dist-clean
+	$(CASK) package
+
+.PHONY: install
+install: compile dist
+	$(EMACS) -Q --batch --eval "(package-initialize)" \
+	  --eval "(package-install-file \"dist/request-$(shell $(CASK) version).tar\")"
+
+define SET_GITHUB_REPOSITORY =
+ifeq ($(GITHUB_REPOSITORY),)
+	GITHUB_REPOSITORY := $(shell git config user.name)/$(shell basename `git rev-parse --show-toplevel`)
+endif
+endef
+
+define SET_GITHUB_HEAD_REF =
+ifeq ($(GITHUB_HEAD_REF),)
+GITHUB_HEAD_REF := $(shell git rev-parse --abbrev-ref HEAD)
+endif
+endef
+
+define SET_GITHUB_SHA =
+ifeq ($(GITHUB_SHA),)
+GITHUB_SHA := $(shell if git show-ref --quiet --verify origin/$(GITHUB_HEAD_REF) ; then git rev-parse origin/$(GITHUB_HEAD_REF) ; fi)
+endif
+endef
+
+.PHONY: test-install-vars
+test-install-vars:
+	$(eval $(call SET_GITHUB_REPOSITORY))
+	$(eval $(call SET_GITHUB_HEAD_REF))
+	$(eval $(call SET_GITHUB_SHA))
+	@true
+
 .PHONY: test-install
-test-install:
+test-install: test-install-vars
 	mkdir -p tests/test-install
 	if [ ! -s "tests/test-install/$(PKBUILD).tar.gz" ] ; then \
 	  cd tests/test-install ; curl -sLOk https://github.com/melpa/package-build/archive/$(PKBUILD).tar.gz ; fi
@@ -88,24 +111,11 @@ test-install:
 	--eval "(setq rcp (package-recipe-lookup \"request\"))" \
 	--eval "(unless (file-exists-p package-build-archive-dir) \
 	           (make-directory package-build-archive-dir))" \
-	--eval "(let* ((my-repo \"$(TRAVIS_PULL_REQUEST_SLUG)\") \
-	               (my-branch \"$(TRAVIS_PULL_REQUEST_BRANCH)\") \
-	               (my-commit \"$(TRAVIS_PULL_REQUEST_SHA)\")) \
+	--eval "(let* ((my-repo \"$(GITHUB_REPOSITORY)\") \
+	               (my-branch \"$(GITHUB_HEAD_REF)\") \
+	               (my-commit \"$(GITHUB_SHA)\")) \
 	           (oset rcp :repo my-repo) \
 	           (oset rcp :branch my-branch) \
 	           (oset rcp :commit my-commit))" \
 	--eval "(package-build--package rcp (package-build--checkout rcp))" \
-	--eval "(package-install-file (concat package-build-archive-dir \"request.el\"))" 2>&1 | egrep -ia "error: |warning: |fatal" )
-
-.PHONY: dist-clean
-dist-clean:
-	rm -rf dist
-
-.PHONY: dist
-dist: dist-clean
-	$(CASK) package
-
-.PHONY: install
-install: compile dist
-	$(EMACS) -Q --batch --eval "(package-initialize)" \
-	  --eval "(package-install-file \"dist/request-$(shell $(CASK) version).tar\")"
+	--eval "(package-install-file (car (file-expand-wildcards (concat package-build-archive-dir \"request*.tar\"))))" 2>&1 | egrep -ia "error: |fatal" )

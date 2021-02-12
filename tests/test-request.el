@@ -631,7 +631,7 @@ based backends (e.g., `curl') should avoid this problem."
 
 (ert-deftest request--file-url ()
   "What happens when url is not HTTP."
-  (let ((tempfile (request--make-temp-file))
+  (let ((tempfile (make-temp-file "test-request"))
         (body "hello, world\r\n")
         (utf-8-body "hello, world\n")
         (no-conversion-body "hello, world\r\n"))

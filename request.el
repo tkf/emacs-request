@@ -7,7 +7,7 @@
 ;; Author: Takafumi Arakaki <aka.tkf at gmail.com>
 ;; URL: https://github.com/tkf/emacs-request
 ;; Package-Requires: ((emacs "24.4"))
-;; Version: 0.3.2
+;; Version: 0.3.3
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -56,12 +56,7 @@
   :group 'comm
   :prefix "request-")
 
-(defconst request-version "0.3.0")
-
-(defconst request--curl-form-stdin "--data-binary @-")
-
-
-;;; Customize variables
+(defconst request-version "0.3.3")
 
 (defcustom request-storage-directory
   (concat (file-name-as-directory user-emacs-directory) "request")
@@ -93,10 +88,7 @@ Automatically set to `curl' if curl command is found."
   :type '(choice (integer :tag "Request timeout seconds")
                  (boolean :tag "No timeout" nil)))
 
-(defcustom request-temp-prefix "emacs-request"
-  "Prefix for temporary files created by Request."
-  :type 'string
-  :risky t)
+(make-obsolete-variable 'request-temp-prefix nil "0.3.3")
 
 (defcustom request-log-level -1
   "Logging level for request.
@@ -244,7 +236,7 @@ for older Emacs versions.")
   status-code history data error-thrown symbol-status url
   done-p settings
   ;; internal variables
-  -buffer -raw-header -timer -backend -tempfiles)
+  -buffer -raw-header -timer -backend)
 
 (defmacro request--document-response (function docstring)
   (declare (indent defun)
@@ -705,12 +697,7 @@ then send to PARSER."
         (request-log 'debug "request--callback: executing complete")
         (request--safe-apply complete args)))
 
-    (setq done-p t)
-
-    ;; Remove temporary files
-    ;; FIXME: Make tempfile cleanup more reliable.  It is possible
-    ;;        callback is never called.
-    (request--safe-delete-files (request-response--tempfiles response))))
+    (setq done-p t)))
 
 (cl-defun request-response--timeout-callback (response)
   (setf (request-response-symbol-status response) 'timeout)
@@ -903,7 +890,7 @@ Currently it is used only for testing.")
     (make-directory (file-name-directory (request--curl-cookie-jar)) t)))
 
 (cl-defun request--curl-command
-    (url &key type data headers files* unix-socket auth
+    (url &key type data headers files unix-socket auth
          &allow-other-keys
          &aux (cookie-jar (convert-standard-filename
                            (expand-file-name (request--curl-cookie-jar)))))
@@ -930,15 +917,34 @@ Currently it is used only for testing.")
    request-curl-options
    (when (plist-get (request--curl-capabilities) :compression) (list "--compressed"))
    (when unix-socket (list "--unix-socket" unix-socket))
-   (cl-loop for (name filename path mime-type) in files*
+   (cl-loop with stdin-p = data
+            for (name . item) in files
             collect "--form"
-            collect (format "%s=@%s;filename=%s%s" name
-                            (request-untrampify-filename path) filename
-                            (if mime-type
-                                (format ";type=%s" mime-type)
-                              "")))
+            collect
+            (apply #'format "%s=@%s;filename=%s%s"
+                   (cond ((stringp item)
+                          (list name item (file-name-nondirectory item) ""))
+                         ((bufferp item)
+                          (if stdin-p
+                              (error (concat "request--curl-command: "
+                                             "only one buffer or data entry permitted"))
+                            (setq stdin-p t))
+                          (list name "-" (buffer-name item) ""))
+                         ((listp item)
+                          (unless (plist-get (cdr item) :file)
+                            (if stdin-p
+                                (error (concat "request--curl-command: "
+                                               "only one buffer or data entry permitted"))
+                              (setq stdin-p t)))
+                          (list name (or (plist-get (cdr item) :file) "-") (car item)
+                                (if (plist-get item :mime-type)
+                                    (format ";type=%s" (plist-get item :mime-type))
+                                  "")))
+                         (t (error (concat "request--curl-command: "
+                                           "%S not string, buffer, or list")
+                                   item)))))
    (when data
-     (split-string request--curl-form-stdin))
+     (split-string "--data-binary @-"))
    (when type (if (equal "head" (downcase type))
 		  (list "--head")
 		(list "--request" type)))
@@ -946,74 +952,6 @@ Currently it is used only for testing.")
             collect "--header"
             collect (format "%s: %s" k v))
    (list url)))
-
-(defun request--curl-normalize-files-1 (files get-temp-file)
-  (cl-loop for (name . item) in files
-           collect
-           (cl-destructuring-bind
-               (filename &key file buffer data mime-type)
-               (cond
-                ((stringp item) (list (file-name-nondirectory item) :file item))
-                ((bufferp item) (list (buffer-name item) :buffer item))
-                (t item))
-             (unless (= (cl-loop for v in (list file buffer data) if v sum 1) 1)
-               (error "Only one of :file/:buffer/:data must be given.  Got: %S"
-                      (cons name item)))
-             (cond
-              (file
-               (list name filename file mime-type))
-              (buffer
-               (let ((tf (funcall get-temp-file)))
-                 (with-current-buffer buffer
-                   (write-region (point-min) (point-max) tf nil 'silent))
-                 (list name filename tf mime-type)))
-              (data
-               (let ((tf (funcall get-temp-file)))
-                 (with-temp-buffer
-                   (erase-buffer)
-                   (insert data)
-                   (write-region (point-min) (point-max) tf nil 'silent))
-                 (list name filename tf mime-type)))))))
-
-
-(declare-function tramp-get-remote-tmpdir "tramp")
-(declare-function tramp-dissect-file-name "tramp")
-
-(defun request--make-temp-file ()
-  "Create a temporary file."
-  (if (file-remote-p default-directory)
-      (let ((temporary-file-directory
-	     (tramp-get-remote-tmpdir (tramp-dissect-file-name default-directory))))
-	(make-temp-file request-temp-prefix))
-    (make-temp-file request-temp-prefix)))
-
-(defun request--curl-normalize-files (files)
-  "Change FILES into a list of (NAME FILENAME PATH MIME-TYPE).
-This is to make `request--curl-command' cleaner by converting
-FILES to a homogeneous list.  It returns a list (FILES* TEMPFILES)
-where FILES* is a converted FILES and TEMPFILES is a list of
-temporary file paths."
-  (let (tempfiles noerror)
-    (unwind-protect
-        (let* ((get-temp-file (lambda ()
-                                (let ((tf (request--make-temp-file)))
-                                  (push tf tempfiles)
-                                  tf)))
-               (files* (request--curl-normalize-files-1 files get-temp-file)))
-          (setq noerror t)
-          (list files* tempfiles))
-      (unless noerror
-        ;; Remove temporary files only when an error occurs
-        (request--safe-delete-files tempfiles)))))
-
-(defun request--safe-delete-files (files)
-  "Remove FILES but do not raise error when failed to do so."
-  (mapc (lambda (f) (condition-case err
-                        (delete-file f)
-                      (error (request-log 'error
-                               "request--safe-delete-files: %s %s"
-                               f (error-message-string err)))))
-        files))
 
 (defun request--install-timeout (timeout response)
   "Out-of-band trigger after TIMEOUT seconds to prevent hangs."
@@ -1049,20 +987,25 @@ Sexp at the end of buffer and extra headers for redirects are
 removed from the buffer before it is shown to the parser function.
 "
   (request--curl-mkdir-for-cookie-jar)
-  (let* (;; Use pipe instead of pty.  Otherwise, curl process hangs.
-         (process-connection-type nil)
-         ;; Avoid starting program in non-existing directory.
+  (let* (process-connection-type ;; pipe, not pty, else curl hangs
          (home-directory (or (file-remote-p default-directory) "~/"))
          (default-directory (expand-file-name home-directory))
          (buffer (generate-new-buffer " *request curl*"))
-         (command (cl-destructuring-bind
-                      (files* tempfiles)
-                      (request--curl-normalize-files files)
-                    (setf (request-response--tempfiles response) tempfiles)
-                    (apply #'request--curl-command url :files* files*
-                           :response response :encoding encoding settings)))
+         (command (apply #'request--curl-command url settings))
          (proc (apply #'start-process "request curl" buffer command))
-         (scommand (mapconcat 'identity command " ")))
+         (scommand (mapconcat 'identity command " "))
+         (file-items (mapcar #'cdr files))
+         (file-buffer (or (cl-some (lambda (item)
+                                     (when (bufferp item) item))
+                                   file-items)
+                          (cl-some (lambda (item)
+                                     (and (listp item)
+                                          (plist-get (cdr item) :buffer)))
+                                   file-items)))
+         (file-data (cl-some (lambda (item)
+                               (and (listp item)
+                                    (plist-get (cdr item) :data)))
+                             file-items)))
     (request--install-timeout timeout response)
     (request-log 'debug "request--curl: %s"
                  (request--curl-occlude-secret scommand))
@@ -1070,21 +1013,25 @@ removed from the buffer before it is shown to the parser function.
     (process-put proc :request-response response)
     (set-process-coding-system proc 'no-conversion 'no-conversion)
     (set-process-query-on-exit-flag proc nil)
-    (when (and data (cl-search request--curl-form-stdin scommand))
+    (when (or data file-buffer file-data)
       ;; We dynamic-let the global `buffer-file-coding-system' to `no-conversion'
       ;; in case the user-configured `encoding' doesn't fly.
       ;; If we do not dynamic-let the global, `select-safe-coding-system' would
       ;; plunge us into an undesirable interactive dialogue.
-      (let ((buffer-file-coding-system-orig
-             (default-value 'buffer-file-coding-system))
-            (select-safe-coding-system-accept-default-p
-             (lambda (&rest _) t)))
+      (let* ((buffer-file-coding-system-orig
+              (default-value 'buffer-file-coding-system))
+             (select-safe-coding-system-accept-default-p
+              (lambda (&rest _) t)))
         (unwind-protect
             (progn
               (setf (default-value 'buffer-file-coding-system) 'no-conversion)
               (with-temp-buffer
                 (setq-local buffer-file-coding-system encoding)
-                (save-excursion (insert data))
+                (insert (or data
+                            (when file-buffer
+                              (with-current-buffer file-buffer
+                                (buffer-substring-no-properties (point-min) (point-max))))
+                            file-data))
                 (process-send-region proc (point-min) (point-max))
                 (process-send-eof proc)))
           (setf (default-value 'buffer-file-coding-system)
