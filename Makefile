@@ -85,7 +85,7 @@ endef
 
 define SET_GITHUB_SHA =
 ifeq ($(GITHUB_SHA),)
-GITHUB_SHA := $(shell git rev-parse origin/`git rev-parse --abbrev-ref HEAD`)
+GITHUB_SHA := $(shell git rev-parse origin/$(GITHUB_HEAD_REF))
 endif
 endef
 

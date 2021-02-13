@@ -63,11 +63,11 @@ Curl authentication:
 
 .. code:: emacs-lisp
 
-  (request "http://httpbin.org/get"
-   :auth "digest" ;; or "basic", "anyauth", etc., which see curl(1)
-   :complete (cl-function
-              (lambda (&key response &allow-other-keys)
-                (message "Done: %s" (request-response-status-code response)))))
+   (request "http://httpbin.org/get"
+     :auth "digest" ;; or "basic", "anyauth", etc., which see curl(1)
+     :complete (cl-function
+                (lambda (&key response &allow-other-keys)
+                  (message "Done: %s" (request-response-status-code response)))))
 
 Request binary data:
 
