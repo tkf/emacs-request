@@ -234,7 +234,7 @@ for older Emacs versions.")
 (cl-defstruct request-response
   "A structure holding all relevant information of a request."
   status-code history data error-thrown symbol-status url
-  done-p settings
+  done-p settings headers
   ;; internal variables
   -buffer -raw-header -timer -backend)
 
@@ -604,6 +604,14 @@ raw-header slot."
         (when (re-search-forward "^$" nil t)
           (setf (request-response--raw-header response)
                 (buffer-substring (point-min) (point)))
+          (setf (request-response-headers response)
+                (let (headers)
+                  (with-temp-buffer
+                    (insert (request-response--raw-header response))
+                    (goto-char (point-min))
+                    (while (re-search-forward "^\\([^:\n]+\\): \\(.*\\)$" nil 'no-error)
+                      (push `(,(match-string 1) . ,(match-string 2)) headers))
+                    (nreverse headers))))
           (request-log 'trace "request--cut-header: cutting\n%s"
                        (buffer-substring (point-min) (min (1+ (point)) (point-max))))
           (delete-region (point-min) (min (1+ (point)) (point-max))))))))
