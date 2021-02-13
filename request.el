@@ -44,6 +44,7 @@
 (require 'mail-utils)
 (require 'autorevert)
 (require 'auth-source)
+(require 'mailheader)
 
 (defgroup request nil
   "Compatible layer for URL request in Emacs."
@@ -264,6 +265,21 @@ Examples::
 ;; .. [#rfc2616-sec4] RFC2616 says this is the right thing to do
 ;;    (see https://tools.ietf.org/html/rfc2616.html#section-4.2).
 ;;    Python's requests module does this too.
+
+(defun request-response-headers (response)
+  "Return RESPONSE headers as an alist.
+I would have chosen a function name that wasn't so suggestive that
+`headers` is a member of the `request-response` struct, but
+as there's already precedent with `request-response-header', I
+hew to consistency."
+  (let ((raw-header (request-response--raw-header response)))
+    (when raw-header
+      raw-header
+      (with-temp-buffer
+        (save-excursion (insert raw-header))
+        (when (save-excursion (request--parse-response-at-point))
+          (forward-line))
+        (mail-header-extract-no-properties)))))
 
 (defconst request--backend-alist
   '((url-retrieve
@@ -527,7 +543,7 @@ and requests.request_ (Python).
             (replace-match "")))))))
 
 (defun request--cut-header (response)
-  "Move the first header to the raw-header slot of RESPONSE object."
+  "Move the header to the raw-header slot of RESPONSE object."
   (let ((buffer (request-response--buffer response)))
     (when (buffer-live-p buffer)
       (with-current-buffer buffer

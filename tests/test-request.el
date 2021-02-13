@@ -22,7 +22,7 @@
 
 ;;; Commentary:
 
-;;
+;; Test stuff.
 
 ;;; Code:
 
@@ -58,10 +58,6 @@
 ;;   (setq request-log-level 'blather)
 ;;   (setq request-log-level -1)
 
-
-
-;;; GET
-
 (request-deftest request-simple-get ()
   (request-testing-with-response-slots
       (request-testing-sync "report/some-path"
@@ -69,7 +65,10 @@
     (should done-p)
     (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
-    (should (equal (assoc-default 'method data) "GET"))))
+    (should (equal (assoc-default 'method data) "GET"))
+    (should (let ((headers (request-response-headers response)))
+              (cl-every (lambda (h) (memq h (mapcar #'car headers)))
+                        '(content-length content-type server))))))
 
 (request-deftest request-get-with-args ()
   (request-testing-with-response-slots
@@ -218,9 +217,6 @@ See also:
    (should (equal status-code 200))
    (should (equal (assoc-default 'path data) "some-path"))
    (should (equal (assoc-default 'method data) "GET"))))
-
-
-;;; POST
 
 (request-deftest request-simple-post ()
   (request-testing-with-response-slots
@@ -387,9 +383,6 @@ See also:
                    :headers '(("Expect" . "100-continue")))
                   (should (equal status-code 200))))
 
-
-;;; PUT
-
 (defun request-testing-put-simple-1 ()
   (request-testing-with-response-slots
       (request-testing-sync "report/some-path"
@@ -440,9 +433,6 @@ To check that, run test with:
     (should (equal (request-testing-sort-alist (assoc-default 'json data))
                    '((鍵 . "値"))))))
 
-
-;;; DELETE
-
 (request-deftest request-simple-delete ()
   (request-testing-with-response-slots
       (request-testing-sync "report/some-path"
@@ -451,9 +441,6 @@ To check that, run test with:
     (should (equal status-code 200))
     (should (equal (assoc-default 'path data) "some-path"))
     (should (equal (assoc-default 'method data) "DELETE"))))
-
-
-;;; Abort
 
 (request-deftest request-abort-simple ()
   (let (called)
@@ -490,9 +477,6 @@ To check that, run test with:
       (should error-thrown)
       (should response))))
 
-
-;;; HEAD
-
 (request-deftest request-simple-head ()
   (request-testing-with-response-slots
    (request-testing-sync "longtextline"
@@ -504,9 +488,6 @@ To check that, run test with:
    (let ((server (request-response-header response "server")))
      (should (string-prefix-p request-testing-server-name (downcase server))))))
 
-
-;;; Parse error
-
 (request-deftest request-parse-error-simple ()
   (request-testing-with-response-slots
       (request-testing-sync "report/some-path"
@@ -514,9 +495,6 @@ To check that, run test with:
     (should done-p)
     (should (equal symbol-status 'parse-error))
     (should (equal error-thrown '(error . ("Bad parser!"))))))
-
-
-;;; Cookie
 
 (request-deftest request-simple-cookie ()
   :tempfiles (request--curl-cookie-jar)
@@ -588,9 +566,6 @@ To check that, run test with:
   ;; check login state
   (request-testing-assert-username-is nil))
 
-
-;;; Misc
-
 (request-deftest request-invoke-in-non-existing-directory ()
   "Running request in non-existing directory should work.
 Calling `start-process' in non-existing directory fails.  Command
@@ -601,7 +576,7 @@ based backends (e.g., `curl') should avoid this problem."
     ;; Should not fail:
     (request-testing-sync "report/some-path" :parser 'json-read)))
 
-
+
 ;;; Testing framework
 
 (request-deftest request-tfw-server ()
@@ -609,7 +584,7 @@ based backends (e.g., `curl') should avoid this problem."
          (server (request-response-header response "server")))
     (should (string-prefix-p request-testing-server-name (downcase server)))))
 
-
+
 ;;; `request-backend'-independent tests
 
 ;; Following tests does not depend on the value of `request-backend'.

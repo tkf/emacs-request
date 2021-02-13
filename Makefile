@@ -44,8 +44,10 @@ README.rst: README.in.rst request.el
 
 .PHONY: cask
 cask: $(CASK_DIR)
+
 $(CASK_DIR): Cask
 	$(CASK) install
+	touch $(CASK_DIR)
 
 .PHONY: compile
 compile: cask
