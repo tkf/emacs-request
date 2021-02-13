@@ -80,42 +80,26 @@ install: compile dist
 	$(EMACS) -Q --batch --eval "(package-initialize)" \
 	  --eval "(package-install-file \"dist/request-$(shell $(CASK) version).tar\")"
 
-define SET_GITHUB_ACTOR =
 ifeq ($(GITHUB_ACTOR),)
 GITHUB_ACTOR := $(shell git config user.name)
 endif
-endef
 
-define SET_GITHUB_ACTOR_REPOSITORY =
 GITHUB_ACTOR_REPOSITORY := $(GITHUB_ACTOR)/$(shell basename `git rev-parse --show-toplevel`)
-endef
 
-define SET_GITHUB_HEAD_REF =
 ifeq ($(GITHUB_HEAD_REF),)
 GITHUB_HEAD_REF := $(shell git rev-parse --abbrev-ref HEAD)
 endif
-endef
 
-define SET_GITHUB_SHA =
 ifeq ($(GITHUB_SHA),)
 GITHUB_SHA := $(shell git rev-parse origin/$(GITHUB_HEAD_REF))
 endif
-endef
 
-define SET_GITHUB_COMMIT =
 GITHUB_COMMIT := $(shell if git show -s --format=%s "${GITHUB_SHA}" | egrep -q "^Merge .* into" ; then git show -s --format=%s "${GITHUB_SHA}" | cut -d " " -f2 ; else echo "${GITHUB_SHA}" ; fi)
-endef
 
 .PHONY: test-install-vars
 test-install-vars:
-	$(eval $(call SET_GITHUB_ACTOR))
-	$(eval $(call SET_GITHUB_ACTOR_REPOSITORY))
-	$(eval $(call SET_GITHUB_HEAD_REF))
-	$(eval $(call SET_GITHUB_SHA))
-	$(eval $(call SET_GITHUB_COMMIT))
 	git show -s --format=%s $(GITHUB_COMMIT)
 	git show -s --format=%s $(GITHUB_SHA)
-	@true
 
 .PHONY: test-install
 test-install: test-install-vars

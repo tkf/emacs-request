@@ -52,7 +52,7 @@ jobs:
     - uses: actions/cache@v1
       with:
         path: ~/.cask
-        key: cask-000
+        key: cask-001
 
     - name: paths
       run: |
@@ -90,14 +90,14 @@ jobs:
         startsWith(matrix.python_version, '3') &&
         startsWith(matrix.emacs_version, '27')
       run: make lint
-      continue-on-error: ${{ matrix.emacs_version == 'snapshot' }}
+      continue-on-error: ${{ matrix.emacs_version == '24.5' }}
 
     - name: test-install
       if: startsWith(matrix.python_version, '2')
       run: make test-install
-      continue-on-error: ${{ matrix.emacs_version == 'snapshot' }}
+      continue-on-error: ${{ matrix.emacs_version == '24.5' }}
 
     - name: test
       if: startsWith(matrix.python_version, '2')
       run: make test
-      continue-on-error: ${{ matrix.emacs_version == 'snapshot' }}
+      continue-on-error: ${{ matrix.emacs_version == '24.5' }}
