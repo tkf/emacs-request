@@ -1,4 +1,4 @@
-;;; request.el --- Compatible layer for URL request in Emacs -*- lexical-binding: t; -*-
+;;; request.el --- Compatible layer for URL request  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2012 Takafumi Arakaki
 ;; Copyright (C) 1985-1986, 1992, 1994-1995, 1999-2012
@@ -68,10 +68,10 @@
   :type 'string)
 
 (defcustom request-curl-options nil
-  "curl command options.
+  "List of curl command options.
 
-List of strings that will be passed to every curl invocation. You can pass
-extra options here, like setting the proxy."
+List of strings that will be passed to every curl invocation.
+You can pass extra options here, like setting the proxy."
   :type '(repeat string))
 
 (defcustom request-backend (if (executable-find request-curl)
@@ -84,7 +84,7 @@ Automatically set to `curl' if curl command is found."
 
 (defcustom request-timeout nil
   "Default request timeout in second.
-`nil' means no timeout."
+nil means no timeout."
   :type '(choice (integer :tag "Request timeout seconds")
                  (boolean :tag "No timeout" nil)))
 
@@ -239,8 +239,7 @@ for older Emacs versions.")
   -buffer -raw-header -timer -backend)
 
 (defmacro request--document-response (function docstring)
-  (declare (indent defun)
-           (doc-string 2))
+  (declare (indent defun) (doc-string 2))
   `(request--document-function ,function ,(concat docstring "
 
 .. This is an accessor for `request-response' object.
@@ -305,8 +304,7 @@ Examples::
   (request-response-header response
                            \"content-type\") ; => \"text/html; charset=utf-8\"
   (request-response-header response
-                           \"unknown-field\") ; => nil
-"
+                           \"unknown-field\") ; => nil"
   (let ((raw-header (request-response--raw-header response)))
     (when raw-header
       (with-temp-buffer
@@ -350,7 +348,7 @@ let's stick to manual dispatch for now.")
   (assoc-default
    method
    (or (assoc-default request-backend request--backend-alist)
-       (error "%S is not valid `request-backend'." request-backend))))
+       (error "%S is not valid `request-backend'" request-backend))))
 
 
 ;;; Cookie
@@ -360,8 +358,7 @@ let's stick to manual dispatch for now.")
 
 Example::
 
- (request-cookie-string \"127.0.0.1\" \"/\")  ; => \"key=value; key2=value2\"
-"
+ (request-cookie-string \"127.0.0.1\" \"/\")  ; => \"key=value; key2=value2\""
   (mapconcat (lambda (nv) (concat (car nv) "=" (cdr nv)))
              (request-cookie-alist host localpart secure)
              "; "))
@@ -371,8 +368,7 @@ Example::
 
 Example::
 
- (request-cookie-alist \"127.0.0.1\" \"/\")  ; => ((\"key\" . \"value\") ...)
-"
+ (request-cookie-alist \"127.0.0.1\" \"/\")  ; => ((\"key\" . \"value\") ...)"
   (funcall (request--choose-backend 'get-cookies) host localpart secure))
 
 
@@ -412,7 +408,7 @@ ERROR       (function)   called on error
 COMPLETE    (function)   called on both success and error
 TIMEOUT       (number)   timeout in second
 STATUS-CODE    (alist)   map status code (int) to callback
-SYNC            (bool)   If `t', wait until request is done.  Default is `nil'.
+SYNC            (bool)   If non-nil, wait until request is done.  Default is nil.
 ==================== ========================================================
 
 
@@ -533,7 +529,7 @@ relatively small value.
 
 Due to limitation of `url-retrieve-synchronously', response slots
 `request-response-error-thrown', `request-response-history' and
-`request-response-url' are unknown (always `nil') when using
+`request-response-url' are unknown (always nil) when using
 synchronous request with `url-retrieve' backend.
 
 * Note
@@ -542,8 +538,7 @@ API of `request' is somewhat mixture of jQuery.ajax_ (Javascript)
 and requests.request_ (Python).
 
 .. _jQuery.ajax: http://api.jquery.com/jQuery.ajax/
-.. _requests.request: http://docs.python-requests.org
-"
+.. _requests.request: http://docs.python-requests.org"
   (declare (indent defun))
   ;; FIXME: support CACHE argument (if possible)
   ;; (unless cache
@@ -574,7 +569,7 @@ and requests.request_ (Python).
   response)
 
 (defun request--clean-header (response)
-  "Strip off carriage returns in the header of REQUEST."
+  "Strip off carriage return in the header of REQUEST."
   (let* ((buffer (request-response--buffer response))
          (backend (request-response--backend response))
          ;; FIXME: a workaround when `url-http-clean-headers' fails...
@@ -758,7 +753,7 @@ associated process is exited."
 (cl-defun request--url-retrieve-preprocess-settings
     (&rest settings &key type data files headers &allow-other-keys)
   (when files
-    (error "`url-retrieve' backend does not support FILES."))
+    (error "`url-retrieve' backend does not support FILES"))
   (when (and (equal type "POST")
              data
              (not (assoc-string "Content-Type" headers t)))
@@ -992,8 +987,7 @@ This number is used for removing extra headers and parse
 location header from the last redirection header.
 
 Sexp at the end of buffer and extra headers for redirects are
-removed from the buffer before it is shown to the parser function.
-"
+removed from the buffer before it is shown to the parser function."
   (request--curl-mkdir-for-cookie-jar)
   (let* (process-connection-type ;; pipe, not pty, else curl hangs
          (home-directory (or (file-remote-p default-directory) "~/"))
