@@ -5,4 +5,6 @@
 
 (development
  (depends-on "ert")
- (depends-on "deferred"))
+ (depends-on "deferred")
+ (depends-on "pkg-info")
+ (depends-on "package-lint"))

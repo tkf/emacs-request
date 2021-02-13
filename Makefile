@@ -36,6 +36,12 @@ test-1:
 #  global-auto-revert-mode [github #132]
 	EL_REQUEST_NO_CAPTURE_MESSAGE=$(EL_REQUEST_NO_CAPTURE_MESSAGE) EL_REQUEST_MESSAGE_LEVEL=$(EL_REQUEST_MESSAGE_LEVEL) $(CASK) emacs -Q --batch -L . -L tests -l test-request.el --eval "(global-auto-revert-mode)" -f ert-run-tests-batch-and-exit
 
+README.rst: README.in.rst request.el
+	grep ';;' request.el \
+	    | awk '/;;;\s*Commentary/{within=1;next}/;;;\s*/{within=0}within' \
+	    | sed -e 's/^\s*;;*\s*//g' \
+	    | tools/readme-sed.sh "COMMENTARY" README.in.rst > README.rst
+
 .PHONY: cask
 cask: $(CASK_DIR)
 $(CASK_DIR): Cask
@@ -48,11 +54,16 @@ compile: cask
 	          (let ((byte-compile-error-on-warn t)) (cask-cli/build)))" 2>&1 | egrep -a "(Warning|Error):") ; (ret=$$? ; rm -f $(ELCTESTS) && exit $$ret)
 	! ($(CASK) eval "(let ((byte-compile-error-on-warn t)) (cask-cli/build))" 2>&1 | egrep -a "(Warning|Error):") ; (ret=$$? ; $(CASK) clean-elc && exit $$ret)
 
+.PHONY: lint
+lint: compile
+	bash -ex tools/melpazoid.sh
+
 .PHONY: clean
 clean:
 	$(CASK) clean-elc
 	make -C doc clean
-
+	rm -rf tests/test-install
+	rm -rf melpazoid-master/emacs-request
 
 .PHONY: dist-clean
 dist-clean:

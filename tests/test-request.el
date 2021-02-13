@@ -464,13 +464,13 @@ To check that, run test with:
                                :parser 'json-read)
       (let ((process (get-buffer-process -buffer)))
         (cl-loop repeat 30
-                 when (request--process-live-p process) return nil
+                 when (process-live-p process) return nil
                  do (sleep-for 0.1)
                  finally (error "Timeout: failed to check process is started."))
 
         (should-not symbol-status)
         (should-not done-p)
-        (should (request--process-live-p process))
+        (should (process-live-p process))
 
         (request-abort response)
         (cl-loop repeat 30
@@ -480,7 +480,7 @@ To check that, run test with:
 
         (should (equal symbol-status 'abort))
         (should done-p)
-        (should-not (request--process-live-p process))))
+        (should-not (process-live-p process))))
 
     (should (= (length called) 1))
     (cl-destructuring-bind (&key data symbol-status error-thrown response)
