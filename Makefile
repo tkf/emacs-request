@@ -81,9 +81,7 @@ install: compile dist
 	  --eval "(package-install-file \"dist/request-$(shell $(CASK) version).tar\")"
 
 define SET_GITHUB_ACTOR =
-ifeq ($(GITHUB_ACTOR),)
-GITHUB_ACTOR := $(shell git config user.name)
-endif
+GITHUB_ACTOR := $(shell if [ -z ${GITHUB_ACTOR} ]; then git config user.name; else echo ${GITHUB_ACTOR} ; fi)
 endef
 
 define SET_GITHUB_ACTOR_REPOSITORY =
@@ -91,15 +89,11 @@ GITHUB_ACTOR_REPOSITORY := $(GITHUB_ACTOR)/$(shell basename `git rev-parse --sho
 endef
 
 define SET_GITHUB_HEAD_REF =
-ifeq ($(GITHUB_HEAD_REF),)
-GITHUB_HEAD_REF := $(shell git rev-parse --abbrev-ref HEAD)
-endif
+GITHUB_HEAD_REF := $(shell if [ -z ${GITHUB_HEAD_REF} ]; then git rev-parse --abbrev-ref HEAD; else echo ${GITHUB_HEAD_REF} ; fi)
 endef
 
 define SET_GITHUB_SHA =
-ifeq ($(GITHUB_SHA),)
-GITHUB_SHA := $(shell git rev-parse origin/${GITHUB_HEAD_REF})
-endif
+GITHUB_SHA := $(shell if [ -z ${GITHUB_SHA} ] ; then git rev-parse origin/${GITHUB_HEAD_REF}; else echo ${GITHUB_SHA}; fi)
 endef
 
 define SET_GITHUB_COMMIT =
