@@ -84,6 +84,7 @@ jobs:
       run: |
         sh tools/install-cask.sh
         cask link list
+      continue-on-error: ${{ matrix.emacs_version == '24.5' }}
 
     - name: lint
       if: |
