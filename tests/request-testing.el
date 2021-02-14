@@ -107,7 +107,7 @@ The symbols other than `response' is bound using `cl-symbol-macrolet'."
 (defun request-testing-stop-server ()
   (interactive)
   (let ((process request-testing-server--process))
-    (if (and (processp process) (request--process-live-p process))
+    (if (process-live-p process)
         (quit-process process)
       (unless noninteractive
         (message "No server is running!"))))

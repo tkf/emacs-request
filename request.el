@@ -1,4 +1,4 @@
-;;; request.el --- Compatible layer for URL request in Emacs -*- lexical-binding: t; -*-
+;;; request.el --- Compatible layer for URL request  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2012 Takafumi Arakaki
 ;; Copyright (C) 1985-1986, 1992, 1994-1995, 1999-2012
@@ -23,21 +23,15 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with request.el.
-;; If not, see <http://www.gnu.org/licenses/>.
+;; If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
-;; Request.el is a HTTP request library with multiple backends.  It
-;; supports url.el which is shipped with Emacs and curl command line
-;; program.  User can use curl when s/he has it, as curl is more reliable
-;; than url.el.  Library author can use request.el to avoid imposing
-;; external dependencies such as curl to users while giving richer
-;; experience for users who have curl.
-
-;; Following functions are adapted from GNU Emacs source code.
-;; Free Software Foundation holds the copyright of them.
-;; * `request--process-live-p'
-;; * `request--url-default-expander'
+;; Uses ``curl`` as its backend or Emacs's native ``url.el`` library if
+;; ``curl`` is not found.
+;;
+;; The default encoding for requests is ``utf-8``.  Please explicitly specify
+;; ``:encoding 'binary`` for binary data.
 
 ;;; Code:
 
@@ -50,6 +44,7 @@
 (require 'mail-utils)
 (require 'autorevert)
 (require 'auth-source)
+(require 'mailheader)
 
 (defgroup request nil
   "Compatible layer for URL request in Emacs."
@@ -68,10 +63,10 @@
   :type 'string)
 
 (defcustom request-curl-options nil
-  "curl command options.
+  "List of curl command options.
 
-List of strings that will be passed to every curl invocation. You can pass
-extra options here, like setting the proxy."
+List of strings that will be passed to every curl invocation.
+You can pass extra options here, like setting the proxy."
   :type '(repeat string))
 
 (defcustom request-backend (if (executable-find request-curl)
@@ -84,7 +79,7 @@ Automatically set to `curl' if curl command is found."
 
 (defcustom request-timeout nil
   "Default request timeout in second.
-`nil' means no timeout."
+nil means no timeout."
   :type '(choice (integer :tag "Request timeout seconds")
                  (boolean :tag "No timeout" nil)))
 
@@ -115,40 +110,11 @@ See `request-log-level'."
                  (const :tag "Level TRACE" trace)
                  (const :tag "Level BLATHER" blather)))
 
-
-;;; Utilities
-
-(defun request--safe-apply (function &rest arguments)
-  "Apply FUNCTION with ARGUMENTS, suppressing any errors."
-  (condition-case nil
-      (apply #'apply function arguments)
-    ((debug error))))
-
-(defun request--safe-call (function &rest arguments)
-  (request--safe-apply function arguments))
-
-;; (defun request--url-no-cache (url)
-;;   "Imitate `cache=false' of `jQuery.ajax'.
-;; See: http://api.jquery.com/jQuery.ajax/"
-;;   ;; FIXME: parse URL before adding ?_=TIME.
-;;   (concat url (format-time-string "?_=%s")))
-
 (defmacro request--document-function (function docstring)
   "Document FUNCTION with DOCSTRING.  Use this for defstruct accessor etc."
   (declare (indent defun)
            (doc-string 2))
   `(put ',function 'function-documentation ,docstring))
-
-(defun request--process-live-p (process)
-  "Copied from `process-live-p' for backward compatibility (Emacs < 24).
-Adapted from lisp/subr.el.
-FSF holds the copyright of this function:
-  Copyright (C) 1985-1986, 1992, 1994-1995, 1999-2012
-    Free Software Foundation, Inc."
-  (memq (process-status process) '(run open listen connect stop)))
-
-
-;;; Logging
 
 (defconst request--log-level-def
   '(;; debugging
@@ -159,43 +125,29 @@ FSF holds the copyright of this function:
     (warn . 10) (error . 0))
   "Named logging levels.")
 
-(defun request--log-level-as-int (level)
-  (if (integerp level)
-      level
-    (or (cdr (assq level request--log-level-def))
-        0)))
-
 (defvar request-log-buffer-name " *request-log*")
 
-(defun request--log-buffer ()
-  (get-buffer-create request-log-buffer-name))
-
 (defmacro request-log (level fmt &rest args)
+  "Main logging function at warning LEVEL in FMT with ARGS."
   (declare (indent 1))
-  `(let ((level (request--log-level-as-int ,level))
-         (log-level (request--log-level-as-int request-log-level))
-         (msg-level (request--log-level-as-int request-message-level)))
-     (when (<= level (max log-level msg-level))
-       (let ((msg (format "[%s] %s" ,level
-                          (condition-case err
-                              (format ,fmt ,@args)
-                            (error (format "
-!!! Logging error while executing:
-%S
-!!! Error:
-%S"
-                                           ',args err))))))
-         (when (<= level log-level)
-           (with-current-buffer (request--log-buffer)
-             (setq buffer-read-only t)
-             (let ((inhibit-read-only t))
-               (goto-char (point-max))
-               (insert msg "\n"))))
-         (when (<= level msg-level)
-           (message "%s" msg))))))
-
-
-;;; HTTP specific utilities
+  `(cl-flet ((log-level-as-int
+              (level)
+              (if (integerp level)
+                  level
+                (or (cdr (assq level request--log-level-def)) 0))))
+     (let ((level (log-level-as-int ,level))
+           (log-level (log-level-as-int request-log-level))
+           (msg-level (log-level-as-int request-message-level)))
+       (when (<= level (max log-level msg-level))
+         (let ((msg (format "[%s] %s" ,level (format ,fmt ,@args))))
+           (when (<= level log-level)
+             (with-current-buffer (get-buffer-create request-log-buffer-name)
+               (setq buffer-read-only t)
+               (let ((inhibit-read-only t))
+                 (goto-char (point-max))
+                 (insert msg "\n"))))
+           (when (<= level msg-level)
+             (message "%s" msg)))))))
 
 (defconst request--url-unreserved-chars
   '(?a ?b ?c ?d ?e ?f ?g ?h ?i ?j ?k ?l ?m ?n ?o ?p ?q ?r ?s ?t ?u ?v ?w ?x ?y ?z
@@ -207,7 +159,7 @@ This is used for making `request--urlencode-alist' RFC 3986 compliant
 for older Emacs versions.")
 
 (defun request--urlencode-alist (alist)
-  ;; FIXME: make monkey patching `url-unreserved-chars' optional
+  "Hexify ALIST fields according to RFC3986."
   (let ((url-unreserved-chars request--url-unreserved-chars))
     (cl-loop for sep = "" then "&"
              for (k . v) in alist
@@ -216,8 +168,6 @@ for older Emacs versions.")
              concat "="
              concat (url-hexify-string (format "%s" v)))))
 
-
-;;; Header parser
 
 (defun request--parse-response-at-point ()
   "Parse the first header line such as \"HTTP/1.1 200 OK\"."
@@ -226,10 +176,8 @@ for older Emacs versions.")
           :code (string-to-number (match-string 2)))))
 
 (defun request--goto-next-body (&optional noerror)
+  "Scan forward to next blank line allowing NOERROR if missing."
   (re-search-forward "^\r\n" nil noerror))
-
-
-;;; Response object
 
 (cl-defstruct request-response
   "A structure holding all relevant information of a request."
@@ -239,8 +187,8 @@ for older Emacs versions.")
   -buffer -raw-header -timer -backend)
 
 (defmacro request--document-response (function docstring)
-  (declare (indent defun)
-           (doc-string 2))
+  "Append to FUNCTION's DOCSTRING some more canned verbiage."
+  (declare (indent defun) (doc-string 2))
   `(request--document-function ,function ,(concat docstring "
 
 .. This is an accessor for `request-response' object.
@@ -305,8 +253,7 @@ Examples::
   (request-response-header response
                            \"content-type\") ; => \"text/html; charset=utf-8\"
   (request-response-header response
-                           \"unknown-field\") ; => nil
-"
+                           \"unknown-field\") ; => nil"
   (let ((raw-header (request-response--raw-header response)))
     (when raw-header
       (with-temp-buffer
@@ -316,11 +263,23 @@ Examples::
         ;; separated value [#rfc2616-sec4]_.
         (mail-fetch-field field-name nil t)))))
 ;; .. [#rfc2616-sec4] RFC2616 says this is the right thing to do
-;;    (see http://tools.ietf.org/html/rfc2616.html#section-4.2).
+;;    (see https://tools.ietf.org/html/rfc2616.html#section-4.2).
 ;;    Python's requests module does this too.
 
-
-;;; Backend dispatcher
+(defun request-response-headers (response)
+  "Return RESPONSE headers as an alist.
+I would have chosen a function name that wasn't so suggestive that
+`headers` is a member of the `request-response` struct, but
+as there's already precedent with `request-response-header', I
+hew to consistency."
+  (let ((raw-header (request-response--raw-header response)))
+    (when raw-header
+      raw-header
+      (with-temp-buffer
+        (save-excursion (insert raw-header))
+        (when (save-excursion (request--parse-response-at-point))
+          (forward-line))
+        (mail-header-extract-no-properties)))))
 
 (defconst request--backend-alist
   '((url-retrieve
@@ -350,38 +309,26 @@ let's stick to manual dispatch for now.")
   (assoc-default
    method
    (or (assoc-default request-backend request--backend-alist)
-       (error "%S is not valid `request-backend'." request-backend))))
+       (error "%S is not valid `request-backend'" request-backend))))
 
-
-;;; Cookie
 
 (defun request-cookie-string (host &optional localpart secure)
-  "Return cookie string (like `document.cookie').
-
+  "Lookup HOST LOCALPART SECURE in cookie jar as`document.cookie` string.
 Example::
 
- (request-cookie-string \"127.0.0.1\" \"/\")  ; => \"key=value; key2=value2\"
-"
+  (request-cookie-string \"127.0.0.1\" \"/\")  ; => \"key=value; key2=value2\""
   (mapconcat (lambda (nv) (concat (car nv) "=" (cdr nv)))
              (request-cookie-alist host localpart secure)
              "; "))
 
 (defun request-cookie-alist (host &optional localpart secure)
-  "Return cookies as an alist.
+  "Lookup HOST LOCALPART SECURE in cookie jar as alist.
 
 Example::
 
- (request-cookie-alist \"127.0.0.1\" \"/\")  ; => ((\"key\" . \"value\") ...)
-"
+  (request-cookie-alist \"127.0.0.1\" \"/\")  ; => ((\"key\" . \"value\") ...)"
   (funcall (request--choose-backend 'get-cookies) host localpart secure))
 
-
-;;; Main
-
-(cl-defun request-default-error-callback (url &key symbol-status
-                                              &allow-other-keys)
-  (request-log 'error
-    "request-default-error-callback: %s %s" url symbol-status))
 
 (cl-defun request (url &rest settings
                        &key
@@ -393,9 +340,7 @@ Example::
                        (sync nil)
                        (response (make-request-response))
                        &allow-other-keys)
-  "Send request to URL.
-
-Request.el has a single entry point.  It is `request'.
+  "Main entry requesting URL with property list SETTINGS as follow.
 
 ==================== ========================================================
 Keyword argument      Explanation
@@ -412,7 +357,7 @@ ERROR       (function)   called on error
 COMPLETE    (function)   called on both success and error
 TIMEOUT       (number)   timeout in second
 STATUS-CODE    (alist)   map status code (int) to callback
-SYNC            (bool)   If `t', wait until request is done.  Default is `nil'.
+SYNC            (bool)   If non-nil, wait until request is done. Default is nil.
 ==================== ========================================================
 
 
@@ -489,7 +434,7 @@ Example FILES argument::
    support FILES in pure elisp by making furl.el_ another backend.
    Contributions are welcome.
 
-   .. _furl.el: http://code.google.com/p/furl-el/
+   .. _furl.el: https://code.google.com/p/furl-el/
 
 
 * PARSER function
@@ -510,7 +455,7 @@ objects to plist instead of alist, wrap `json-read' by `lambda'
 like this.::
 
     (request
-     \"http://...\"
+     \"https://...\"
      :parser (lambda ()
                (let ((json-object-type 'plist))
                  (json-read)))
@@ -533,7 +478,7 @@ relatively small value.
 
 Due to limitation of `url-retrieve-synchronously', response slots
 `request-response-error-thrown', `request-response-history' and
-`request-response-url' are unknown (always `nil') when using
+`request-response-url' are unknown (always nil) when using
 synchronous request with `url-retrieve' backend.
 
 * Note
@@ -541,15 +486,18 @@ synchronous request with `url-retrieve' backend.
 API of `request' is somewhat mixture of jQuery.ajax_ (Javascript)
 and requests.request_ (Python).
 
-.. _jQuery.ajax: http://api.jquery.com/jQuery.ajax/
-.. _requests.request: http://docs.python-requests.org
-"
+.. _jQuery.ajax: https://api.jquery.com/jQuery.ajax/
+.. _requests.request: https://docs.python-requests.org"
   (declare (indent defun))
   ;; FIXME: support CACHE argument (if possible)
   ;; (unless cache
   ;;   (setq url (request--url-no-cache url)))
   (unless error
-    (setq error (apply-partially #'request-default-error-callback url))
+    (setq error (cl-function
+                 (lambda (&rest args &key symbol-status &allow-other-keys)
+                   (request-log 'error
+                     "request-default-error-callback: %s %s"
+                     url symbol-status))))
     (setq settings (plist-put settings :error error)))
   (unless (or (stringp data)
               (null data)
@@ -574,7 +522,7 @@ and requests.request_ (Python).
   response)
 
 (defun request--clean-header (response)
-  "Strip off carriage returns in the header of REQUEST."
+  "Strip off carriage return in the header of RESPONSE."
   (let* ((buffer (request-response--buffer response))
          (backend (request-response--backend response))
          ;; FIXME: a workaround when `url-http-clean-headers' fails...
@@ -595,8 +543,7 @@ and requests.request_ (Python).
             (replace-match "")))))))
 
 (defun request--cut-header (response)
-  "Cut the first header part in the buffer of RESPONSE and move it to
-raw-header slot."
+  "Move the header to the raw-header slot of RESPONSE object."
   (let ((buffer (request-response--buffer response)))
     (when (buffer-live-p buffer)
       (with-current-buffer buffer
@@ -613,8 +560,7 @@ raw-header slot."
   (or (file-remote-p file 'localname) file))
 
 (defun request--parse-data (response encoding parser)
-  "For buffer held by RESPONSE, first decode via user's ENCODING elective,
-then send to PARSER."
+  "In RESPONSE buffer, decode via ENCODING, then send to PARSER."
   (let ((buffer (request-response--buffer response)))
     (when (buffer-live-p buffer)
       (with-current-buffer buffer
@@ -637,15 +583,18 @@ then send to PARSER."
                              status-code response
                              encoding
                              &allow-other-keys)
+  "Parse BUFFER according to PARSER.
+Delegate to callbacks SUCCESS, ERROR, and COMPLETE the STATUS-CODE of
+RESPONSE via ENCODING."
   (request-log 'debug "request--callback: UNPARSED\n%s"
                (when (buffer-live-p buffer)
                  (with-current-buffer buffer (buffer-string))))
-
-  ;; Sometimes BUFFER given as the argument is different from the
-  ;; buffer already set in RESPONSE.  That's why it is reset here.
-  ;; FIXME: Refactor how BUFFER is passed around.
+  ;; Reset RESPONSE buffer to argument BUFFER.
   (setf (request-response--buffer response) buffer)
-  (request-response--cancel-timer response)
+  (cl-symbol-macrolet ((timer (request-response--timer response)))
+    (when timer
+      (cancel-timer timer)
+      (setq timer nil)))
   (cl-symbol-macrolet
       ((error-thrown (request-response-error-thrown response))
        (symbol-status (request-response-symbol-status response))
@@ -685,27 +634,26 @@ then send to PARSER."
              (name (if success-p "success" "error")))
         (when cb
           (request-log 'debug "request--callback: executing %s" name)
-          (request--safe-apply cb args)))
-
+          (apply cb args)))
       (let ((cb (cdr (assq (request-response-status-code response)
                            status-code))))
         (when cb
           (request-log 'debug "request--callback: executing status-code")
-          (request--safe-apply cb args)))
-
+          (apply cb args)))
       (when complete
         (request-log 'debug "request--callback: executing complete")
-        (request--safe-apply complete args)))
+        (apply complete args)))
 
     (setq done-p t)))
 
 (cl-defun request-response--timeout-callback (response)
+  "If RESPONSE times out, ensure `request--callback' gets called."
   (setf (request-response-symbol-status response) 'timeout)
   (setf (request-response-error-thrown response)  '(error . ("Timeout")))
   (let* ((buffer (request-response--buffer response))
          (proc (and (buffer-live-p buffer) (get-buffer-process buffer))))
     (if proc
-        ;; This will call `request--callback':
+        ;; This implicitly calls `request--callback'!
         (funcall (request--choose-backend 'terminate-process) proc)
       (cl-symbol-macrolet ((done-p (request-response-done-p response)))
         (unless done-p
@@ -720,13 +668,6 @@ then send to PARSER."
                  (request-response-settings response))
           (setq done-p t))))))
 
-(defun request-response--cancel-timer (response)
-  (cl-symbol-macrolet ((timer (request-response--timer response)))
-    (when timer
-      (cancel-timer timer)
-      (setq timer nil))))
-
-
 (defun request-abort (response)
   "Abort request for RESPONSE (the object returned by `request').
 Note that this function invoke ERROR and COMPLETE callbacks.
@@ -739,18 +680,15 @@ associated process is exited."
       (unless symbol-status             ; should I use done-p here?
         (setq symbol-status 'abort)
         (setq done-p t)
-        (when (and
-               (processp process) ; process can be nil when buffer is killed
-               (request--process-live-p process))
+        (when (process-live-p process)
           (funcall (request--choose-backend 'terminate-process) process))))))
 
-
-;;; Backend: `url-retrieve'
 
 (cl-defun request--url-retrieve-preprocess-settings
     (&rest settings &key type data files headers &allow-other-keys)
+  "Augment SETTINGS with properties TYPE DATA FILES HEADERS."
   (when files
-    (error "`url-retrieve' backend does not support FILES."))
+    (error "`url-retrieve' backend does not support FILES"))
   (when (and (equal type "POST")
              data
              (not (assoc-string "Content-Type" headers t)))
@@ -762,6 +700,10 @@ associated process is exited."
                                      &key type data timeout response
                                      &allow-other-keys
                                      &aux headers)
+  "Internal workhorse querying URL via curl.
+SETTINGS is a property list with keys (some optional) such as GET or POST TYPE,
+DATA for posting fields, TIMEOUT in seconds, RESPONSE a mandatory struct.
+HEADERS needs to be assigned after SETTINGS is preprocessed."
   (setq settings (apply #'request--url-retrieve-preprocess-settings settings))
   (setq headers (plist-get settings :headers))
   (let* ((url-request-extra-headers headers)
@@ -778,6 +720,9 @@ associated process is exited."
 (cl-defun request--url-retrieve-callback (status &rest settings
                                                  &key response url
                                                  &allow-other-keys)
+  "Ensure `request--callback' gets called for STATUS.
+SETTINGS should include RESPONSE and URL properties which
+inform any necessary redirect or history recording logic."
   (when (featurep 'url-http)
     (setf (request-response-status-code response) url-http-response-status))
   (let ((redirect (plist-get status :redirect)))
@@ -797,20 +742,21 @@ associated process is exited."
            do (let ((r (make-request-response :-backend 'url-retrieve)))
                 (setf (request-response-url r) v)
                 (push r (request-response-history response))))
-
   (cl-symbol-macrolet ((error-thrown (request-response-error-thrown response))
                        (status-error (plist-get status :error)))
     (when status-error
       (request-log 'warn "request--url-retrieve-callback: %s" status-error)
       (unless error-thrown
         (setq error-thrown status-error))))
-
   (apply #'request--callback (current-buffer) settings))
 
 (cl-defun request--url-retrieve-sync (url &rest settings
                                           &key type data timeout response
                                           &allow-other-keys
                                           &aux headers)
+  "Internal synchronous retrieve of URL.
+SETTINGS include typical TYPE DATA TIMEOUT RESPONSE properties.
+HEADERS needs to be assigned after SETTINGS is preprocessed."
   (setq settings (apply #'request--url-retrieve-preprocess-settings settings))
   (setq headers (plist-get settings :headers))
   (let* ((url-request-extra-headers headers)
@@ -839,12 +785,10 @@ associated process is exited."
   response)
 
 (defun request--url-retrieve-get-cookies (host localpart secure)
+  "Retrieve cookies corresponding to HOST LOCALPART SECURE."
   (mapcar
    (lambda (c) (cons (url-cookie-name c) (url-cookie-value c)))
    (url-cookie-retrieve host localpart secure)))
-
-
-;;; Backend: curl
 
 (defvar request--curl-cookie-jar nil
   "Override what the function `request--curl-cookie-jar' returns.
@@ -885,16 +829,17 @@ Currently it is used only for testing.")
       "\\n(:num-redirects %{num_redirects} :url-effective %{url_effective})"
     "\\n(:num-redirects %{num_redirects} :url-effective \"%{url_effective}\")"))
 
-(defun request--curl-mkdir-for-cookie-jar ()
-  (ignore-errors
-    (make-directory (file-name-directory (request--curl-cookie-jar)) t)))
-
 (cl-defun request--curl-command
     (url &key type data headers files unix-socket auth
          &allow-other-keys
          &aux (cookie-jar (convert-standard-filename
                            (expand-file-name (request--curl-cookie-jar)))))
-  "BUG: Simultaneous requests are a known cause of cookie-jar corruption."
+  "Internal command cobbler for curl to URL.
+TYPE, DATA, HEADERS, FILES, UNIX-SOCKET, AUTH are as described in `request'.
+COOKIE-JAR is the file location for the netscape cookie jar, usually
+in the request subdirectory of `user-emacs-directory'.
+
+BUG: Simultaneous requests are a known cause of cookie-jar corruption."
   (append
    (list request-curl
          "--silent" "--location"
@@ -954,14 +899,14 @@ Currently it is used only for testing.")
    (list url)))
 
 (defun request--install-timeout (timeout response)
-  "Out-of-band trigger after TIMEOUT seconds to prevent hangs."
+  "Out-of-band trigger after TIMEOUT seconds to forestall a hung RESPONSE."
   (when (numberp timeout)
     (setf (request-response--timer response)
           (run-at-time timeout nil
                        #'request-response--timeout-callback response))))
 
 (defun request--curl-occlude-secret (command)
-  "Simple regex filter on anything looking like a secret."
+  "Simple regex filter on anything looking like a secret in COMMAND."
   (let ((matched
          (string-match (concat (regexp-quote "--user") "\\s-*\\(\\S-+\\)") command)))
     (if matched
@@ -971,7 +916,17 @@ Currently it is used only for testing.")
 (cl-defun request--curl (url &rest settings
                              &key data files timeout response encoding semaphore
                              &allow-other-keys)
-  "cURL-based request backend.
+  "Internal workhorse querying URL via curl.
+
+SETTINGS is a property list with keys (some optional) such as DATA for
+posting fields, FILES containing one or more lists of the form
+  (NAME . FILENAME)
+  (NAME . BUFFER)
+  (NAME . (FILENAME :buffer BUFFER))
+  (NAME . (FILENAME :data DATA))
+with NAME and FILENAME defined by curl(1)'s overwrought `--form` switch format,
+TIMEOUT in seconds, RESPONSE a mandatory struct, ENCODING, and SEMAPHORE,
+an internal semaphore.
 
 Redirection handling strategy
 -----------------------------
@@ -984,9 +939,9 @@ This number is used for removing extra headers and parse
 location header from the last redirection header.
 
 Sexp at the end of buffer and extra headers for redirects are
-removed from the buffer before it is shown to the parser function.
-"
-  (request--curl-mkdir-for-cookie-jar)
+removed from the buffer before it is shown to the parser function."
+  (ignore-errors
+    (make-directory (file-name-directory (request--curl-cookie-jar)) t))
   (let* (process-connection-type ;; pipe, not pty, else curl hangs
          (home-directory (or (file-remote-p default-directory) "~/"))
          (default-directory (expand-file-name home-directory))
@@ -1007,7 +962,7 @@ removed from the buffer before it is shown to the parser function.
                              file-items)))
     (request--install-timeout timeout response)
     (request-log 'debug "request--curl: %s"
-                 (request--curl-occlude-secret (mapconcat 'identity command " ")))
+                 (request--curl-occlude-secret (mapconcat #'identity command " ")))
     (setf (request-response--buffer response) buffer)
     (process-put proc :request-response response)
     (set-process-coding-system proc 'no-conversion 'no-conversion)
@@ -1061,7 +1016,7 @@ See also `request--curl-write-out-template'."
      "secure" "version" "expires")
    "\\|")
   "Uninterested keys in cookie.
-See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
+See \"set-cookie-av\" in https://www.ietf.org/rfc/rfc2965.txt")
 
 (defun request--consume-100-continue ()
   "Remove \"HTTP/* 100 Continue\" header at the point."
@@ -1083,7 +1038,8 @@ See \"set-cookie-av\" in http://www.ietf.org/rfc/rfc2965.txt")
     (delete-region (point) (progn (request--goto-next-body) (point)))))
 
 (defun request--curl-preprocess (&optional url)
-  "Pre-process current buffer before showing it to user."
+  "Pre-process current buffer before showing it to user.
+Curl switches need to be adjusted if URL is a file://."
   (let (history)
     (cl-destructuring-bind (&key num-redirects url-effective)
         (if (request-url-file-p url)
@@ -1133,6 +1089,8 @@ START-URL is the URL requested."
            do (setf (request-response-url response) url)))
 
 (defun request--curl-callback (url proc event)
+  "Ensure `request--callback' gets called after curl to URL finishes.
+See info entries on sentinels regarding PROC and EVENT."
   (let* ((buffer (process-buffer proc))
          (response (process-get proc :request-response))
          (settings (request-response-settings response)))
@@ -1181,6 +1139,7 @@ START-URL is the URL requested."
 	auto-revert-notify-modified-p nil))
 
 (cl-defun request--curl-sync (url &rest settings &key response &allow-other-keys)
+  "Internal synchronous curl call to URL with SETTINGS bespeaking RESPONSE."
   (let (finished)
     (prog1 (apply #'request--curl url
                   :semaphore (lambda (&rest _) (setq finished t))
@@ -1198,7 +1157,7 @@ START-URL is the URL requested."
           (cl-loop with iter = 0
                    until (or (>= iter maxiter) finished)
                    do (accept-process-output nil interval)
-                   unless (request--process-live-p proc)
+                   unless (process-live-p proc)
                      do (cl-incf iter)
                    end
                    finally (when (>= iter maxiter)
@@ -1207,11 +1166,9 @@ START-URL is the URL requested."
                                (request-log 'error m)))))))))
 
 (defun request--curl-get-cookies (host localpart secure)
+  "Return entry for HOST LOCALPART SECURE in cookie jar."
   (request--netscape-get-cookies (request--curl-cookie-jar)
                                  host localpart secure))
-
-
-;;; Netscape cookie.txt parser
 
 (defun request--netscape-cookie-parse ()
   "Parse Netscape/Mozilla cookie format."
@@ -1240,6 +1197,7 @@ START-URL is the URL requested."
                            value))))
 
 (defun request--netscape-filter-cookies (cookies host localpart secure)
+  "Filter COOKIES for entries containing HOST LOCALPART SECURE."
   (cl-loop for (domain _flag path secure-1 _http-only _expiration name value) in cookies
            when (and (equal domain host)
                      (equal path localpart)
@@ -1247,6 +1205,7 @@ START-URL is the URL requested."
            collect (cons name value)))
 
 (defun request--netscape-get-cookies (filename host localpart secure)
+  "Get cookies from FILENAME corresponding to HOST LOCALPART SECURE."
   (when (file-readable-p filename)
     (with-temp-buffer
       (erase-buffer)

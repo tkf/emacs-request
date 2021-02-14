@@ -4,7 +4,7 @@
 
 ;; Author: Takafumi Arakaki <aka.tkf at gmail.com>
 ;; URL: https://github.com/tkf/emacs-request
-;; Package-Requires: ((deferred "0.3.1") (request "0.2.0"))
+;; Package-Requires: ((emacs "24.1") (deferred "0.3.1") (request "0.3"))
 ;; Version: 0.2.0
 
 ;; This file is NOT part of GNU Emacs.
@@ -21,11 +21,11 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with request-deferred.el.
-;; If not, see <http://www.gnu.org/licenses/>.
+;; If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
-;;
+;; Trivial wrapper to request library returing kiwanami deferred object.
 
 ;;; Code:
 
@@ -33,7 +33,7 @@
 (require 'deferred)
 
 (defun request-deferred (url &rest args)
-  "Send a request and return deferred object associated with it.
+  "Return deferred object associated requesting URL with ARGS.
 
 Following deferred callback takes a response object regardless of
 the response result.  To make sure no error occurs during the
@@ -47,12 +47,10 @@ Example::
   (require 'request-deferred)
 
   (deferred:$
-    (request-deferred \"http://httpbin.org/get\" :parser 'json-read)
+    (request-deferred \"https://httpbin.org/get\" :parser 'json-read)
     (deferred:nextc it
       (lambda (response)
-        (message \"Got: %S\" (request-response-data response)))))
-"
-
+        (message \"Got: %S\" (request-response-data response)))))"
   (let* ((d (deferred:new #'identity))
          (callback-post (apply-partially
                          (lambda (d &rest args)
