@@ -2,7 +2,7 @@
 
 EMACS="${EMACS:=emacs}"
 BASENAME=$(basename "$1")
-PYTHON=$(which python3.6)
+PYTHON=$(which python3.6 || true)
 PYTHON="${PYTHON:-python}"
 
 if [[ -z $(du -s melpazoid-master 2>/dev/null | cut -f1) ]] || \

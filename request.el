@@ -274,7 +274,6 @@ as there's already precedent with `request-response-header', I
 hew to consistency."
   (let ((raw-header (request-response--raw-header response)))
     (when raw-header
-      raw-header
       (with-temp-buffer
         (save-excursion (insert raw-header))
         (when (save-excursion (request--parse-response-at-point))
