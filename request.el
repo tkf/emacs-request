@@ -827,30 +827,26 @@ Currently it is used only for testing.")
       "\\n(:num-redirects %{num_redirects} :url-effective %{url_effective})"
     "\\n(:num-redirects %{num_redirects} :url-effective \"%{url_effective}\")"))
 
-(defun request--curl-stdin-config (files-p &rest args)
-  "If FILES-P shunt to old behavior.
-Otherwise split ARGS such that we \"Only write one option per physical line\".
+(defun request--curl-stdin-config (&rest args)
+  "Split ARGS such that we \"Only write one option per physical line\".
 Fragile.  Some escaping will be necessary for special characters
 in user `request-curl-options'."
   (let (result)
-    (if files-p
-        ""
-      (dolist (arg args (mapconcat #'identity (reverse (cons "" result)) "\n"))
-        (if (or (not result)
-                (string-prefix-p "-" arg))
-            (push arg result)
-          (setcar result (format "%s %s" (car result)
-                                 (if (cl-search " " arg)
-                                     (format "\"%s\""
-                                             (replace-regexp-in-string
-                                              "\""
-                                              (regexp-quote "\\\"") arg))
-                                   arg))))))))
+    (dolist (arg args (mapconcat #'identity (reverse (cons "" result)) "\n"))
+      (if (or (not result)
+              (string-prefix-p "-" arg))
+          (push arg result)
+        (setcar result (format "%s %s" (car result)
+                               (if (cl-search " " arg)
+                                   (format "\"%s\""
+                                           (replace-regexp-in-string
+                                            "\""
+                                            (regexp-quote "\\\"") arg))
+                                 arg)))))))
 
-(defun request--curl-command (files-p &rest args)
-  "If FILES-P, shunt to old invocation using explicit ARGS."
-  (let ((args (if files-p args (split-string "--config -"))))
-    (cons request-curl args)))
+(defun request--curl-command ()
+  "Stub for test-request.el to override."
+  (list request-curl "--config" "-"))
 
 (cl-defun request--curl-command-args
     (url &key type data headers files unix-socket auth
@@ -884,6 +880,15 @@ BUG: Simultaneous requests are a known cause of cookie-jar corruption."
    request-curl-options
    (when (plist-get (request--curl-capabilities) :compression) (list "--compressed"))
    (when unix-socket (list "--unix-socket" unix-socket))
+   (when type (if (equal "head" (downcase type))
+		  (list "--head")
+		(list "--request" type)))
+   (cl-loop for (k . v) in headers
+            collect "--header"
+            collect (format "%s: %s" k v))
+   (list "--url" url)
+   (when data
+     (split-string "--data-binary @-"))
    (cl-loop with stdin-p = data
             for (name . item) in files
             collect "--form"
@@ -909,16 +914,7 @@ BUG: Simultaneous requests are a known cause of cookie-jar corruption."
                                   "")))
                          (t (error (concat "request--curl-command-args: "
                                            "%S not string, buffer, or list")
-                                   item)))))
-   (when type (if (equal "head" (downcase type))
-		  (list "--head")
-		(list "--request" type)))
-   (cl-loop for (k . v) in headers
-            collect "--header"
-            collect (format "%s: %s" k v))
-   (list "--url" url)
-   (when data
-     (split-string "--data-binary @-"))))
+                                   item)))))))
 
 (defun request--install-timeout (timeout response)
   "Out-of-band trigger after TIMEOUT seconds to forestall a hung RESPONSE."
@@ -981,9 +977,8 @@ removed from the buffer before it is shown to the parser function."
                                     (plist-get (cdr item) :data)))
                              file-items))
          (command-args (apply #'request--curl-command-args url settings))
-         (stdin-config (apply #'request--curl-stdin-config (or file-buffer file-data)
-                              command-args))
-         (command (apply #'request--curl-command (or file-buffer file-data) command-args))
+         (stdin-config (apply #'request--curl-stdin-config command-args))
+         (command (request--curl-command))
          (proc (apply #'start-process "request curl" buffer command)))
     (request--install-timeout timeout response)
     (request-log 'debug "request--curl: %s"
