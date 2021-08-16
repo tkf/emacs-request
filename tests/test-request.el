@@ -627,10 +627,10 @@ based backends (e.g., `curl') should avoid this problem."
   "construct curl command"
   (let ((options '("--noproxy" "--cacert")))
     (let* ((request-curl-options options)
-           (got (request--curl-command "https://example.com")))
+           (got (request--curl-command-args "https://example.com")))
       (dolist (opt options)
         (should (member opt got))))
-    (let ((got (request--curl-command "https://example.com")))
+    (let ((got (request--curl-command-args "https://example.com")))
       (dolist (opt options)
         (should-not (member opt got))))))
 

@@ -215,8 +215,7 @@ Slots                                          Backends
 request-response-url                  yes            yes
 request-response-header               yes            no
 other functions                       no             no
-==================================== ============== ==============
-")
+==================================== ============== ==============")
 
 (request--document-response request-response-data
   "Response parsed by the given parser.")
@@ -828,7 +827,32 @@ Currently it is used only for testing.")
       "\\n(:num-redirects %{num_redirects} :url-effective %{url_effective})"
     "\\n(:num-redirects %{num_redirects} :url-effective \"%{url_effective}\")"))
 
-(cl-defun request--curl-command
+(defun request--curl-stdin-config (files-p &rest args)
+  "If FILES-P shunt to old behavior.
+Otherwise split ARGS such that we \"Only write one option per physical line\".
+Fragile.  Some escaping will be necessary for special characters
+in user `request-curl-options'."
+  (let (result)
+    (if files-p
+        ""
+      (dolist (arg args (mapconcat #'identity (reverse (cons "" result)) "\n"))
+        (if (or (not result)
+                (string-prefix-p "-" arg))
+            (push arg result)
+          (setcar result (format "%s %s" (car result)
+                                 (if (cl-search " " arg)
+                                     (format "\"%s\""
+                                             (replace-regexp-in-string
+                                              "\""
+                                              (regexp-quote "\\\"") arg))
+                                   arg))))))))
+
+(defun request--curl-command (files-p &rest args)
+  "If FILES-P, shunt to old invocation using explicit ARGS."
+  (let ((args (if files-p args (split-string "--config -"))))
+    (cons request-curl args)))
+
+(cl-defun request--curl-command-args
     (url &key type data headers files unix-socket auth
          &allow-other-keys
          &aux (cookie-jar (convert-standard-filename
@@ -840,8 +864,7 @@ in the request subdirectory of `user-emacs-directory'.
 
 BUG: Simultaneous requests are a known cause of cookie-jar corruption."
   (append
-   (list request-curl
-         "--silent" "--location"
+   (list "--silent" "--location"
          "--cookie" cookie-jar "--cookie-jar" cookie-jar)
    (when auth
      (let* ((host (url-host (url-generic-parse-url url)))
@@ -870,32 +893,32 @@ BUG: Simultaneous requests are a known cause of cookie-jar corruption."
                           (list name item (file-name-nondirectory item) ""))
                          ((bufferp item)
                           (if stdin-p
-                              (error (concat "request--curl-command: "
+                              (error (concat "request--curl-command-args: "
                                              "only one buffer or data entry permitted"))
                             (setq stdin-p t))
                           (list name "-" (buffer-name item) ""))
                          ((listp item)
                           (unless (plist-get (cdr item) :file)
                             (if stdin-p
-                                (error (concat "request--curl-command: "
+                                (error (concat "request--curl-command-args: "
                                                "only one buffer or data entry permitted"))
                               (setq stdin-p t)))
                           (list name (or (plist-get (cdr item) :file) "-") (car item)
                                 (if (plist-get item :mime-type)
                                     (format ";type=%s" (plist-get item :mime-type))
                                   "")))
-                         (t (error (concat "request--curl-command: "
+                         (t (error (concat "request--curl-command-args: "
                                            "%S not string, buffer, or list")
                                    item)))))
-   (when data
-     (split-string "--data-binary @-"))
    (when type (if (equal "head" (downcase type))
 		  (list "--head")
 		(list "--request" type)))
    (cl-loop for (k . v) in headers
             collect "--header"
             collect (format "%s: %s" k v))
-   (list url)))
+   (list "--url" url)
+   (when data
+     (split-string "--data-binary @-"))))
 
 (defun request--install-timeout (timeout response)
   "Out-of-band trigger after TIMEOUT seconds to forestall a hung RESPONSE."
@@ -945,8 +968,6 @@ removed from the buffer before it is shown to the parser function."
          (home-directory (or (file-remote-p default-directory) "~/"))
          (default-directory (expand-file-name home-directory))
          (buffer (generate-new-buffer " *request curl*"))
-         (command (apply #'request--curl-command url settings))
-         (proc (apply #'start-process "request curl" buffer command))
          (file-items (mapcar #'cdr files))
          (file-buffer (or (cl-some (lambda (item)
                                      (when (bufferp item) item))
@@ -958,14 +979,20 @@ removed from the buffer before it is shown to the parser function."
          (file-data (cl-some (lambda (item)
                                (and (listp item)
                                     (plist-get (cdr item) :data)))
-                             file-items)))
+                             file-items))
+         (command-args (apply #'request--curl-command-args url settings))
+         (stdin-config (apply #'request--curl-stdin-config (or file-buffer file-data)
+                              command-args))
+         (command (apply #'request--curl-command (or file-buffer file-data) command-args))
+         (proc (apply #'start-process "request curl" buffer command)))
     (request--install-timeout timeout response)
     (request-log 'debug "request--curl: %s"
-                 (request--curl-occlude-secret (mapconcat #'identity command " ")))
+                 (request--curl-occlude-secret (mapconcat #'identity command-args " ")))
     (setf (request-response--buffer response) buffer)
     (process-put proc :request-response response)
     (set-process-coding-system proc 'no-conversion 'no-conversion)
     (set-process-query-on-exit-flag proc nil)
+    (process-send-string proc stdin-config)
     (when (or data file-buffer file-data)
       ;; We dynamic-let the global `buffer-file-coding-system' to `no-conversion'
       ;; in case the user-configured `encoding' doesn't fly.
@@ -985,10 +1012,10 @@ removed from the buffer before it is shown to the parser function."
                               (with-current-buffer file-buffer
                                 (buffer-substring-no-properties (point-min) (point-max))))
                             file-data))
-                (process-send-region proc (point-min) (point-max))
-                (process-send-eof proc)))
+                (process-send-region proc (point-min) (point-max))))
           (setf (default-value 'buffer-file-coding-system)
                 buffer-file-coding-system-orig))))
+    (process-send-eof proc)
     (let ((callback-2 (apply-partially #'request--curl-callback url)))
       (if semaphore
           (set-process-sentinel proc (lambda (&rest args)

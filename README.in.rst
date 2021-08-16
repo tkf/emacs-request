@@ -54,8 +54,8 @@ Block until completion:
   (request "http://httpbin.org/get"
     :sync t
     :complete (cl-function
-              (lambda (&key response &allow-other-keys)
-                (message "Done: %s" (request-response-status-code response)))))
+               (lambda (&key response &allow-other-keys)
+                 (message "Done: %s" (request-response-status-code response)))))
 
 Curl authentication:
 
