@@ -196,7 +196,7 @@ GET with Unix domain socket data:
 
 Legacy documentation
 ====================
-* `Github Pages <http://tkf.github.com/emacs-request/>`
+* `Github Pages <https://tkf.github.io/emacs-request/>`
 
 .. |build-status|
    image:: https://github.com/tkf/emacs-request/workflows/CI/badge.svg
