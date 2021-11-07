@@ -1162,29 +1162,33 @@ See info entries on sentinels regarding PROC and EVENT."
 (cl-defun request--curl-sync (url &rest settings &key response &allow-other-keys)
   "Internal synchronous curl call to URL with SETTINGS bespeaking RESPONSE."
   (let (finished)
+    (auto-revert-set-timer)
+    (when auto-revert-use-notify
+      (dolist (buf (buffer-list))
+        (with-current-buffer buf
+          (request-auto-revert-notify-rm-watch))))
     (prog1 (apply #'request--curl url
                   :semaphore (lambda (&rest _) (setq finished t))
                   settings)
-      (let* ((proc (get-buffer-process (request-response--buffer response)))
-	     (interval 0.05)
-	     (timeout 5)
-	     (maxiter (truncate (/ timeout interval))))
-        (auto-revert-set-timer)
-        (when auto-revert-use-notify
-          (dolist (buf (buffer-list))
-            (with-current-buffer buf
-              (request-auto-revert-notify-rm-watch))))
-        (with-local-quit
-          (cl-loop with iter = 0
-                   until (or (>= iter maxiter) finished)
-                   do (accept-process-output nil interval)
-                   unless (process-live-p proc)
-                     do (cl-incf iter)
-                   end
-                   finally (when (>= iter maxiter)
-                             (let ((m "request--curl-sync: semaphore never called"))
-                               (princ (format "%s\n" m) #'external-debugging-output)
-                               (request-log 'error m)))))))))
+      (cl-loop with interval = 0.05
+               with timeout = 5
+               with maxiter = (truncate (/ timeout interval))
+               with iter = 0
+               until (or (>= iter maxiter) finished)
+               do (accept-process-output nil interval)
+               for buf = (request-response--buffer response)
+               for proc = (and (bufferp buf) (get-buffer-process buf))
+               if (or (not proc) (not (process-live-p proc)))
+               do (cl-incf iter)
+               end
+               finally (when (>= iter maxiter)
+                         (let ((m "request--curl-sync: semaphore never called"))
+                           (princ (format "%s %s %s\n"
+                                          m
+                                          (buffer-name buf)
+                                          (buffer-live-p buf))
+                                  #'external-debugging-output)
+                           (request-log 'error m)))))))
 
 (defun request--curl-get-cookies (host localpart secure)
   "Return entry for HOST LOCALPART SECURE in cookie jar."
