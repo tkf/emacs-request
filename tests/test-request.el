@@ -373,6 +373,27 @@ See also:
                (filename . "data.csv")
                (name . "name"))))))
 
+(request-deftest request-post-files/stdin-slow ()
+  "emacs-request#207 @furkanusta points out relying on the vagaries
+of UNIX pipes (a la `process-send-region') to transmit bytes in a
+timely fashion is insane (my word, not his)."
+  :backends (curl)
+  (with-current-buffer (get-buffer-create " *request-test-temp*")
+    (erase-buffer)
+    (insert (make-string (truncate 1e7) ?\0)))
+  (unwind-protect
+      (request-testing-with-response-slots
+          (should-error ;; should time out
+           (request-testing-sync
+            "report/some-path"
+            :type "POST"
+            :files `(("name" .
+                      ("filename"
+                       :buffer ,(get-buffer " *request-test-temp*"))))
+            :parser 'json-read))
+        response)
+    (kill-process "request curl")))
+
 (request-deftest request-post-files/expect-100-header-with-long-body ()
                  :backends (curl)
                  (request-testing-with-response-slots
