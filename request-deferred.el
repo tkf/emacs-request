@@ -44,10 +44,10 @@ be used as it is used for starting deferred callback chain.
 
 Example::
 
-  (require 'request-deferred)
+  (require \\='request-deferred)
 
   (deferred:$
-    (request-deferred \"https://httpbin.org/get\" :parser 'json-read)
+    (request-deferred \"https://httpbin.org/get\" :parser \\='json-read)
     (deferred:nextc it
       (lambda (response)
         (message \"Got: %S\" (request-response-data response)))))"

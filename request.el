@@ -455,7 +455,7 @@ like this.::
     (request
      \"https://...\"
      :parser (lambda ()
-               (let ((json-object-type 'plist))
+               (let ((json-object-type \\='plist))
                  (json-read)))
      ...)
 
