@@ -911,8 +911,8 @@ BUG: Simultaneous requests are a known cause of cookie-jar corruption."
                                                "only one buffer or data entry permitted"))
                               (setq stdin-p t)))
                           (list name (or (plist-get (cdr item) :file) "-") (car item)
-                                (if (plist-get item :mime-type)
-                                    (format ";type=%s" (plist-get item :mime-type))
+                                (if (plist-get (cdr item) :mime-type)
+                                    (format ";type=%s" (plist-get (cdr item) :mime-type))
                                   "")))
                          (t (error (concat "request--curl-command-args: "
                                            "%S not string, buffer, or list")
