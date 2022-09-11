@@ -814,12 +814,12 @@ Currently it is used only for testing.")
         (call-process request-curl nil t nil "--version")
         (let ((version
                (progn
-                 (setf (point) (point-min))
+                 (goto-char (point-min))
                  (when (re-search-forward "[.0-9]+" nil t)
                    (match-string 0))))
               (compression
                (progn
-                 (setf (point) (point-min))
+                 (goto-char (point-min))
                  (not (null (re-search-forward "libz\\>" nil t))))))
           (setf (gethash request-curl request--curl-capabilities-cache)
                 `(:version ,version :compression ,compression)))))))
