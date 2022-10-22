@@ -361,10 +361,10 @@ SYNC            (bool)   If non-nil, wait until request is done. Default is nil.
 
 * Callback functions
 
-Callback functions STATUS, ERROR, COMPLETE and `cdr's in element of
+Callback functions STATUS, ERROR, COMPLETE and `cdr\\='s in element of
 the alist STATUS-CODE take same keyword arguments listed below.  For
 forward compatibility, these functions must ignore unused keyword
-arguments (i.e., it's better to use `&allow-other-keys' [#]_).::
+arguments (i.e., it\\='s better to use `&allow-other-keys\\=' [#]_).::
 
     (CALLBACK                      ; SUCCESS/ERROR/COMPLETE/STATUS-CODE
      :data          data           ; whatever PARSER function returns, or nil
@@ -373,25 +373,25 @@ arguments (i.e., it's better to use `&allow-other-keys' [#]_).::
      :response      response       ; request-response object
      ...)
 
-.. [#] `&allow-other-keys' is a special \"markers\" available in macros
-   in the CL library for function definition such as `cl-defun' and
-   `cl-function'.  Without this marker, you need to specify all arguments
+.. [#] `&allow-other-keys\\=' is a special \"markers\" available in macros
+   in the CL library for function definition such as `cl-defun\\=' and
+   `cl-function\\='.  Without this marker, you need to specify all arguments
    to be passed.  This becomes problem when request.el adds new arguments
-   when calling callback functions.  If you use `&allow-other-keys'
+   when calling callback functions.  If you use `&allow-other-keys\\='
    (or manually ignore other arguments), your code is free from this
-   problem.  See info node `(cl) Argument Lists' for more information.
+   problem.  See info node `(cl) Argument Lists\\=' for more information.
 
 Arguments data, error-thrown, symbol-status can be accessed by
-`request-response-data', `request-response-error-thrown',
-`request-response-symbol-status' accessors, i.e.::
+`request-response-data\\=', `request-response-error-thrown\\=',
+`request-response-symbol-status\\=' accessors, i.e.::
 
     (request-response-data RESPONSE)  ; same as data
 
 Response object holds other information which can be accessed by
 the following accessors:
-`request-response-status-code',
-`request-response-url' and
-`request-response-settings'
+`request-response-status-code\\=',
+`request-response-url\\=' and
+`request-response-settings\\='
 
 * STATUS-CODE callback
 
@@ -441,15 +441,15 @@ PARSER function takes no argument and it is executed in the
 buffer with HTTP response body.  The current position in the HTTP
 response buffer is at the beginning of the buffer.  As the HTTP
 header is stripped off, the cursor is actually at the beginning
-of the response body.  So, for example, you can pass `json-read'
+of the response body.  So, for example, you can pass `json-read\\='
 to parse JSON object in the buffer.  To fetch whole response as a
-string, pass `buffer-string'.
+string, pass `buffer-string\\='.
 
-When using `json-read', it is useful to know that the returned
-type can be modified by `json-object-type', `json-array-type',
-`json-key-type', `json-false' and `json-null'.  See docstring of
+When using `json-read\\=', it is useful to know that the returned
+type can be modified by `json-object-type\\=', `json-array-type\\=',
+`json-key-type\\=', `json-false\\=' and `json-null\\='.  See docstring of
 each function for what it does.  For example, to convert JSON
-objects to plist instead of alist, wrap `json-read' by `lambda'
+objects to plist instead of alist, wrap `json-read\\=' by `lambda\\='
 like this.::
 
     (request
@@ -459,29 +459,29 @@ like this.::
                  (json-read)))
      ...)
 
-This is analogous to the `dataType' argument of jQuery.ajax_.
+This is analogous to the `dataType\\=' argument of jQuery.ajax_.
 Only this function can access to the process buffer, which
 is killed immediately after the execution of this function.
 
 * SYNC
 
-Synchronous request is functional, but *please* don't use it
+Synchronous request is functional, but *please* don\\='t use it
 other than testing or debugging.  Emacs users have better things
 to do rather than waiting for HTTP request.  If you want a better
-way to write callback chains, use `request-deferred'.
+way to write callback chains, use `request-deferred\\='.
 
-If you can't avoid using it (e.g., you are inside of some hook
+If you can\\='t avoid using it (e.g., you are inside of some hook
 which must return some value), make sure to set TIMEOUT to
 relatively small value.
 
-Due to limitation of `url-retrieve-synchronously', response slots
-`request-response-error-thrown', `request-response-history' and
-`request-response-url' are unknown (always nil) when using
-synchronous request with `url-retrieve' backend.
+Due to limitation of `url-retrieve-synchronously\\=', response slots
+`request-response-error-thrown\\=', `request-response-history\\=' and
+`request-response-url\\=' are unknown (always nil) when using
+synchronous request with `url-retrieve\\=' backend.
 
 * Note
 
-API of `request' is somewhat mixture of jQuery.ajax_ (Javascript)
+API of `request\\=' is somewhat mixture of jQuery.ajax_ (Javascript)
 and requests.request_ (Python).
 
 .. _jQuery.ajax: https://api.jquery.com/jQuery.ajax/
