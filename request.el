@@ -329,7 +329,7 @@ Example::
   (request-cookie-alist \"127.0.0.1\" \"/\")  ; => ((\"key\" . \"value\") ...)"
   (funcall (request--choose-backend 'get-cookies) host localpart secure))
 
-
+;;;###autoload
 (cl-defun request (url &rest settings
                        &key
                        (params nil)
