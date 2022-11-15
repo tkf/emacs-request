@@ -195,11 +195,9 @@ for older Emacs versions.")
 
 \(fn RESPONSE)")))
 
-;;;###autoload (autoload 'request-response-status-code "request.el")
 (request--document-response request-response-status-code
   "Integer HTTP response code (e.g., 200).")
 
-;;;###autoload (autoload 'request-response-history "request.el")
 (request--document-response request-response-history
   "Redirection history (a list of response object).
 The first element is the oldest redirection.
@@ -219,30 +217,24 @@ request-response-header               yes            no
 other functions                       no             no
 ==================================== ============== ==============")
 
-;;;###autoload (autoload 'request-response-data "request.el")
 (request--document-response request-response-data
   "Response parsed by the given parser.")
 
-;;;###autoload (autoload 'request-response-error-thrown "request.el")
 (request--document-response request-response-error-thrown
   "Error thrown during request.
 It takes the form of ``(ERROR-SYMBOL . DATA)``, which can be
 re-raised (`signal'ed) by ``(signal ERROR-SYMBOL DATA)``.")
 
-;;;###autoload (autoload 'request-response-symbol-status "request.el")
 (request--document-response request-response-symbol-status
   "A symbol representing the status of request (not HTTP response code).
 One of success/error/timeout/abort/parse-error.")
 
-;;;###autoload (autoload 'request-response-url "request.el")
 (request--document-response request-response-url
   "Final URL location of response.")
 
-;;;###autoload (autoload 'request-response-done-p "request.el")
 (request--document-response request-response-done-p
   "Return t when the request is finished or aborted.")
 
-;;;###autoload (autoload 'request-response-settings "request.el")
 (request--document-response request-response-settings
   "Keyword arguments passed to `request' function.
 Some arguments such as HEADERS is changed to the one actually
