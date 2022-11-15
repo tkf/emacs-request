@@ -102,16 +102,17 @@ endef
 .PHONY: test-install-vars
 test-install-vars:
 	$(eval $(call SET_GITHUB_ACTOR))
-	$(info ${GITHUB_ACTOR})
 	$(eval $(call SET_GITHUB_ACTOR_REPOSITORY))
-	$(info ${GITHUB_ACTOR_REPOSITORY})
 	$(eval $(call SET_GITHUB_HEAD_REF))
-	$(info ${GITHUB_HEAD_REF})
 	$(eval $(call SET_GITHUB_SHA))
 	$(eval $(call SET_GITHUB_COMMIT))
-	git show -s --format=%s $(GITHUB_COMMIT) || true
-	git show -s --format=%s $(GITHUB_SHA) || true
+	git show -s --format=%s $(GITHUB_COMMIT)
+	# this needs to be the github implicit merge commit
+	# e.g., "Merge 8feb544 into 2c33e45",
+	git show -s --format=%s $(GITHUB_SHA)
 
+# The timing of the github implicit merge commit for PRs
+# is elusive.  So the following won't halt CI.
 .PHONY: test-install
 test-install: test-install-vars
 	mkdir -p tests/test-install
@@ -138,4 +139,4 @@ test-install: test-install-vars
 	           (oset rcp :branch my-branch) \
 	           (oset rcp :commit my-commit))" \
 	--eval "(package-build--package rcp (package-build--checkout rcp))" \
-	--eval "(package-install-file (car (file-expand-wildcards (concat package-build-archive-dir \"request*.el\"))))" 2>&1 | egrep -ia "error: |fatal" )
+	--eval "(package-install-file (car (file-expand-wildcards (concat package-build-archive-dir \"request*.el\"))))" 2>&1 | egrep -ia "error: |fatal" && false)
