@@ -20,8 +20,8 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest]
-        emacs_version: [25.3, 26.3, 27.2, 28.2]
-        python_version: [2.7, 3.6]
+        emacs_version: [26.3]
+        python_version: [2.7]
 
     steps:
     - uses: actions/checkout@v1

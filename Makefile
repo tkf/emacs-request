@@ -102,12 +102,15 @@ endef
 .PHONY: test-install-vars
 test-install-vars:
 	$(eval $(call SET_GITHUB_ACTOR))
+	$(info ${GITHUB_ACTOR})
 	$(eval $(call SET_GITHUB_ACTOR_REPOSITORY))
+	$(info ${GITHUB_ACTOR_REPOSITORY})
 	$(eval $(call SET_GITHUB_HEAD_REF))
+	$(info ${GITHUB_HEAD_REF})
 	$(eval $(call SET_GITHUB_SHA))
 	$(eval $(call SET_GITHUB_COMMIT))
-	git show -s --format=%s $(GITHUB_COMMIT)
-	git show -s --format=%s $(GITHUB_SHA)
+	git show -s --format=%s $(GITHUB_COMMIT) || true
+	git show -s --format=%s $(GITHUB_SHA) || true
 
 .PHONY: test-install
 test-install: test-install-vars
