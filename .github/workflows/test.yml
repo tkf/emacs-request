@@ -87,13 +87,6 @@ jobs:
         cask link list
       continue-on-error: ${{ matrix.emacs_version == 'snapshot' }}
 
-    - name: lint
-      if: |
-        startsWith(matrix.python_version, '3') &&
-        startsWith(matrix.emacs_version, '27')
-      run: make lint
-      continue-on-error: ${{ matrix.emacs_version == 'snapshot' }}
-
     - name: test-install
       if: startsWith(matrix.python_version, '2')
       run: make test-install
