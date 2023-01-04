@@ -499,9 +499,8 @@ and requests.request_ (Python).
                      "request-default-error-callback: %s %s"
                      url symbol-status))))
     (setq settings (plist-put settings :error error)))
-  (unless (or (stringp data)
-              (null data)
-              (assoc-string "Content-Type" headers t))
+  (when (and (consp data)
+             (not (assoc-string "Content-Type" headers t)))
     (setq data (request--urlencode-alist data))
     (setq settings (plist-put settings :data data)))
   (when params
