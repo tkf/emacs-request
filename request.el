@@ -334,7 +334,6 @@ Example::
                        &key
                        (params nil)
                        (data nil)
-                       (headers nil)
                        (encoding 'utf-8)
                        (error nil)
                        (sync nil)
@@ -500,8 +499,7 @@ and requests.request_ (Python).
                      url symbol-status))))
     (setq settings (plist-put settings :error error)))
   (unless (or (stringp data)
-              (null data)
-              (assoc-string "Content-Type" headers t))
+              (null data))
     (setq data (request--urlencode-alist data))
     (setq settings (plist-put settings :data data)))
   (when params
