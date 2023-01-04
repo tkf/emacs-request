@@ -693,7 +693,7 @@ associated process is exited."
   (when files
     (error "`url-retrieve' backend does not support FILES"))
   (when (and (equal type "POST")
-             (consp data)
+             data
              (not (assoc-string "Content-Type" headers t)))
     (push '("Content-Type" . "application/x-www-form-urlencoded") headers)
     (setq settings (plist-put settings :headers headers)))
