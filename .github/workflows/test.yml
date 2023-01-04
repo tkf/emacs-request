@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-20.04]
         emacs_version: [25.3, 26.3, 27.2, 28.2]
         python_version: [2.7, 3.6]
 
