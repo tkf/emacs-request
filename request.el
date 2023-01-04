@@ -334,6 +334,7 @@ Example::
                        &key
                        (params nil)
                        (data nil)
+                       (headers nil)
                        (encoding 'utf-8)
                        (error nil)
                        (sync nil)
@@ -498,8 +499,8 @@ and requests.request_ (Python).
                      "request-default-error-callback: %s %s"
                      url symbol-status))))
     (setq settings (plist-put settings :error error)))
-  (unless (or (stringp data)
-              (null data))
+  (when (and (consp data)
+             (not (assoc-string "Content-Type" headers t)))
     (setq data (request--urlencode-alist data))
     (setq settings (plist-put settings :data data)))
   (when params
@@ -692,7 +693,7 @@ associated process is exited."
   (when files
     (error "`url-retrieve' backend does not support FILES"))
   (when (and (equal type "POST")
-             data
+             (consp data)
              (not (assoc-string "Content-Type" headers t)))
     (push '("Content-Type" . "application/x-www-form-urlencoded") headers)
     (setq settings (plist-put settings :headers headers)))
