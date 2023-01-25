@@ -139,4 +139,4 @@ test-install: test-install-vars
 	           (oset rcp :branch my-branch) \
 	           (oset rcp :commit my-commit))" \
 	--eval "(package-build--package rcp (package-build--checkout rcp))" \
-	--eval "(package-install-file (car (file-expand-wildcards (concat package-build-archive-dir \"request*.el\"))))" 2>&1 | egrep -ia "error: |fatal" && false)
+	--eval "(package-install-file (car (file-expand-wildcards (concat package-build-archive-dir \"request*.el\"))))" 2>&1 | egrep -ia "error: |fatal")
