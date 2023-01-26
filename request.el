@@ -950,7 +950,7 @@ posting fields, FILES containing one or more lists of the form
   (NAME . BUFFER)
   (NAME . (FILENAME :buffer BUFFER))
   (NAME . (FILENAME :data DATA))
-  (NAME . (FILENAME :data DATA :use-contents t))
+  (NAME . (FILENAME :file FILE :use-contents t))
 with NAME and FILENAME defined by curl(1)'s overwrought `--form` switch format,
 TIMEOUT in seconds, RESPONSE a mandatory struct, ENCODING, and SEMAPHORE,
 an internal semaphore.  Adding `:use-contents t` sends a text field
