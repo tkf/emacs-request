@@ -42,7 +42,6 @@
 (require 'cl-lib)
 (require 'url)
 (require 'mail-utils)
-(require 'autorevert)
 (require 'auth-source)
 (require 'mailheader)
 
