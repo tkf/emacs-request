@@ -1154,34 +1154,9 @@ See info entries on sentinels regarding PROC and EVENT."
               (or error (and (numberp code) (>= code 400) `(error . (http ,code)))))
         (apply #'request--callback buffer settings))))))
 
-;;;###autoload
-(defun request-auto-revert-notify-rm-watch ()
-  "Backport of M. Engdegard's fix of `auto-revert-notify-rm-watch'."
-  (let ((desc auto-revert-notify-watch-descriptor)
-        (table (if (boundp 'auto-revert--buffers-by-watch-descriptor)
-                   auto-revert--buffers-by-watch-descriptor
-                 (when (boundp 'auto-revert-notify-watch-descriptor-hash-list)
-                   auto-revert-notify-watch-descriptor-hash-list))))
-    (when (and desc table)
-      (let ((buffers (delq (current-buffer) (gethash desc table))))
-        (if buffers
-            (puthash desc buffers table)
-          (remhash desc table)))
-      (condition-case nil ;; ignore-errors doesn't work for me, sorry
-	  (file-notify-rm-watch desc)
-        (error))
-      (remove-hook 'kill-buffer-hook #'auto-revert-notify-rm-watch t)))
-  (setq auto-revert-notify-watch-descriptor nil
-	auto-revert-notify-modified-p nil))
-
 (cl-defun request--curl-sync (url &rest settings &key response &allow-other-keys)
   "Internal synchronous curl call to URL with SETTINGS bespeaking RESPONSE."
   (let (finished)
-    (auto-revert-set-timer)
-    (when auto-revert-use-notify
-      (dolist (buf (buffer-list))
-        (with-current-buffer buf
-          (request-auto-revert-notify-rm-watch))))
     (prog1 (apply #'request--curl url
                   :semaphore (lambda (&rest _) (setq finished t))
                   settings)
