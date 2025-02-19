@@ -1153,33 +1153,54 @@ See info entries on sentinels regarding PROC and EVENT."
               (or error (and (numberp code) (>= code 400) `(error . (http ,code)))))
         (apply #'request--callback buffer settings))))))
 
-(cl-defun request--curl-sync (url &rest settings &key response &allow-other-keys)
+(cl-defun request--curl-sync
+    (url &rest settings &key response &allow-other-keys)
   "Internal synchronous curl call to URL with SETTINGS bespeaking RESPONSE."
-  (let (finished)
-    (prog1 (apply #'request--curl url
-                  :semaphore (lambda (&rest _) (setq finished t))
-                  settings)
-      (cl-loop with buf = (request-response--buffer response)
-               with interval = 0.05
-               with timeout = 5
-               with maxiter = (truncate (/ timeout interval))
-               with iter = 0
-               until (or (>= iter maxiter) finished)
-               do (accept-process-output nil interval)
-               for proc = (get-buffer-process buf)
-               if (or (not proc) (not (process-live-p proc)))
-               ;; only run the clock if lollygagging
-               ;; (before or after process lifetime)
-               do (cl-incf iter)
-               end
-               finally (when (>= iter maxiter)
-                         (let ((m "request--curl-sync: semaphore never called"))
-                           (princ (format "%s %S %s\n"
-                                          m
-                                          buf
-                                          (buffer-live-p buf))
-                                  #'external-debugging-output)
-                           (request-log 'error m)))))))
+  (let
+      ((finished nil))
+    (prog1
+        (apply #'request--curl url
+               :semaphore
+               (lambda
+                 (&rest _)
+                 (setq finished t))
+               settings)
+      (let*
+          ((buffer
+            (request-response--buffer response))
+           (interval 0.05)
+           (timeout
+            (or
+             (plist-get settings :timeout)
+             30))
+           (time-spent 0))
+        (while
+            (and
+             (not finished)
+             (< time-spent timeout)
+             (buffer-live-p buffer)
+             (get-buffer-process buffer))
+          (accept-process-output nil interval)
+          (setq time-spent
+                (+ time-spent interval)))
+
+        (when
+            (and
+             (not finished)
+             (>= time-spent timeout))
+          (setf
+           (request-response-error-thrown response)
+           (cons 'error "Timeout"))
+          (setf
+           (request-response-symbol-status response)
+           'timeout)
+          (when
+              (and
+               (buffer-live-p buffer)
+               (get-buffer-process buffer))
+            (funcall
+             (request--choose-backend 'terminate-process)
+             (get-buffer-process buffer))))))))
 
 (defun request--curl-get-cookies (host localpart secure)
   "Return entry for HOST LOCALPART SECURE in cookie jar."
