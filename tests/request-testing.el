@@ -166,6 +166,7 @@ The symbols other than `response' is bound using `cl-symbol-macrolet'."
                        collect `(,f ,s))
           (unwind-protect
               (progn ,@body)
+	    (ignore)
             ,@(cl-loop for s in symbols
                        collect `(ignore-errors (delete-file ,s)))))))))
 

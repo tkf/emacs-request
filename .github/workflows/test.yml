@@ -19,75 +19,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04]
-        emacs_version: [25.3, 26.3, 27.2, 28.2]
-        python_version: [2.7, 3.6]
+        os: [ubuntu-22.04]
+        emacs_version: [27.2, 28.2, 29.2]
 
     steps:
-    - uses: actions/checkout@v1
-
-    - uses: actions/setup-python@v1
-      with:
-        python-version: ${{ matrix.python_version }}
-
+    - uses: actions/checkout@v4
     - uses: purcell/setup-emacs@master
       with:
         version: ${{ matrix.emacs_version }}
-
-    - uses: actions/cache@v1
-      if: startsWith(runner.os, 'Linux')
+    - uses: actions/cache@v4
+      id: cache-cask-packages
       with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-${{ matrix.python_version }}-pip-000
-
-    - uses: actions/cache@v1
-      with:
-        path: ~/local
-        key: ${{ runner.os }}-local-000
-
-    - uses: actions/cache@v1
-      with:
-        path: ~/.emacs.d
-        key: emacs.d
-
-    - uses: actions/cache@v1
+        path: .cask
+        key: cache-cask-packages-000
+    - uses: actions/cache@v4
+      id: cache-cask-executable
       with:
         path: ~/.cask
-        key: cask-002
-
-    - name: paths
-      run: |
-        echo "$HOME/local/bin" >> $GITHUB_PATH
-        echo "$HOME/local/cask/bin" >> $GITHUB_PATH
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
-        echo "LD_LIBRARY_PATH=$HOME/.local/lib" >> $GITHUB_ENV
-
-    - name: apt-get
-      if: |
-        startsWith(matrix.python_version, '2') ||
-        startsWith(matrix.emacs_version, '27')
-      run: |
-        sudo apt-get -yq update
-        DEBIAN_FRONTEND=noninteractive sudo apt-get -yq install gnutls-bin sharutils gnupg2 dirmngr libreadline-dev libcurl4-openssl-dev virtualenv
-
-    - name: dependencies
-      if: startsWith(matrix.python_version, '2')
-      run: |
-        pip install yq setuptools wheel
-        pip install Flask==1.0.2 tornado==5.1.1
-        pip uninstall -y Werkzeug
-        pip install Werkzeug==0.14.1
-
-    - name: cask
-      if: |
-        startsWith(matrix.python_version, '2') ||
-        startsWith(matrix.emacs_version, '27')
-      run: |
-        sh tools/install-cask.sh
-        cask link list
-      continue-on-error: ${{ matrix.emacs_version == 'snapshot' }}
-
-    - name: test
-      if: startsWith(matrix.python_version, '2')
-      run: make test
-      continue-on-error: ${{ matrix.emacs_version == 'snapshot' }}
+        key: cache-cask-executable-000
+    - uses: cask/setup-cask@master
+      if: steps.cache-cask-executable.outputs.cache-hit != 'true'
+      with:
+        version: snapshot
+    - run: echo "$HOME/.cask/bin" >> $GITHUB_PATH
+    - name: compile
+      run: make compile
