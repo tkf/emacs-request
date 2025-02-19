@@ -1,8 +1,3 @@
-;;; -*- coding: utf-8; lexical-binding: t -*-
-;;; Author: ywatanabe
-;;; Timestamp: <2025-02-20 08:45:29>
-;;; File: /tmp/emacs-request/request.el
-
 ;;; request.el --- Compatible layer for URL request  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2012 Takafumi Arakaki
@@ -1804,11 +1799,3 @@ See info entries on sentinels regarding PROC and EVENT."
 (provide 'request)
 
 ;;; request.el ends here
-
-(provide 'request)
-
-(when
-    (not load-file-name)
-  (message "request.el loaded."
-           (file-name-nondirectory
-            (or load-file-name buffer-file-name))))
